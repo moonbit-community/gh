@@ -43,7 +43,7 @@ jobs:
         run: moon update
 
       - name: Check formatting including automation
-        run: moon fmt --check . scripts/read_smoke.mbtx scripts/mutation_smoke.mbtx scripts/operations_smoke.mbtx scripts/api_smoke.mbtx scripts/release_candidate.mbtx scripts/verify_candidate.mbtx scripts/release_smoke.mbtx
+        run: moon fmt --check . scripts/read_smoke.mbtx scripts/mutation_smoke.mbtx scripts/operations_smoke.mbtx scripts/api_smoke.mbtx scripts/release_candidate.mbtx scripts/test_native_packages.mbtx scripts/verify_candidate.mbtx scripts/release_smoke.mbtx
 
       - name: Generate public interfaces
         run: moon info

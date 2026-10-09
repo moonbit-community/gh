@@ -18,8 +18,11 @@ host details are also recorded in each candidate manifest.
 ## What must pass
 
 1. Source and `.mbtx` formatting; regeneration of committed public interfaces.
-2. Native and all-target MoonBit checks with `--deny-warn`, Native tests, and a
-   release build.
+2. Native and all-target MoonBit checks with `--deny-warn`, the nine Native test
+   packages (133 tests total) run as bounded sequential subprocesses, and a
+   release build. Package-level execution keeps a Windows test failure
+   attributable to one package and prevents a stuck test from hiding later
+   evidence.
 3. The staged executable's version/help and all 66 CLI fixture scenarios.
 4. Candidate verification and release-tool regressions, including running the
    bundled verifier after relocating a candidate copy.

@@ -1,0 +1,46 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+// Run package test executables one at a time so a platform-specific native
+// test can be identified and bounded without weakening the full test set.
+async fn main {
+  guard @env.args().length() == 1 else {
+    fail("test_native_packages.mbtx takes no arguments")
+  }
+  let packages = [
+    "ZSeanYves/gh", "cli", "internal/auth", "internal/pagination", "internal/trace",
+    "internal/transport", "internal/wire_json", "moonhub", "native",
+  ]
+  let mut total_output = ""
+  for pkg in packages {
+    println("native test package: " + pkg)
+    let output = @shell.Cmd(
+      "moon",
+      ["test", "--target", "native", "--strip", "-j", "1", "-p", pkg],
+      inherit_env=true,
+    ).output(timeout_ms=180000, max_output_bytes=8388608)
+    total_output += output.stdout() + output.stderr()
+    println(output.stdout())
+    println(output.stderr())
+    if output.exit_code() != 0 {
+      fail("native test package failed: " + pkg)
+    }
+  }
+  for
+    result in [
+      "Total tests: 13, passed: 13, failed: 0.", "Total tests: 22, passed: 22, failed: 0.",
+      "Total tests: 3, passed: 3, failed: 0.", "Total tests: 6, passed: 6, failed: 0.",
+      "Total tests: 5, passed: 5, failed: 0.", "Total tests: 6, passed: 6, failed: 0.",
+      "Total tests: 3, passed: 3, failed: 0.", "Total tests: 71, passed: 71, failed: 0.",
+      "Total tests: 4, passed: 4, failed: 0.",
+    ] {
+    if !total_output.contains(result) {
+      fail("native package tests did not report every expected passing package")
+    }
+  }
+}
