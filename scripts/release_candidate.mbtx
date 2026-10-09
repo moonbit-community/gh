@@ -544,7 +544,7 @@ async fn make_executable(path : String) -> Unit {
 
 ///|
 #cfg(platform="windows")
-async fn make_executable(_path : String) -> Unit {
+fn make_executable(_path : String) -> Unit {
   // A PE executable needs no POSIX execute bit; upstream chmod is unsupported.
   ()
 }

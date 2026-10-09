@@ -52,7 +52,7 @@ async fn restrict_posix_permissions(path : String) -> Unit {
 
 ///|
 #cfg(platform="windows")
-async fn restrict_posix_permissions(_path : String) -> Unit {
+fn restrict_posix_permissions(_path : String) -> Unit {
   // Windows permissions belong to the parent directory's ACL. Calling the
   // unsupported chmod adapter would make every successful trace append fail.
   ()
