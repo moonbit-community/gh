@@ -131,6 +131,7 @@ async fn local_failure(
     binary,
     args + ["--host", origin, "--json"],
     inherit_env=false,
+    extra_env={ "MOONHUB_CI": "1" },
   )
   (code, out.text(), err.text())
 }

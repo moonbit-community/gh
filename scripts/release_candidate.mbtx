@@ -69,10 +69,12 @@ async fn Candidate::step(
   })
   self.status("running")
   println("candidate: " + name)
-  let output = @shell.Cmd(executable, args, cwd=self.root, inherit_env~).output(
-    timeout_ms=1800000,
-    max_output_bytes=8388608,
-  )
+  // async 0.21.3 leaves the Windows environment block uninitialized when both
+  // inheritance and explicit entries are absent. A harmless explicit entry
+  // keeps version/help isolated from user credentials and creates a valid block.
+  let output = @shell.Cmd(executable, args, cwd=self.root, inherit_env~, env={
+    "MOONHUB_CI": "1",
+  }).output(timeout_ms=1800000, max_output_bytes=8388608)
   @fs.write_file(self.directory + "/" + stdout, output.stdout())
   @fs.write_file(self.directory + "/" + stderr, output.stderr())
   let code = output.exit_code()
@@ -410,9 +412,7 @@ async fn build_candidate(candidate : Candidate) -> Unit {
   let (_, help) = candidate.step(
     "binary-help",
     executable,
-    // Empty argv is the documented top-level help path and avoids relying on
-    // a platform command-line parser to pass a leading option verbatim.
-    [],
+    ["--help"],
     inherit_env=false,
   )
   if !help.contains("MoonHub") || !help.contains("api") {

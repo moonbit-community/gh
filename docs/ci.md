@@ -56,15 +56,21 @@ Windows MSVC emits C4005 for `EINVAL` in the pinned upstream async library's
 retained in the evidence logs; `--deny-warn` gates MoonBit diagnostics and does
 not mean that every upstream C compilation is warning-free.
 
-POSIX trace files are created with mode 0600, existing files are tightened, and
-cooperating readers/writers use the upstream advisory lock. Windows uses the
-ACL inherited from the explicitly selected parent directory; the pinned
-upstream filesystem adapter currently returns `ERROR_ACCESS_DENIED` for its
-simulated advisory file lock, so the client uses a single-writer trace file on
-Windows until a native lock adapter is supplied. The adapter cannot inspect or
-change Windows ACLs and does not implement `chmod` there. Neither the no-op
-Windows lock/permission adapters nor a successful trace append proves that an
-arbitrary Windows directory is private or safe for concurrent writers.
+Cooperating trace readers/writers use the upstream shared/exclusive file locks
+on all three platforms. Windows opens the appender with `ReadWrite` plus append
+so that the upstream adapter retains `GENERIC_READ`, which `LockFileEx` accepts;
+the original write-only append handle held only `FILE_APPEND_DATA` and could
+not lock. A regression holds a competing lock and verifies that appending waits.
+POSIX trace files are created with mode 0600 and existing files tightened.
+Windows inherits its explicitly private parent directory's ACL; the pinned
+adapter cannot inspect/change ACLs or implement `chmod` there. Successful
+locking and append do not prove that an arbitrary Windows directory is private.
+
+Isolated CLI fixture processes always receive at least one explicit environment
+entry, including the credential-free help/version and invalid-input probes.
+The pinned upstream Windows process adapter does not initialize an entirely
+empty environment block; a harmless `MOONHUB_CI=1` entry avoids that path while
+keeping parent credentials out of those child processes.
 
 The matrix verifies Native client behavior with loopback HTTP and temporary
 files. Real MoonHub acceptance, system HTTPS trust and invalid certificate

@@ -7,11 +7,8 @@
 ///
 /// On POSIX, files are created with owner-only permissions and existing files
 /// tightened before writing. Windows inherits the caller's private directory
-/// ACL; the upstream adapter cannot inspect or change ACLs. POSIX cooperating
-/// writers serialize appends with an advisory lock. The pinned upstream Windows
-/// adapter currently returns ERROR_ACCESS_DENIED for its simulated advisory
-/// lock, so Windows requires a private single-writer trace file until a native
-/// Windows lock adapter is available.
+/// ACL; the upstream adapter cannot inspect or change ACLs. Cooperating writers
+/// serialize appends with an advisory lock.
 /// A crash can leave the attempt unrecorded or the final line incomplete.
 pub async fn append(
   path : String,
@@ -31,7 +28,7 @@ pub async fn append(
   }
   let file = @fs.open(
     path,
-    mode=WriteOnly,
+    mode=trace_append_mode,
     create_mode=OpenOrCreate,
     append=true,
     permission=0o600,
@@ -42,34 +39,21 @@ pub async fn append(
     fail("Trace output must be a regular file")
   }
   restrict_posix_permissions(path)
-  lock_exclusive(file)
-  defer unlock_trace(file)
+  file.lock(Exclusive)
+  defer file.unlock()
   file.write(line)
 }
 
 ///|
 #cfg(not(platform="windows"))
-async fn lock_exclusive(file : @fs.File) -> Unit {
-  file.lock(Exclusive)
-}
+let trace_append_mode : @fs.Mode = WriteOnly
 
 ///|
+// Upstream maps WriteOnly+append to FILE_APPEND_DATA without GENERIC_WRITE.
+// LockFileEx requires GENERIC_READ or GENERIC_WRITE: ReadWrite+append retains
+// GENERIC_READ while keeping writes restricted to append by the same adapter.
 #cfg(platform="windows")
-fn lock_exclusive(_file : @fs.File) -> Unit {
-
-}
-
-///|
-#cfg(not(platform="windows"))
-fn unlock_trace(file : @fs.File) -> Unit {
-  file.unlock()
-}
-
-///|
-#cfg(platform="windows")
-fn unlock_trace(_file : @fs.File) -> Unit {
-
-}
+let trace_append_mode : @fs.Mode = ReadWrite
 
 ///|
 #cfg(not(platform="windows"))
