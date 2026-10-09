@@ -124,7 +124,7 @@ moon run --target native scripts/mutation_smoke.mbtx
 moon run --target native scripts/operations_smoke.mbtx
 moon run --target native scripts/api_smoke.mbtx
 moon info
-moon fmt . scripts/read_smoke.mbtx scripts/mutation_smoke.mbtx scripts/operations_smoke.mbtx scripts/api_smoke.mbtx scripts/release_candidate.mbtx scripts/test_native_packages.mbtx scripts/verify_candidate.mbtx scripts/release_smoke.mbtx
+moon fmt . scripts/read_smoke.mbtx scripts/mutation_smoke.mbtx scripts/operations_smoke.mbtx scripts/api_smoke.mbtx scripts/release_candidate.mbtx scripts/verify_candidate.mbtx scripts/release_smoke.mbtx
 ```
 
 The native release executable is

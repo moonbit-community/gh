@@ -359,10 +359,7 @@ async fn build_candidate(candidate : Candidate) -> Unit {
     (name, args) in [
       ("check", ["check", "--deny-warn"]),
       ("check-all", ["check", "--target", "all", "--deny-warn"]),
-      (
-        "test",
-        ["run", "--target", "native", "scripts/test_native_packages.mbtx"],
-      ),
+      ("test", ["test", "--target", "native", "--strip", "-j", "1"]),
       ("build", ["build", "--target", "native", "--release", "--deny-warn"]),
       (
         "verify-script",
