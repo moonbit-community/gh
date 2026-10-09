@@ -18,7 +18,8 @@ host details are also recorded in each candidate manifest.
 ## What must pass
 
 1. Source and `.mbtx` formatting; regeneration of committed public interfaces.
-2. Warning-free Native and all-target checks, Native tests, and release build.
+2. Native and all-target MoonBit checks with `--deny-warn`, Native tests, and a
+   release build.
 3. The staged executable's version/help and all 66 CLI fixture scenarios.
 4. Candidate verification and release-tool regressions, including running the
    bundled verifier after relocating a candidate copy.
@@ -44,6 +45,16 @@ bundled verifier as described in [release.md](release.md). Keep its build cache
 outside the candidate directory.
 
 ## Platform boundaries
+
+Wire JSON has a depth budget of 128 on every platform. The original 1024-depth
+test exhausted the default Windows Native stack; both arrays and objects now
+exercise boundary acceptance, round-trip output, and rejection at depths 129,
+1024 and 10000. The client continues to reuse the upstream parser.
+
+Windows MSVC emits C4005 for `EINVAL` in the pinned upstream async library's
+`src/internal/event_loop/fs.c`. This is a dependency C compiler diagnostic,
+retained in the evidence logs; `--deny-warn` gates MoonBit diagnostics and does
+not mean that every upstream C compilation is warning-free.
 
 POSIX trace files are created with mode 0600 and existing files tightened.
 Windows uses the ACL inherited from the explicitly selected parent directory;

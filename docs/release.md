@@ -33,7 +33,9 @@ mkdir -p _build/releases
 moon run --target native scripts/release_candidate.mbtx -- _build/releases/local-candidate-1
 ```
 
-The runner checks Native and all-target types, runs Native tests, builds the
+The runner checks Native and all-target types, runs Native tests sequentially
+with backend parallelization disabled for deterministic Windows process/socket
+behavior, and builds the
 release binary, and stages it as `bin/moonhub-gh` (`moonhub-gh.exe` on Windows).
 It runs version/help and all four smoke suites against that staged file. The
 candidate includes LICENSE, usage/contract documentation, a copy of
