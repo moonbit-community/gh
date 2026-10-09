@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/native"
+
+import {
+  "ZSeanYves/gh",
+  "ZSeanYves/gh/cli",
+  "ZSeanYves/gh/moonhub",
+}
+
+// Values
+pub async fn client(base_url~ : String, token? : String, config_path? : String, trace_path? : String, timeout_ms? : Int, max_response_bytes? : Int, read_retry? : @moonhub.ReadRetryPolicy) -> Result[@moonhub.Client, @gh.ApiError]
+
+pub async fn read_trace(String, query? : @gh.TraceQuery, secrets? : Array[String]) -> Result[@gh.TraceQueryResult, @gh.ApiError]
+
+pub async fn run(Array[String]) -> @cli.Output
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,8 @@
+import {
+  "ZSeanYves/gh/internal/wire_json",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitlang/core/json",
+} for "test"

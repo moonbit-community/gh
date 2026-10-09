@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/transport"
+
+import {
+  "ZSeanYves/gh",
+}
+
+// Values
+pub fn native_transport(base_url~ : String, timeout_ms? : Int, max_response_bytes? : Int) -> @gh.Transport raise
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

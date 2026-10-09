@@ -1,0 +1,13 @@
+import {
+  "ZSeanYves/gh",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/os_error",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/json",
+} for "test"
+
+supported_targets = "native"

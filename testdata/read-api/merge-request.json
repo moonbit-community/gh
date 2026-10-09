@@ -1,0 +1,1 @@
+{"version":1,"data":{"number":3,"title":"Add read operations","description":"Expose versioned JSON reads.","source":"feature/read-api","target":"main","draft":false,"status":"open","version":"0","edit_version":"1","merged_sha":null,"job_status":null}}

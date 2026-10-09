@@ -1,0 +1,92 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/cli"
+
+import {
+  "ZSeanYves/gh",
+  "ZSeanYves/gh/moonhub",
+}
+
+// Values
+pub fn argument_error(String, json~ : Bool) -> Output
+
+pub fn failure_output(@gh.ApiFailure, json~ : Bool, outcome? : @moonhub.MutationOutcome) -> Output
+
+pub fn help_text() -> String
+
+pub fn parse(Array[String], host_env? : String, repo_env? : String) -> Result[Invocation, String]
+
+pub async fn run(RunOptions, @moonhub.Client, operation_id~ : String, body? : String) -> Output
+
+pub fn trace_output(Result[@gh.TraceQueryResult, @gh.ApiError], json~ : Bool) -> Output
+
+pub fn version() -> String
+
+// Errors
+
+// Types and methods
+pub enum BodyInput {
+  Literal(String)
+  File(String)
+  Stdin
+}
+
+pub enum Invocation {
+  Help(String)
+  Version
+  Run(RunOptions)
+  Trace(TraceOptions)
+}
+
+pub(all) struct Output {
+  stdout : String
+  stderr : String
+  exit_code : Int
+}
+
+pub enum ReadCommand {
+  Api(@gh.HttpMethod, String, Array[(String, String)])
+  Meta
+  CurrentUser
+  Repositories
+  Repository(@moonhub.RepositoryRef)
+  Issues(@moonhub.RepositoryRef)
+  Issue(@moonhub.RepositoryRef, Int)
+  MergeRequests(@moonhub.RepositoryRef)
+  MergeRequest(@moonhub.RepositoryRef, Int)
+  Pipelines(@moonhub.RepositoryRef)
+  Pipeline(@moonhub.RepositoryRef, String)
+  CancelPipeline(@moonhub.RepositoryRef, String, @moonhub.EntityTag)
+  RerunPipeline(@moonhub.RepositoryRef, String, @moonhub.EntityTag)
+  CreateIssue(@moonhub.RepositoryRef, String)
+  CommentIssue(@moonhub.RepositoryRef, Int)
+  CloseIssue(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
+  ReopenIssue(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
+  CreateMergeRequest(@moonhub.RepositoryRef, String, String, String, Bool)
+  CommentMergeRequest(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
+  MergeMergeRequest(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
+}
+
+pub struct RunOptions {
+  command : ReadCommand
+  base_url : String
+  config_path : String?
+  trace_path : String?
+  json : Bool
+  page : Int
+  per_page : Int
+  paginate : Bool
+  max_pages : Int
+  max_attempts : Int
+  body_input : BodyInput?
+}
+pub fn RunOptions::is_mutation(Self) -> Bool
+
+pub struct TraceOptions {
+  path : String
+  query : @gh.TraceQuery
+  json : Bool
+}
+
+// Type aliases
+
+// Traits

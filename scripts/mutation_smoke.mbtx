@@ -1,0 +1,499 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/process",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/async@0.21.3/http",
+  "moonbitlang/async@0.21.3/socket",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn binary_evidence(path : String) -> Json {
+  guard @fs.kind(path) is @fs.Regular else {
+    fail("smoke binary must be a regular file")
+  }
+  let bytes = @fs.read_file(path).binary()
+  {
+    "path": path.to_json(),
+    "sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)).to_json(),
+    "size": bytes.length().to_json(),
+  }
+}
+
+///|
+async fn prepare_report(path : String, binary : String) -> Unit {
+  if @fs.exists(path) {
+    guard @fs.realpath(path) != binary else {
+      fail("smoke report must not replace the binary")
+    }
+    guard @fs.kind(path, follow_symlink=false) is @fs.Regular else {
+      fail("existing smoke report must be a regular file")
+    }
+    @fs.remove(path)
+  }
+}
+
+///|
+struct Scenario {
+  args : Array[String]
+  path : String
+  request : Json
+  tag : String?
+  status : Int
+  fixture : String
+}
+
+///|
+// Exactly one request must complete each CLI write. The fixture does not
+// accept a hidden preflight or retry, and validates the body and precondition.
+async fn exercise(
+  binary : String,
+  args : Array[String],
+  path : String,
+  request_body : Json,
+  response_body : String,
+  tag? : String,
+  status? : Int = 201,
+  stdin_path? : String,
+  disconnect? : Bool = false,
+) -> (Int, String, String) {
+  @async.with_timeout(15000, () => {
+    @async.with_task_group() <| group => {
+      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+      defer server.close()
+      group.spawn_bg() <| () => {
+        let (conn, _) = server.accept()
+        defer conn.close()
+        let request = conn.read_request()
+        assert_eq(request.path, "/api/v1/repos/team/demo" + path)
+        assert_eq(
+          request.headers.get("Authorization"),
+          Some("Bearer mutation-private-token"),
+        )
+        assert_eq(request.headers.get("If-Match"), tag)
+        assert_true(request.meth is @http.Post)
+        assert_eq(request.headers.get("Content-Type"), Some("application/json"))
+        assert_eq(@json.parse(conn.read_all().text()), request_body)
+        if !disconnect {
+          conn.send_response(status, "Fixture", extra_headers={
+            "ETag": "\"result-tag\"",
+            "X-Request-Id": "mutation-fixture-id",
+          })
+          conn..write(response_body).end_response()
+        }
+      }
+      let stdin = match stdin_path {
+        Some(path) => Some(@process.redirect_from_file(path))
+        None => None
+      }
+      let argv = args +
+        [
+          "--host",
+          "http://127.0.0.1:\{server.addr.port()}",
+          "-R",
+          "team/demo",
+          "--json",
+        ]
+      let (code, out, err) = @process.collect_output(
+        binary,
+        argv,
+        stdin?,
+        inherit_env=false,
+        extra_env={ "MOONHUB_TOKEN": "mutation-private-token" },
+      )
+      (code, out.text(), err.text())
+    }
+  })
+}
+
+///|
+// A small stateful fixture proves the same-resource read/write/stale-tag flow
+// against one origin. A rejected stale request leaves the closed state intact.
+async fn conditional_workflow(
+  binary : String,
+  opened : String,
+  closed : String,
+) -> Unit {
+  @async.with_timeout(15000, () => {
+    @async.with_task_group() <| group => {
+      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+      defer server.close()
+      group.spawn_bg() <| () => {
+        let mut tag = "\"workflow-open-1\""
+        for stage in 0..<4 {
+          let (conn, _) = server.accept()
+          defer conn.close()
+          let request = conn.read_request()
+          let path = "/api/v1/repos/team/demo/issues/7"
+          assert_eq(
+            request.headers.get("Authorization"),
+            Some("Bearer mutation-private-token"),
+          )
+          if stage == 0 || stage == 3 {
+            assert_true(request.meth is @http.Get)
+            assert_eq(request.path, path)
+            conn.send_response(200, "Fixture", extra_headers={ "ETag": tag })
+            conn..write(if stage == 0 { opened } else { closed }).end_response()
+          } else {
+            assert_true(request.meth is @http.Post)
+            assert_eq(
+              request.path,
+              path + (if stage == 1 { "/close" } else { "/reopen" }),
+            )
+            assert_eq(conn.read_all().text(), "{}")
+            assert_eq(
+              request.headers.get("If-Match"),
+              Some("\"workflow-open-1\""),
+            )
+            if request.headers.get("If-Match") == Some(tag) {
+              tag = "\"workflow-closed-2\""
+              conn.send_response(200, "Fixture", extra_headers={ "ETag": tag })
+              conn..write(closed).end_response()
+            } else {
+              conn.send_response(412, "Fixture")
+              conn
+              ..write(
+                "{\"version\":1,\"error\":{\"code\":\"precondition_failed\",\"message\":\"stale\"}}",
+              )
+              .end_response()
+            }
+          }
+        }
+      }
+      let common = [
+        "--host",
+        "http://127.0.0.1:\{server.addr.port()}",
+        "-R",
+        "team/demo",
+        "--json",
+      ]
+      let environment = { "MOONHUB_TOKEN": "mutation-private-token" }
+      let (code, out, err) = @process.collect_output(
+        binary,
+        ["issue", "view", "7"] + common,
+        inherit_env=false,
+        extra_env=environment,
+      )
+      assert_eq(code, 0)
+      assert_eq(err.text(), "")
+      guard @json.parse(out.text()) is { "etag": String(tag), .. } else {
+        fail("missing GET ETag")
+      }
+      let (code, out, err) = @process.collect_output(
+        binary,
+        ["issue", "close", "7", "--if-match", tag] + common,
+        inherit_env=false,
+        extra_env=environment,
+      )
+      assert_eq(code, 0)
+      assert_eq(err.text(), "")
+      assert_true(
+        @json.parse(out.text())
+        is { "etag": String(new_tag), "data": { "status": "closed", .. }, .. } &&
+        new_tag != tag,
+      )
+      let (code, out, err) = @process.collect_output(
+        binary,
+        ["issue", "reopen", "7", "--if-match", tag] + common,
+        inherit_env=false,
+        extra_env=environment,
+      )
+      assert_eq(code, 4)
+      assert_eq(out.text(), "")
+      assert_true(
+        @json.parse(err.text())
+        is { "error": { "status": 412, "outcome": "rejected", .. }, .. },
+      )
+      let (code, out, err) = @process.collect_output(
+        binary,
+        ["issue", "view", "7"] + common,
+        inherit_env=false,
+        extra_env=environment,
+      )
+      assert_eq(code, 0)
+      assert_eq(err.text(), "")
+      assert_true(
+        @json.parse(out.text()) is { "data": { "status": "closed", .. }, .. },
+      )
+    }
+  })
+}
+
+///|
+async fn main {
+  let root = @env.current_dir().unwrap_or(".")
+  let args = @env.args()
+  guard args.length() >= 1 && args.length() <= 3 else {
+    fail("usage: mutation_smoke.mbtx [BINARY [REPORT]]")
+  }
+  let binary = @fs.realpath(
+    if args.length() >= 2 {
+      args[1]
+    } else {
+      root + "/_build/native/release/build/cmd/main/main.exe"
+    },
+  )
+  let report_path = if args.length() == 3 {
+    args[2]
+  } else {
+    root + "/_build/increment-3-smoke.json"
+  }
+  prepare_report(report_path, binary)
+  let evidence = binary_evidence(binary)
+  let directory = @fs.tmpdir(prefix="gh-mutation-smoke-")
+  defer @fs.rmdir(directory, recursive=true)
+  let trace = directory + "/trace.jsonl"
+  let body_path = directory + "/body.txt"
+  let title = "Document the API"
+  let description = "Explain the machine API contract."
+  let comment = "mutation-private-body 月\nsecond line\n"
+  @fs.write_file(body_path, comment)
+  let issue = @fs.read_file(root + "/testdata/read-api/issue.json").text()
+  let closed = @fs.read_file(root + "/testdata/mutations/issue-closed.json").text()
+  conditional_workflow(binary, issue, closed)
+  let tag = "\"previous-tag\""
+  let cases : Array[Scenario] = [
+    {
+      args: ["issue", "create", "--title", title, "--body", description],
+      path: "/issues",
+      request: {
+        "title": title.to_json(),
+        "description": description.to_json(),
+      },
+      tag: None,
+      status: 201,
+      fixture: "issue-created",
+    },
+    {
+      args: ["issue", "comment", "7", "--body", comment],
+      path: "/issues/7/comments",
+      request: { "body": comment.to_json() },
+      tag: None,
+      status: 201,
+      fixture: "issue-commented",
+    },
+    {
+      args: ["issue", "close", "7", "--if-match", tag],
+      path: "/issues/7/close",
+      request: Json::empty_object(),
+      tag: Some(tag),
+      status: 200,
+      fixture: "issue-closed",
+    },
+    {
+      args: ["issue", "reopen", "7", "--if-match", tag],
+      path: "/issues/7/reopen",
+      request: Json::empty_object(),
+      tag: Some(tag),
+      status: 200,
+      fixture: "issue-reopened",
+    },
+    {
+      args: [
+        "pr", "create", "--title", title, "--body", description, "--source", "docs/api",
+        "--target", "main",
+      ],
+      path: "/merge-requests",
+      request: {
+        "title": title.to_json(),
+        "description": description.to_json(),
+        "source": "docs/api",
+        "target": "main",
+        "draft": false,
+      },
+      tag: None,
+      status: 201,
+      fixture: "merge-request-created",
+    },
+    {
+      args: ["pr", "comment", "3", "--body", comment, "--if-match", tag],
+      path: "/merge-requests/3/comments",
+      request: { "body": comment.to_json() },
+      tag: Some(tag),
+      status: 201,
+      fixture: "merge-request-commented",
+    },
+    {
+      args: ["pr", "merge", "3", "--if-match", tag],
+      path: "/merge-requests/3/merge",
+      request: Json::empty_object(),
+      tag: Some(tag),
+      status: 202,
+      fixture: "merge-accepted",
+    },
+  ]
+  let verified : Array[String] = [
+    "stateful GET close stale-reopen preserves resource and ETag",
+  ]
+  for scenario in cases {
+    let response = @fs.read_file(
+      root + "/testdata/mutations/" + scenario.fixture + ".json",
+    ).text()
+    let tag = scenario.tag
+    let (code, out, err) = exercise(
+      binary,
+      scenario.args + ["--trace", trace],
+      scenario.path,
+      scenario.request,
+      response,
+      tag?,
+      status=scenario.status,
+    )
+    assert_eq(code, 0)
+    assert_eq(err, "")
+    guard @json.parse(out)
+      is {
+        "data": actual,
+        "outcome": String(outcome),
+        "etag": String("\"result-tag\""),
+        ..
+      } &&
+      @json.parse(response) is { "data": expected, .. } else {
+      fail("invalid mutation output")
+    }
+    assert_eq(actual, expected)
+    assert_eq(
+      outcome,
+      if scenario.status == 202 {
+        "accepted"
+      } else {
+        "applied"
+      },
+    )
+    verified.push(scenario.fixture)
+  }
+  let issue_receipt = @fs.read_file(
+    root + "/testdata/mutations/issue-commented.json",
+  ).text()
+  for input in [body_path, "-"] {
+    let stdin_path = if input == "-" { Some(body_path) } else { None }
+    let (code, out, err) = exercise(
+      binary,
+      ["issue", "comment", "7", "--body-file", input],
+      "/issues/7/comments",
+      { "body": comment.to_json() },
+      issue_receipt,
+      stdin_path?,
+    )
+    assert_eq(code, 0)
+    assert_eq(err, "")
+    assert_true(@json.parse(out) is { "outcome": "applied", .. })
+  }
+  verified.push("UTF-8 body file and stdin")
+  let write_args = ["issue", "comment", "7", "--body", comment]
+  for
+    (status, expected_code) in [
+      (401, 3),
+      (403, 3),
+      (409, 4),
+      (412, 4),
+      (500, 1),
+    ] {
+    let response = "{\"version\":1,\"error\":{\"code\":\"conflict\",\"message\":\"mutation-private-token mutation-private-body\"}}"
+    let (code, out, err) = exercise(
+      binary,
+      write_args,
+      "/issues/7/comments",
+      { "body": comment.to_json() },
+      response,
+      status~,
+    )
+    assert_eq(code, expected_code)
+    assert_eq(out, "")
+    let outcome = if status == 500 { "unknown" } else { "rejected" }
+    assert_true(
+      @json.parse(err) is { "error": { "outcome": String(actual), .. }, .. } &&
+      actual == outcome,
+    )
+    assert_false(err.contains("mutation-private-token"))
+    assert_false(err.contains("mutation-private-body"))
+  }
+  verified.push("permission conflict and server-error outcomes")
+  for
+    (response, disconnect, expected_code) in [
+      ("<html>private</html>", false, 1),
+      ("", true, 5),
+    ] {
+    let (code, out, err) = exercise(
+      binary,
+      write_args,
+      "/issues/7/comments",
+      { "body": comment.to_json() },
+      response,
+      disconnect~,
+    )
+    assert_eq(code, expected_code)
+    assert_eq(out, "")
+    assert_true(
+      @json.parse(err) is { "error": { "outcome": "unknown", .. }, .. },
+    )
+  }
+  verified.push("malformed receipt and post-write disconnect never retried")
+  let (code, out, err) = exercise(
+    binary,
+    write_args + ["--trace", directory + "/missing/trace.jsonl"],
+    "/issues/7/comments",
+    { "body": comment.to_json() },
+    issue_receipt,
+  )
+  assert_eq(code, 0)
+  assert_true(@json.parse(out) is { "outcome": "applied", .. })
+  assert_true(
+    @json.parse(err) is { "warning": { "code": "trace_failed", .. }, .. },
+  )
+  verified.push("trace failure preserves applied write")
+  let trace_text = @fs.read_file(trace).text()
+  let lines = trace_text.trim_end(chars="\n").split("\n").collect()
+  assert_eq(lines.length(), 7)
+  for line in lines {
+    assert_true(@json.parse(line) is { "method": "POST", "attempt": 1, .. })
+  }
+  for
+    secret in [
+      title, description, "mutation-private-token", "mutation-private-body", tag,
+    ] {
+    assert_false(trace_text.contains(secret))
+  }
+  verified.push("seven redacted single-attempt write traces")
+  let (code, out, err) = @process.collect_output(
+    binary,
+    [
+      "issue",
+      "comment",
+      "7",
+      "--body-file",
+      directory + "/missing",
+      "--host",
+      "https://moonhub.example",
+      "-R",
+      "team/demo",
+      "--json",
+    ],
+    inherit_env=false,
+  )
+  assert_eq(code, 2)
+  assert_eq(out.text(), "")
+  assert_true(
+    @json.parse(err.text()) is { "error": { "outcome": "not_sent", .. }, .. },
+  )
+  assert_false(err.text().contains(directory))
+  verified.push("missing body file fails before network")
+  assert_eq(binary_evidence(binary), evidence)
+  let report : Json = {
+    "version": 1,
+    "binary": evidence,
+    "kind": "local-mutation-contract-fixture",
+    "passed": verified.to_json(),
+  }
+  @fs.write_file(
+    report_path,
+    report.stringify(indent=2) + "\n",
+    create_mode=@fs.CreateNew,
+  )
+  println(
+    "Increment 3: \{verified.length()} executable contract scenarios passed",
+  )
+}

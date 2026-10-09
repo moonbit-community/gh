@@ -1,0 +1,347 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/async@0.21.3/shell",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+fn sha256(bytes : Bytes) -> String {
+  @crypto.bytes_to_hex_string(@crypto.sha256(bytes))
+}
+
+///|
+async fn run_script(
+  root : String,
+  script : String,
+  args : Array[String],
+  cwd? : String,
+  build_dir? : String,
+) -> @shell.Output {
+  let build_args = match build_dir {
+    Some(path) => ["--target-dir", path]
+    None => []
+  }
+  @shell.Cmd(
+    "moon",
+    ["run", "--target", "native"] +
+    build_args +
+    [root + "/scripts/" + script + ".mbtx", "--"] +
+    args,
+    cwd=cwd.unwrap_or(root),
+  ).output(timeout_ms=120000, max_output_bytes=1048576)
+}
+
+///|
+async fn verify(root : String, candidate : String, build_dir? : String) -> Unit {
+  let result = run_script(root, "verify_candidate", [candidate], build_dir?)
+  if result.exit_code() != 0 {
+    fail("candidate verifier failed: " + result.stdout() + result.stderr())
+  }
+  assert_true(@json.parse(result.stdout()) is { "status": "verified", .. })
+}
+
+///|
+async fn rejected(
+  root : String,
+  script : String,
+  args : Array[String],
+  diagnostic : String,
+) -> Unit {
+  let result = run_script(root, script, args)
+  if result.exit_code() == 0 ||
+    !(result.stdout() + result.stderr()).contains(diagnostic) {
+    fail(
+      "expected " +
+      script +
+      " to reject with " +
+      diagnostic +
+      ": " +
+      result.stdout() +
+      result.stderr(),
+    )
+  }
+}
+
+///|
+// Copy only a candidate that the verifier has already accepted. All destructive
+// cases below operate on this temporary copy, never on the caller's candidate.
+async fn copy_candidate(source : String, target : String) -> Unit {
+  @fs.mkdir(target, permission=0o700)
+  for name in @fs.readdir(source, include_hidden=true, sort=true) {
+    let input = source + "/" + name
+    let output = target + "/" + name
+    match @fs.kind(input, follow_symlink=false) {
+      Directory => copy_candidate(input, output)
+      Regular => {
+        let permission = if @fs.can_execute(input) { 0o700 } else { 0o600 }
+        @fs.write_file(
+          output,
+          @fs.read_file(input),
+          create_mode=@fs.CreateNew,
+          permission~,
+        )
+      }
+      _ => fail("candidate changed to a link or special file during copy")
+    }
+  }
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 else { fail("usage: release_smoke.mbtx CANDIDATE") }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let candidate = @fs.realpath(args[1])
+  let report_path = root + "/_build/increment-6-smoke.json"
+  if @fs.exists(report_path) {
+    guard @fs.kind(report_path, follow_symlink=false) is @fs.Regular else {
+      fail("existing release smoke report must be a regular file")
+    }
+    @fs.remove(report_path)
+  }
+  let passed : Array[String] = []
+  verify(root, candidate)
+  passed.push("complete candidate verifies")
+  let manifest_bytes = @fs.read_file(candidate + "/manifest.json").binary()
+  let manifest_hash = sha256(manifest_bytes)
+  guard @json.parse(@fs.read_file(candidate + "/manifest.json").text())
+    is {
+      "binary": {
+        "path": String(binary_relative),
+        "sha256": String(binary_hash),
+        ..
+      },
+      ..
+    } else {
+    fail("verified candidate is missing its binary entry")
+  }
+  let directory = @fs.tmpdir(prefix="gh-release-smoke-")
+  defer @fs.rmdir(directory, recursive=true)
+  let copied = directory + "/relocated"
+  copy_candidate(candidate, copied)
+  // Run the delivered verifier from inside the copied candidate. This also
+  // checks that script execution does not introduce unlisted cache files.
+  verify(copied, copied, build_dir=directory + "/verifier-build")
+  passed.push(
+    "relocated candidate verifies with its bundled script and clean inventory",
+  )
+  let binary = copied + "/" + binary_relative
+  let original_binary = @fs.read_file(binary).binary()
+  assert_true(!original_binary.is_empty())
+  let modified = Bytes::makei(original_binary.length(), i => {
+    if i == 0 {
+      original_binary[i] ^ 0x01
+    } else {
+      original_binary[i]
+    }
+  })
+  @fs.write_file(binary, modified)
+  rejected(root, "verify_candidate", [copied], "size or SHA-256 mismatch")
+  @fs.write_file(binary, original_binary)
+  assert_eq(sha256(@fs.read_file(binary).binary()), binary_hash)
+  passed.push("one changed payload byte is rejected")
+  let fractional_manifest = @fs.read_file(copied + "/manifest.json").json()
+  guard fractional_manifest is { "files": Array(files), .. } &&
+    files[0] is Object(first_entry) &&
+    first_entry.get("size") is Some(Number(size, ..)) else {
+    fail("verified candidate is missing its first inventory size")
+  }
+  assert_eq(first_entry.get("path"), Some(binary_relative.to_json()))
+  first_entry["size"] = Json::number(size + 0.5)
+  @fs.write_file(copied + "/manifest.json", fractional_manifest.stringify())
+  rejected(root, "verify_candidate", [copied], "canonical integer")
+  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  passed.push(
+    "fractional inventory size is rejected without integer truncation",
+  )
+  let check_manifest = @fs.read_file(copied + "/manifest.json").json()
+  guard check_manifest is { "checks": Array(checks), .. } &&
+    checks[0] is Object(first_check) else {
+    fail("missing first check")
+  }
+  first_check["exit_code"] = Json::number(0, repr="1e-999")
+  @fs.write_file(copied + "/manifest.json", check_manifest.stringify())
+  rejected(root, "verify_candidate", [copied], "canonical integer")
+  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  passed.push("underflow exit code cannot masquerade as a successful check")
+  let numeric_manifest = @fs.read_file(copied + "/manifest.json").json()
+  guard numeric_manifest is Object(numbers) else {
+    fail("missing manifest object")
+  }
+  for
+    (key, spelling) in [
+      ("version", "1.0000000000000001"),
+      ("fixture_scenarios", "66.0000000000000001"),
+    ] {
+    let original = numbers.get(key).unwrap()
+    numbers[key] = Json::number(1, repr=spelling)
+    @fs.write_file(copied + "/manifest.json", numeric_manifest.stringify())
+    rejected(root, "verify_candidate", [copied], "canonical integer")
+    numbers[key] = original
+  }
+  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  passed.push("rounded manifest version and fixture count are rejected")
+  let metadata_manifest = @fs.read_file(copied + "/manifest.json").json()
+  guard metadata_manifest is Object(metadata) else {
+    fail("missing manifest object")
+  }
+  for
+    key in [
+      "module", "platform", "toolchain", "dependencies", "source", "observations",
+    ] {
+    let original = metadata.get(key).unwrap()
+    metadata[key] = Json::null()
+    @fs.write_file(copied + "/manifest.json", metadata_manifest.stringify())
+    rejected(root, "verify_candidate", [copied], "metadata")
+    metadata[key] = original
+  }
+  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  passed.push("required provenance metadata cannot be omitted")
+  let inconsistent_manifest = @fs.read_file(copied + "/manifest.json").json()
+  guard inconsistent_manifest is { "checks": Array(checks), .. } &&
+    checks[0] is Object(first_check) else {
+    fail("missing first check")
+  }
+  first_check["executable"] = "different-command"
+  @fs.write_file(copied + "/manifest.json", inconsistent_manifest.stringify())
+  rejected(root, "verify_candidate", [copied], "runner status does not agree")
+  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  passed.push("manifest checks must agree with the completed runner status")
+  let incomplete_manifest = @fs.read_file(copied + "/manifest.json").json()
+  guard incomplete_manifest is Object(fields) &&
+    fields.get("files") is Some(Array(files)) else {
+    fail("missing inventory")
+  }
+  fields["files"] = files
+    .filter(entry => !(entry is { "path": "README.md", .. }))
+    .to_json()
+  @fs.rename(copied + "/README.md", directory + "/saved-readme")
+  @fs.write_file(copied + "/manifest.json", incomplete_manifest.stringify())
+  rejected(
+    root,
+    "verify_candidate",
+    [copied],
+    "missing required candidate payload",
+  )
+  @fs.rename(directory + "/saved-readme", copied + "/README.md")
+  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  passed.push(
+    "required payload cannot disappear together with its inventory entry",
+  )
+  @fs.rename(copied + "/manifest.json", directory + "/saved-manifest.json")
+  rejected(root, "verify_candidate", [copied], "manifest.json")
+  @fs.rename(directory + "/saved-manifest.json", copied + "/manifest.json")
+  passed.push("missing complete manifest is rejected")
+  let extra = copied + "/unlisted.txt"
+  @fs.write_file(extra, "unlisted fixture", create_mode=@fs.CreateNew)
+  rejected(root, "verify_candidate", [copied], "unlisted candidate file")
+  @fs.remove(extra)
+  let extra_link = copied + "/unlisted-link"
+  @fs.symlink(extra_link, target=binary)
+  rejected(root, "verify_candidate", [copied], "link or special file")
+  @fs.remove(extra_link)
+  passed.push("unlisted files and symbolic links are rejected")
+  let existing = directory + "/existing-output"
+  @fs.mkdir(existing)
+  @fs.write_file(existing + "/sentinel", "preserve this file")
+  rejected(
+    root,
+    "release_candidate",
+    [existing],
+    "candidate destination already exists",
+  )
+  assert_eq(@fs.read_file(existing + "/sentinel").text(), "preserve this file")
+  assert_eq(@fs.readdir(existing, include_hidden=true), ["sentinel"])
+  passed.push("candidate runner refuses existing output without modifying it")
+  let incomplete_project = directory + "/incomplete-project"
+  @fs.mkdir(incomplete_project)
+  @fs.write_file(
+    incomplete_project + "/moon.mod",
+    "name = \"fixture/incomplete\"\n",
+  )
+  let failed_candidate = incomplete_project + "/candidate"
+  let result = run_script(
+    root,
+    "release_candidate",
+    [failed_candidate],
+    cwd=incomplete_project,
+  )
+  assert_true(result.exit_code() != 0)
+  assert_true(
+    (result.stdout() + result.stderr()).contains("incomplete module metadata"),
+  )
+  assert_true(
+    @fs.read_file(failed_candidate + "/runner-status.json").json()
+    is { "status": "failed", .. },
+  )
+  assert_false(@fs.exists(failed_candidate + "/manifest.json"))
+  passed.push(
+    "started runner failure retains failed status without a complete manifest",
+  )
+  let suites = ["read", "mutation", "operations", "api"]
+  for suite in suites {
+    rejected(
+      root,
+      suite + "_smoke",
+      [binary, directory + "/unused-report.json", "unexpected"],
+      "usage:",
+    )
+  }
+  assert_false(@fs.exists(directory + "/unused-report.json"))
+  passed.push("all four smoke suites reject extra arguments")
+  let binary_alias = directory + "/binary-alias"
+  @fs.symlink(binary_alias, target=binary)
+  for suite in suites {
+    for report in [binary, binary_alias] {
+      rejected(
+        root,
+        suite + "_smoke",
+        [binary, report],
+        "smoke report must not replace the binary",
+      )
+      assert_eq(sha256(@fs.read_file(binary).binary()), binary_hash)
+    }
+  }
+  passed.push("all four smoke suites preserve binary and realpath aliases")
+  // A regular, non-executable file reaches suite setup and then fails to launch.
+  // The old success marker must have been removed before that failure.
+  let non_executable = directory + "/LICENSE"
+  @fs.write_file(
+    non_executable,
+    @fs.read_file(root + "/LICENSE"),
+    permission=0o600,
+  )
+  for suite in suites {
+    let old_report = directory + "/" + suite + "-old-report.json"
+    @fs.write_file(old_report, "{\"status\":\"old-success\"}")
+    let result = run_script(root, suite + "_smoke", [non_executable, old_report])
+    assert_true(result.exit_code() != 0)
+    assert_false(@fs.exists(old_report))
+  }
+  passed.push("all four failed smoke suites remove historical success reports")
+  verify(root, copied)
+  assert_eq(
+    sha256(@fs.read_file(candidate + "/manifest.json").binary()),
+    manifest_hash,
+  )
+  let report : Json = {
+    "version": 1,
+    "kind": "local-release-tool-regression",
+    "candidate": candidate.to_json(),
+    "candidate_manifest_sha256": manifest_hash.to_json(),
+    "binary_sha256": binary_hash.to_json(),
+    "passed": passed.to_json(),
+  }
+  @fs.write_file(
+    report_path,
+    report.stringify(indent=2) + "\n",
+    create_mode=@fs.CreateNew,
+  )
+  println(
+    "Increment 6: \{passed.length()} release-tool boundary scenarios passed",
+  )
+}

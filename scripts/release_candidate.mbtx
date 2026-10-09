@@ -1,0 +1,550 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/async@0.21.3/io",
+  "moonbitlang/async@0.21.3/shell",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+suberror CandidateError {
+  CandidateError(String)
+}
+
+///|
+struct Candidate {
+  root : String
+  directory : String
+  checks : Array[Json]
+  observations : Array[Json]
+  files : Array[Json]
+  mut active_step : String
+}
+
+///|
+async fn Candidate::status(self : Candidate, status : String) -> Unit {
+  let record : Json = {
+    "version": 1,
+    "status": status,
+    "active_step": self.active_step,
+    "checks": self.checks.to_json(),
+    "observations": self.observations.to_json(),
+    "published": false,
+    "live_server_verified": false,
+  }
+  @fs.write_file(
+    self.directory + "/runner-status.json",
+    record.stringify(indent=2) + "\n",
+  )
+}
+
+///|
+// Every subprocess has literal arguments, bounded output and a timeout. Logs
+// are retained even for a nonzero exit; launch/timeout failures retain the
+// running step with a null exit code instead of pretending it ran successfully.
+async fn Candidate::step(
+  self : Candidate,
+  name : String,
+  executable : String,
+  args : Array[String],
+  allow_failure? : Bool = false,
+  inherit_env? : Bool = true,
+  observation? : Bool = false,
+) -> (Int, String) {
+  self.active_step = name
+  let stdout = "evidence/" + name + ".stdout.log"
+  let stderr = "evidence/" + name + ".stderr.log"
+  let records = if observation { self.observations } else { self.checks }
+  let index = records.length()
+  records.push({
+    "name": name,
+    "executable": executable,
+    "args": args.to_json(),
+    "exit_code": Json::null(),
+    "stdout": stdout,
+    "stderr": stderr,
+  })
+  self.status("running")
+  println("candidate: " + name)
+  let output = @shell.Cmd(executable, args, cwd=self.root, inherit_env~).output(
+    timeout_ms=1800000,
+    max_output_bytes=8388608,
+  )
+  @fs.write_file(self.directory + "/" + stdout, output.stdout())
+  @fs.write_file(self.directory + "/" + stderr, output.stderr())
+  let code = output.exit_code()
+  records[index] = {
+    "name": name,
+    "executable": executable,
+    "args": args.to_json(),
+    "exit_code": code,
+    "stdout": stdout,
+    "stderr": stderr,
+  }
+  self.status("running")
+  if code != 0 && !allow_failure {
+    raise CandidateError("step failed: " + name)
+  }
+  (code, output.stdout())
+}
+
+///|
+// Stream through the existing upstream SHA-256 implementation. The bounded
+// size also keeps JSON integer sizes exact and prevents accidental huge inputs.
+async fn fingerprint(directory : String, path : String) -> Json {
+  let full_path = directory + "/" + path
+  if @fs.kind(full_path, follow_symlink=false) != @fs.Regular {
+    raise CandidateError("candidate files must be regular files")
+  }
+  let file = @fs.open(full_path, mode=@fs.ReadOnly)
+  defer file.close()
+  if file.kind() != @fs.Regular || file.size() > 134217728L {
+    raise CandidateError("candidate file exceeds the regular-file size limit")
+  }
+  let reader : &@io.Reader = file
+  let hasher = @crypto.SHA256::new()
+  let mut size = 0
+  while reader.read_some(max_len=65536) is Some(chunk) {
+    size += chunk.length()
+    if size > 134217728 {
+      raise CandidateError("candidate file changed beyond the size limit")
+    }
+    hasher.update(chunk)
+  }
+  {
+    "path": path,
+    "size": size,
+    "sha256": @crypto.bytes_to_hex_string(hasher.finalize()),
+  }
+}
+
+///|
+async fn Candidate::copy(
+  self : Candidate,
+  source : String,
+  path : String,
+) -> Unit {
+  if @fs.file_size(self.root + "/" + source) > 134217728L {
+    raise CandidateError("source file exceeds the candidate file size limit")
+  }
+  let content = @fs.read_file(self.root + "/" + source)
+  @fs.write_file(
+    self.directory + "/" + path,
+    content,
+    create_mode=@fs.CreateNew,
+  )
+  self.files.push(fingerprint(self.directory, path))
+}
+
+///|
+// A complete marker must cover every payload file, including files introduced
+// by another tool while the candidate was being staged.
+async fn Candidate::check_inventory(self : Candidate, prefix : String) -> Unit {
+  for name in @fs.readdir(self.directory + "/" + prefix, include_hidden=true) {
+    let relative = prefix + name
+    match @fs.kind(self.directory + "/" + relative, follow_symlink=false) {
+      Directory => self.check_inventory(relative + "/")
+      Regular => {
+        guard relative == "runner-status.json" ||
+          self.files.any(entry => {
+            entry is { "path": String(path), .. } && path == relative
+          }) else {
+          raise CandidateError("unlisted candidate file: " + relative)
+        }
+      }
+      _ => raise CandidateError("candidate contains a link or special file")
+    }
+  }
+}
+
+///|
+// moon.mod uses quoted declarations, not a JSON document. This intentionally
+// reads only this repository's simple name/version/repository/import subset;
+// unfamiliar import syntax fails instead of inventing dependency metadata.
+fn module_metadata(source : String) -> (Json, Array[String]) raise {
+  let mut name : String? = None
+  let mut version : String? = None
+  let mut repository : String? = None
+  let mut importing = false
+  let dependencies : Array[String] = []
+  for raw_line in source.split("\n") {
+    let line = raw_line.trim().to_owned()
+    if line == "import {" {
+      importing = true
+    } else if importing {
+      if line == "}" {
+        importing = false
+      } else if line != "" && !line.has_prefix("//") {
+        let value = line.trim_end(chars=",").to_owned()
+        match @json.parse(value) {
+          String(dependency) => dependencies.push(dependency)
+          _ => raise CandidateError("unsupported dependency declaration")
+        }
+      }
+    } else if line.split_once("=") is Some((key, value)) {
+      let key = key.trim().to_owned()
+      if key == "name" || key == "version" || key == "repository" {
+        let value = match @json.parse(value.trim()) {
+          String(text) => text
+          _ => raise CandidateError("module metadata must use quoted strings")
+        }
+        match key {
+          "name" => name = Some(value)
+          "version" => version = Some(value)
+          _ => repository = Some(value)
+        }
+      }
+    }
+  }
+  match (name, version, repository) {
+    (Some(name), Some(version), Some(repository)) if !importing &&
+      dependencies.length() > 0 =>
+      (
+        { "name": name, "version": version, "repository": repository },
+        dependencies,
+      )
+    _ => raise CandidateError("incomplete module metadata")
+  }
+}
+
+///|
+#cfg(not(platform="windows"))
+async fn platform_info(candidate : Candidate) -> (Json, String) {
+  let (_, os) = candidate.step("platform-os", "uname", ["-s"], observation=true)
+  let (_, arch) = candidate.step(
+    "platform-arch",
+    "uname",
+    ["-m"],
+    observation=true,
+  )
+  let (_, detail) = candidate.step(
+    "platform-release",
+    "uname",
+    ["-r"],
+    observation=true,
+  )
+  let os = match os.trim().to_owned() {
+    "Darwin" => "macos"
+    "Linux" => "linux"
+    _ => raise CandidateError("unsupported native candidate platform")
+  }
+  (
+    {
+      "os": os,
+      "arch": arch.trim().to_owned(),
+      "detail": detail.trim().to_owned(),
+      "source": "uname host observation; binary architecture is not independently parsed",
+    },
+    "moonhub-gh",
+  )
+}
+
+///|
+#cfg(platform="windows")
+async fn platform_info(candidate : Candidate) -> (Json, String) {
+  candidate.active_step = "platform-environment"
+  candidate.status("running")
+  let arch = match @env.get_env_var("PROCESSOR_ARCHITEW6432") {
+    Some(arch) => Some(arch)
+    None => @env.get_env_var("PROCESSOR_ARCHITECTURE")
+  }
+  match arch {
+    Some(arch) if arch != "" =>
+      (
+        {
+          "os": "windows",
+          "arch": arch,
+          "detail": @env.get_env_var("OS").unwrap_or("Windows_NT"),
+          "source": "Windows host environment observation; binary architecture is not independently parsed",
+        },
+        "moonhub-gh.exe",
+      )
+    _ => raise CandidateError("Windows host architecture is unavailable")
+  }
+}
+
+///|
+async fn validate_smoke(
+  candidate : Candidate,
+  binary : Json,
+  name : String,
+  script : String,
+  expected_count : Int,
+) -> Unit {
+  let path = "evidence/" + name + "-smoke.json"
+  let binary_path = match binary {
+    { "path": String(path), .. } => candidate.directory + "/" + path
+    _ => raise CandidateError("invalid candidate binary identity")
+  }
+  let binary_path = @fs.realpath(binary_path)
+  ignore(
+    candidate.step(name + "-smoke", "moon", [
+      "run",
+      "--target",
+      "native",
+      "scripts/" + script,
+      binary_path,
+      candidate.directory + "/" + path,
+    ]),
+  )
+  let report = @fs.read_file(candidate.directory + "/" + path).json()
+  match (report, binary) {
+    (
+      {
+        "version": 1,
+        "binary": {
+          "path": String(reported_path),
+          "sha256": String(reported_hash),
+          "size": Number(reported_size, ..),
+          ..
+        },
+        "passed": Array(passed),
+        ..
+      },
+      { "sha256": String(hash), "size": Number(size, ..), .. },
+    ) if reported_path == binary_path &&
+      reported_hash == hash &&
+      reported_size == size &&
+      passed.length() == expected_count =>
+      for scenario in passed {
+        if !(scenario is String(_)) {
+          raise CandidateError("smoke report has an invalid scenario name")
+        }
+      }
+    _ =>
+      raise CandidateError("smoke report does not match the candidate binary")
+  }
+  candidate.files.push(fingerprint(candidate.directory, path))
+}
+
+///|
+async fn build_candidate(candidate : Candidate) -> Unit {
+  let manifest_source = @fs.read_file(candidate.root + "/moon.mod").text()
+  let (module_info, dependencies) = module_metadata(manifest_source)
+  let (platform, binary_name) = platform_info(candidate)
+  let (_, moon_version) = candidate.step(
+    "toolchain",
+    "moon",
+    ["version", "--all"],
+    observation=true,
+  )
+  let (revision_code, revision) = candidate.step(
+    "git-revision",
+    "git",
+    ["rev-parse", "--verify", "HEAD"],
+    allow_failure=true,
+    observation=true,
+  )
+  let (_, git_status) = candidate.step(
+    "git-status",
+    "git",
+    ["status", "--porcelain=v1", "--untracked-files=all"],
+    observation=true,
+  )
+  let revision = if revision_code == 0 {
+    revision.trim().to_owned().to_json()
+  } else {
+    Json::null()
+  }
+  let untracked = git_status.split("\n").any(line => line.has_prefix("?? "))
+  let source : Json = {
+    "revision": revision,
+    "dirty": git_status != "",
+    "untracked": untracked,
+  }
+  for
+    (name, args) in [
+      ("check", ["check", "--deny-warn"]),
+      ("check-all", ["check", "--target", "all", "--deny-warn"]),
+      ("test", ["test", "--target", "native", "--strip", "-j", "1"]),
+      ("build", ["build", "--target", "native", "--release", "--deny-warn"]),
+      (
+        "verify-script",
+        [
+          "check", "--target", "native", "--deny-warn", "scripts/verify_candidate.mbtx",
+        ],
+      ),
+    ] {
+    ignore(candidate.step(name, "moon", args))
+  }
+  @fs.mkdir(candidate.directory + "/bin")
+  @fs.mkdir(candidate.directory + "/docs")
+  @fs.mkdir(candidate.directory + "/licenses")
+  @fs.mkdir(candidate.directory + "/scripts")
+  let binary_path = "bin/" + binary_name
+  candidate.copy("_build/native/release/build/cmd/main/main.exe", binary_path)
+  make_executable(candidate.directory + "/" + binary_path)
+  let binary = candidate.files[0]
+  candidate.copy("LICENSE", "LICENSE")
+  candidate.copy("README.mbt.md", "README.md")
+  // This is a metadata snapshot, not a buildable project. Avoid causing IDEs
+  // to discover a nested module and populate it with unlisted build caches.
+  candidate.copy("moon.mod", "moon.mod.txt")
+  candidate.copy(
+    "scripts/verify_candidate.mbtx", "scripts/verify_candidate.mbtx",
+  )
+  for name in @fs.readdir(candidate.root + "/licenses", sort=true) {
+    candidate.copy("licenses/" + name, "licenses/" + name)
+  }
+  for name in @fs.readdir(candidate.root + "/docs", sort=true) {
+    if name.has_suffix(".md") {
+      candidate.copy("docs/" + name, "docs/" + name)
+    }
+  }
+  let executable = candidate.directory + "/" + binary_path
+  let (_, version) = candidate.step(
+    "binary-version",
+    executable,
+    ["--version"],
+    inherit_env=false,
+  )
+  match module_info {
+    { "version": String(expected_version), .. } if expected_version ==
+      version.trim().to_owned() => ()
+    _ =>
+      raise CandidateError("binary version does not match the module manifest")
+  }
+  let (_, help) = candidate.step(
+    "binary-help",
+    executable,
+    ["--help"],
+    inherit_env=false,
+  )
+  if !help.contains("MoonHub") || !help.contains("api") {
+    raise CandidateError("candidate help does not describe the expected client")
+  }
+  validate_smoke(candidate, binary, "read", "read_smoke.mbtx", 14)
+  validate_smoke(candidate, binary, "mutation", "mutation_smoke.mbtx", 14)
+  validate_smoke(candidate, binary, "operations", "operations_smoke.mbtx", 20)
+  validate_smoke(candidate, binary, "api", "api_smoke.mbtx", 18)
+  for check in candidate.checks + candidate.observations {
+    for key in ["stdout", "stderr"] {
+      match check {
+        Object(fields) =>
+          match fields.get(key) {
+            Some(String(path)) =>
+              candidate.files.push(fingerprint(candidate.directory, path))
+            _ => raise CandidateError("missing step evidence path")
+          }
+        _ => raise CandidateError("invalid check evidence")
+      }
+    }
+  }
+  candidate.active_step = "inventory"
+  candidate.check_inventory("")
+  candidate.active_step = "complete"
+  candidate.status("complete")
+  candidate.files.push(fingerprint(candidate.directory, "runner-status.json"))
+  for previous in candidate.files {
+    match previous {
+      { "path": String(path), .. } =>
+        if fingerprint(candidate.directory, path) != previous {
+          raise CandidateError("candidate file changed during acceptance")
+        }
+      _ => raise CandidateError("invalid candidate file identity")
+    }
+  }
+  let manifest : Json = {
+    "version": 1,
+    "status": "complete",
+    "kind": "local-native-candidate",
+    "module": module_info,
+    "platform": platform,
+    "toolchain": { "moon": moon_version },
+    "dependencies": dependencies.to_json(),
+    "source": source,
+    "binary": binary,
+    "checks": candidate.checks.to_json(),
+    "observations": candidate.observations.to_json(),
+    "files": candidate.files.to_json(),
+    "published": false,
+    "live_server_verified": false,
+    "fixture_scenarios": 66,
+  }
+  // A partial write only ever creates the temporary name. The complete marker
+  // appears through the final same-directory rename, and is never overwritten.
+  let temporary = candidate.directory + "/manifest.json.pending"
+  @fs.write_file(
+    temporary,
+    manifest.stringify(indent=2) + "\n",
+    create_mode=@fs.CreateNew,
+  )
+  @fs.rename(temporary, candidate.directory + "/manifest.json", replace=false)
+}
+
+///|
+async fn run_candidate() -> Unit {
+  let args = @env.args()
+  if args.length() > 2 {
+    raise CandidateError("usage: release_candidate.mbtx [NEW_OUTPUT_DIRECTORY]")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let directory = if args.length() == 2 {
+    if args[1].trim().is_empty() {
+      raise CandidateError("output directory must not be empty")
+    }
+    args[1]
+  } else {
+    let parent = root + "/_build/releases"
+    if !@fs.exists(parent) {
+      @fs.mkdir(parent, recursive=true)
+    }
+    let random = match @env.rand(12) {
+      Some(bytes) => @crypto.bytes_to_hex_string(bytes)
+      None =>
+        raise CandidateError("cannot generate a fresh candidate directory")
+    }
+    parent + "/candidate-" + random
+  }
+  // mkdir is exclusive, including for dangling symlinks and racing creators.
+  // Custom output parents must already exist; no existing output is reused.
+  let existing = @fs.kind(directory, follow_symlink=false) catch {
+    _ => @fs.Unknown
+  }
+  if existing != @fs.Unknown {
+    raise CandidateError("candidate destination already exists")
+  }
+  @fs.mkdir(directory, permission=0o700)
+  let candidate : Candidate = {
+    root,
+    directory: @fs.realpath(directory),
+    checks: [],
+    observations: [],
+    files: [],
+    active_step: "initializing",
+  }
+  candidate.status("running")
+  errdefer (@async.protect_from_cancel(() => candidate.status("failed")) catch {
+    _ => ()
+  })
+  @fs.mkdir(candidate.directory + "/evidence")
+  build_candidate(candidate)
+  println("Local Native candidate: " + candidate.directory)
+  println(
+    "66 fixture scenarios passed; no server or distribution was published.",
+  )
+}
+
+///|
+async fn main {
+  run_candidate() catch {
+    CandidateError(message) => fail(message)
+    error => raise error
+  }
+}
+
+///|
+#cfg(not(platform="windows"))
+async fn make_executable(path : String) -> Unit {
+  @fs.chmod(path, 0o755)
+}
+
+///|
+#cfg(platform="windows")
+async fn make_executable(_path : String) -> Unit {
+  // A PE executable needs no POSIX execute bit; upstream chmod is unsupported.
+  ()
+}

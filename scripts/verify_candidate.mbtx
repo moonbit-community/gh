@@ -1,0 +1,336 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbitstack/moonjson@0.4.0",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+// These checks establish internal consistency, not publisher authenticity.
+// A copied candidate can be checked without running its executable.
+fn relative_path(path : String) -> Bool {
+  !path.is_empty() &&
+  path.length() <= 512 &&
+  path
+  .split("/")
+  .all(part => {
+    !part.is_empty() &&
+    part != "." &&
+    part != ".." &&
+    part
+    .iter()
+    .all(c => c is ('a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.'))
+  })
+}
+
+///|
+fn file_entry(value : Json) -> (String, Int, String) raise {
+  guard value
+    is { "path": String(path), "size": size, "sha256": String(hash), .. } else {
+    fail("invalid file entry")
+  }
+  let size = canonical_integer(size)
+  guard relative_path(path) &&
+    size >= 0 &&
+    hash.length() == 64 &&
+    hash.iter().all(c => c is ('0'..='9' | 'a'..='f')) else {
+    fail("invalid file path, size or SHA-256")
+  }
+  (path, size, hash)
+}
+
+///|
+fn canonical_integer(value : Json) -> Int raise {
+  guard value is Number(_, ..) else { fail("expected a canonical integer") }
+  let size : Int = @json.from_json(value)
+  guard size >= 0 && value.stringify() == size.to_string() else {
+    fail("expected a nonnegative canonical integer")
+  }
+  size
+}
+
+///|
+// Keep number spellings so rounded fractions and underflow cannot stand in for
+// a schema version, a zero exit status, or a byte count.
+async fn read_json(path : String) -> Json {
+  @moonjson.loads(@fs.read_file(path).text(), {
+    ..@moonjson.strict,
+    depth: 1024,
+  })
+}
+
+///|
+fn validate_metadata(manifest : Json) -> Unit raise {
+  guard manifest
+    is {
+      "module": {
+        "name": "ZSeanYves/gh",
+        "version": String(version),
+        "repository": String(_),
+        ..
+      },
+      "platform": {
+        "os": String(os),
+        "arch": String(arch),
+        "detail": String(_),
+        "source": String(source),
+        ..
+      },
+      "toolchain": { "moon": String(toolchain), .. },
+      "dependencies": Array(dependencies),
+      "source": {
+        "revision": revision,
+        "dirty": True
+        | False,
+        "untracked": True
+        | False,
+        ..
+      },
+      "observations": Array(_),
+      ..
+    } else {
+    fail("missing or invalid provenance metadata")
+  }
+  guard !version.is_empty() &&
+    (os == "macos" || os == "linux" || os == "windows") &&
+    !arch.is_empty() &&
+    !source.is_empty() &&
+    !toolchain.is_empty() &&
+    (revision is Null || (revision is String(value) && !value.is_empty())) &&
+    !dependencies.is_empty() &&
+    dependencies.all(item => item is String(value) && !value.is_empty()) else {
+    fail("invalid provenance metadata")
+  }
+}
+
+///|
+async fn check_regular(root : String, relative : String) -> Unit {
+  let parts = relative.split("/").to_array()
+  let mut path = root
+  for i in 0..<parts.length() {
+    path += "/" + parts[i].to_owned()
+    let kind = @fs.kind(path, follow_symlink=false)
+    let expected = if i + 1 == parts.length() {
+      @fs.Regular
+    } else {
+      @fs.Directory
+    }
+    guard kind == expected else {
+      fail("not a regular candidate path: " + relative)
+    }
+  }
+}
+
+///|
+async fn digest(path : String) -> (Int, String) {
+  let file = @fs.open(path, mode=ReadOnly)
+  defer file.close()
+  guard file.kind() == @fs.Regular else { fail("expected a regular file") }
+  let size = file.size()
+  guard size >= 0L && size <= 536870912L else {
+    fail("candidate file exceeds 512 MiB")
+  }
+  let hash = @crypto.SHA256::new()
+  let mut offset = 0
+  while offset < size.to_int() {
+    let count = Int::min(65536, size.to_int() - offset)
+    hash.update(file.read_exactly_at(count, position=offset.to_int64()))
+    offset += count
+  }
+  guard file.size() == size else { fail("file changed while hashing") }
+  (size.to_int(), @crypto.bytes_to_hex_string(hash.finalize()))
+}
+
+///|
+async fn inventory(
+  root : String,
+  prefix : String,
+  listed : Map[String, (Int, String)],
+) -> Int {
+  let mut count = 0
+  for name in @fs.readdir(root + "/" + prefix, include_hidden=true) {
+    let relative = prefix + name
+    guard relative_path(relative) else { fail("unexpected candidate path") }
+    match @fs.kind(root + "/" + relative, follow_symlink=false) {
+      Directory => count += inventory(root, relative + "/", listed)
+      Regular => {
+        guard relative == "manifest.json" || listed.contains(relative) else {
+          fail("unlisted candidate file: " + relative)
+        }
+        count += 1
+      }
+      _ => fail("candidate contains a link or special file: " + relative)
+    }
+  }
+  count
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 else {
+    fail(
+      "usage: moon run --target native scripts/verify_candidate.mbtx -- CANDIDATE",
+    )
+  }
+  let root = @fs.realpath(args[1])
+  check_regular(root, "manifest.json")
+  guard @fs.file_size(root + "/manifest.json") <= 1048576L else {
+    fail("manifest exceeds 1 MiB")
+  }
+  let manifest = read_json(root + "/manifest.json")
+  validate_metadata(manifest)
+  guard manifest
+    is {
+      "version": version,
+      "status": "complete",
+      "kind": "local-native-candidate",
+      "published": false,
+      "live_server_verified": false,
+      "fixture_scenarios": fixture_scenarios,
+      "binary": binary,
+      "files": Array(files),
+      "checks": Array(checks),
+      ..
+    } else {
+    fail("not a complete version-1 local candidate manifest")
+  }
+  guard canonical_integer(version) == 1 &&
+    canonical_integer(fixture_scenarios) == 66 else {
+    fail("unsupported manifest version or fixture count")
+  }
+  guard files.length() > 0 && files.length() <= 512 else {
+    fail("invalid inventory size")
+  }
+  let listed : Map[String, (Int, String)] = Map([])
+  for entry in files {
+    let (path, size, hash) = file_entry(entry)
+    guard path != "manifest.json" && !listed.contains(path) else {
+      fail("duplicate or self-referencing inventory entry")
+    }
+    check_regular(root, path)
+    guard digest(root + "/" + path) == (size, hash) else {
+      fail("size or SHA-256 mismatch: " + path)
+    }
+    listed[path] = (size, hash)
+  }
+  guard inventory(root, "", listed) == files.length() + 1 else {
+    fail("candidate inventory is incomplete")
+  }
+  for
+    path in [
+      "LICENSE", "README.md", "docs/release.md", "docs/third-party-notices.md", "scripts/verify_candidate.mbtx",
+      "runner-status.json",
+    ] {
+    guard listed.contains(path) else {
+      fail("missing required candidate payload: " + path)
+    }
+  }
+  // Older version-1 candidates shipped the snapshot as moon.mod.
+  guard listed.contains("moon.mod.txt") || listed.contains("moon.mod") else {
+    fail("missing required candidate payload: module metadata snapshot")
+  }
+  let (binary_path, binary_size, binary_hash) = file_entry(binary)
+  guard (binary_path == "bin/moonhub-gh" || binary_path == "bin/moonhub-gh.exe") &&
+    listed.get(binary_path) == Some((binary_size, binary_hash)) else {
+    fail("binary is missing from the inventory or disagrees with its entry")
+  }
+  guard checks.length() == 11 else {
+    fail("candidate must record all eleven checks")
+  }
+  let names : Map[String, Unit] = Map([])
+  for check in checks {
+    guard check
+      is {
+        "name": String(name),
+        "exit_code": exit_code,
+        "executable": String(executable),
+        "args": Array(args),
+        "stdout": String(stdout),
+        "stderr": String(stderr),
+        ..
+      } else {
+      fail("candidate contains an incomplete or failing check")
+    }
+    guard canonical_integer(exit_code) == 0 &&
+      !executable.is_empty() &&
+      args.all(arg => arg is String(_)) else {
+      fail("candidate contains an incomplete or failing check")
+    }
+    guard !names.contains(name) &&
+      listed.contains(stdout) &&
+      listed.contains(stderr) else {
+      fail("duplicate check or missing check logs")
+    }
+    names[name] = ()
+  }
+  for
+    name in [
+      "check", "check-all", "test", "build", "verify-script", "binary-version", "binary-help",
+      "read-smoke", "mutation-smoke", "operations-smoke", "api-smoke",
+    ] {
+    guard names.contains(name) else { fail("missing required check: " + name) }
+  }
+  guard read_json(root + "/runner-status.json")
+    is {
+      "version": runner_version,
+      "status": "complete",
+      "active_step": "complete",
+      "checks": Array(runner_checks),
+      "published": false,
+      "live_server_verified": false,
+      ..
+    } &&
+    canonical_integer(runner_version) == 1 &&
+    runner_checks.to_json().stringify() == checks.to_json().stringify() else {
+    fail("runner status does not agree with the completed manifest")
+  }
+  for
+    (suite, count) in [
+      ("read", 14),
+      ("mutation", 14),
+      ("operations", 20),
+      ("api", 18),
+    ] {
+    let path = "evidence/" + suite + "-smoke.json"
+    guard listed.contains(path) else { fail("missing smoke report: " + suite) }
+    let report = read_json(root + "/" + path)
+    guard report
+      is {
+        "version": report_version,
+        "binary": {
+          "path": String(_),
+          "sha256": String(hash),
+          "size": size,
+          ..
+        },
+        "passed": Array(passed),
+        ..
+      } else {
+      fail("invalid smoke report: " + suite)
+    }
+    let size = canonical_integer(size)
+    guard canonical_integer(report_version) == 1 &&
+      hash == binary_hash &&
+      size == binary_size &&
+      passed.length() == count &&
+      passed.all(item => item is String(_)) else {
+      fail(
+        "smoke report does not match the candidate binary or scenario count: " +
+        suite,
+      )
+    }
+  }
+  let result : Json = {
+    "version": 1,
+    "status": "verified",
+    "candidate": root.to_json(),
+    "files": files.length().to_json(),
+    "binary_sha256": binary_hash.to_json(),
+    "fixture_scenarios": 66,
+  }
+  println(result.stringify(indent=2))
+}

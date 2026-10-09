@@ -1,0 +1,11 @@
+import {
+  "ZSeanYves/gh",
+  "ZSeanYves/gh/moonhub",
+  "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/json",
+} for "test"

@@ -1,0 +1,288 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/process",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/async@0.21.3/http",
+  "moonbitlang/async@0.21.3/socket",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn binary_evidence(path : String) -> Json {
+  guard @fs.kind(path) is @fs.Regular else {
+    fail("smoke binary must be a regular file")
+  }
+  let bytes = @fs.read_file(path).binary()
+  {
+    "path": path.to_json(),
+    "sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)).to_json(),
+    "size": bytes.length().to_json(),
+  }
+}
+
+///|
+async fn prepare_report(path : String, binary : String) -> Unit {
+  if @fs.exists(path) {
+    guard @fs.realpath(path) != binary else {
+      fail("smoke report must not replace the binary")
+    }
+    guard @fs.kind(path, follow_symlink=false) is @fs.Regular else {
+      fail("existing smoke report must be a regular file")
+    }
+    @fs.remove(path)
+  }
+}
+
+///|
+struct Reply {
+  path : String
+  status : Int
+  body : String
+  headers : Map[@http.CaseInsensitiveString, String]
+}
+
+///|
+fn reply(
+  path : String,
+  body : String,
+  status? : Int = 200,
+  headers? : Map[@http.CaseInsensitiveString, String] = Map([]),
+) -> Reply {
+  { path, body, status, headers, }
+}
+
+///|
+// Real executable, sockets, Bearer header and persisted trace. No live account
+// or MoonHub database is used; these are proposed server contract fixtures.
+async fn exercise(
+  binary : String,
+  args : Array[String],
+  replies : Array[Reply],
+) -> (Int, String, String) {
+  @async.with_timeout(15000, () => {
+    @async.with_task_group() <| group => {
+      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+      defer server.close()
+      group.spawn_bg() <| () => {
+        for reply in replies {
+          let (conn, _) = server.accept()
+          defer conn.close()
+          let request = conn.read_request()
+          assert_eq(request.path, reply.path)
+          assert_eq(
+            request.headers.get("Authorization"),
+            Some("Bearer smoke-private-token"),
+          )
+          conn.send_response(
+            reply.status,
+            "Fixture",
+            extra_headers=reply.headers,
+          )
+          conn..write(reply.body).end_response()
+        }
+      }
+      let argv = args.copy()
+      argv.push("--host")
+      argv.push("http://127.0.0.1:\{server.addr.port()}")
+      argv.push("--json")
+      let (code, out, err) = @process.collect_output(
+        binary,
+        argv,
+        inherit_env=false,
+        extra_env={ "MOONHUB_TOKEN": "smoke-private-token" },
+      )
+      (code, out.text(), err.text())
+    }
+  })
+}
+
+///|
+async fn main {
+  let root = @env.current_dir().unwrap_or(".")
+  let args = @env.args()
+  guard args.length() >= 1 && args.length() <= 3 else {
+    fail("usage: read_smoke.mbtx [BINARY [REPORT]]")
+  }
+  let binary = @fs.realpath(
+    if args.length() >= 2 {
+      args[1]
+    } else {
+      root + "/_build/native/release/build/cmd/main/main.exe"
+    },
+  )
+  let report_path = if args.length() == 3 {
+    args[2]
+  } else {
+    root + "/_build/increment-2-smoke.json"
+  }
+  prepare_report(report_path, binary)
+  let evidence = binary_evidence(binary)
+  let directory = @fs.tmpdir(prefix="gh-read-smoke-")
+  defer @fs.rmdir(directory, recursive=true)
+  let trace = directory + "/trace.jsonl"
+  let cases : Array[(Array[String], String, String)] = [
+    (["meta"], "/meta", "meta"),
+    (["auth", "status"], "/user", "user"),
+    (["repo", "list"], "/repos?page=1&per_page=30", "repositories"),
+    (["repo", "view", "team/demo"], "/repos/team/demo", "repository"),
+    (
+      ["issue", "list", "--repo", "team/demo"],
+      "/repos/team/demo/issues?page=1&per_page=30",
+      "issues",
+    ),
+    (
+      ["issue", "view", "7", "-R", "team/demo"],
+      "/repos/team/demo/issues/7",
+      "issue",
+    ),
+    (
+      ["pr", "list", "-R", "team/demo"],
+      "/repos/team/demo/merge-requests?page=1&per_page=30",
+      "merge-requests",
+    ),
+    (
+      ["pr", "view", "3", "-R", "team/demo"],
+      "/repos/team/demo/merge-requests/3",
+      "merge-request",
+    ),
+  ]
+  let verified : Array[String] = []
+  for (command, path, fixture) in cases {
+    let body = @fs.read_file(root + "/testdata/read-api/\{fixture}.json").text()
+    let argv = command.copy()
+    argv.push("--trace")
+    argv.push(trace)
+    let (code, out, err) = exercise(binary, argv, [
+      reply("/api/v1" + path, body),
+    ])
+    assert_eq(code, 0)
+    assert_eq(err, "")
+    let actual = @json.parse(out)
+    let expected = @json.parse(body)
+    guard actual is { "version": 1, "data": actual_data, "pagination": _, .. } &&
+      expected is { "data": expected_data, .. } else {
+      fail("invalid output envelope")
+    }
+    assert_eq(actual_data, expected_data)
+    verified.push(command.join(" "))
+  }
+  let issue_body = @fs.read_file(root + "/testdata/read-api/issues.json").text()
+  let (code, out, err) = exercise(
+    binary,
+    ["issue", "list", "-R", "team/demo", "--paginate", "--trace", trace],
+    [
+      reply("/api/v1/repos/team/demo/issues?page=1&per_page=30", issue_body, headers={
+        "Link": "<?page=2&per_page=30>; rel=\"next\"",
+      }),
+      reply(
+        "/api/v1/repos/team/demo/issues?page=2&per_page=30", "{\"version\":1,\"data\":[]}",
+      ),
+    ],
+  )
+  assert_eq(code, 0)
+  assert_eq(err, "")
+  assert_true(
+    @json.parse(out) is { "pagination": { "pages": 2, "next": Null, .. }, .. },
+  )
+  let lines = @fs.read_file(trace)
+    .text()
+    .trim_end(chars="\n")
+    .split("\n")
+    .collect()
+  assert_eq(lines.length(), 10)
+  let penultimate = @json.parse(lines[8])
+  let last = @json.parse(lines[9])
+  guard penultimate is { "operation_id": first_id, .. } &&
+    last is { "operation_id": second_id, .. } else {
+    fail("missing operation identifiers")
+  }
+  assert_eq(first_id, second_id)
+  assert_true(
+    last is { "attempt": 2, "path": "/api/v1/repos/team/demo/issues", .. },
+  )
+  for line in lines {
+    assert_false(line.contains("smoke-private-token"))
+    assert_false(line.contains("Define the machine API"))
+    assert_false(line.contains("?page="))
+  }
+  verified.push("pagination and per-attempt trace")
+  for (status, expected_exit) in [(403, 3), (412, 4), (500, 1)] {
+    let body = "{\"version\":1,\"error\":{\"code\":\"forbidden\",\"message\":\"smoke-private-token\"}}"
+    let (code, out, err) = exercise(binary, ["auth", "status"], [
+      reply("/api/v1/user", body, status~),
+    ])
+    assert_eq(code, expected_exit)
+    assert_eq(out, "")
+    assert_false(err.contains("smoke-private-token"))
+    assert_true(
+      @json.parse(err)
+      is { "version": 1, "error": { "status": Number(value, ..), .. }, .. } &&
+      value == status.to_double(),
+    )
+  }
+  verified.push("HTTP failures and exit codes 1/3/4")
+  let (code, out, err) = exercise(binary, ["auth", "status"], [
+    reply("/api/v1/user", "<html>smoke-private-token</html>"),
+  ])
+  assert_eq(code, 1)
+  assert_eq(out, "")
+  assert_true(@json.parse(err) is { "error": { "code": "decode", .. }, .. })
+  verified.push("malformed success is a decode failure")
+  let meta = @fs.read_file(root + "/testdata/read-api/meta.json").text()
+  let (code, out, err) = exercise(
+    binary,
+    ["meta", "--trace", directory + "/missing/trace.jsonl"],
+    [reply("/api/v1/meta", meta)],
+  )
+  assert_eq(code, 0)
+  assert_true(@json.parse(out) is { "data": { "api_version": 1, .. }, .. })
+  assert_true(
+    @json.parse(err) is { "warning": { "code": "trace_failed", .. }, .. },
+  )
+  verified.push("trace write failure preserves HTTP success")
+  let (code, out, err) = @process.collect_output(
+    binary,
+    ["issue", "view", "bad-secret-number", "--json"],
+    inherit_env=false,
+  )
+  assert_eq(code, 2)
+  assert_eq(out.text(), "")
+  assert_false(err.text().contains("bad-secret-number"))
+  assert_true(
+    @json.parse(err.text())
+    is { "error": { "code": "invalid_request", .. }, .. },
+  )
+  verified.push("invalid arguments exit 2 with no echo")
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  let closed_origin = "http://127.0.0.1:\{server.addr.port()}"
+  server.close()
+  let (code, out, err) = @process.collect_output(
+    binary,
+    ["meta", "--host", closed_origin, "--json"],
+    inherit_env=false,
+  )
+  assert_eq(code, 5)
+  assert_eq(out.text(), "")
+  assert_true(
+    @json.parse(err.text()) is { "error": { "code": "transport", .. }, .. },
+  )
+  verified.push("connection failure exit 5")
+  assert_eq(binary_evidence(binary), evidence)
+  let report : Json = {
+    "version": 1,
+    "binary": evidence,
+    "kind": "local-contract-fixture",
+    "passed": verified.to_json(),
+  }
+  @fs.write_file(
+    report_path,
+    report.stringify(indent=2) + "\n",
+    create_mode=@fs.CreateNew,
+  )
+  println(
+    "Increment 2: \{verified.length()} executable contract scenarios passed",
+  )
+}

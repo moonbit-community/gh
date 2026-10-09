@@ -1,0 +1,23 @@
+import {
+  "ZSeanYves/gh",
+  "ZSeanYves/gh/moonhub",
+  "ZSeanYves/gh/cli",
+  "ZSeanYves/gh/internal/auth",
+  "ZSeanYves/gh/internal/transport",
+  "ZSeanYves/gh/internal/trace",
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/io",
+  "moonbitlang/async/stdio",
+}
+
+import {
+  "moonbitlang/async/http",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/json",
+} for "test"
+
+supported_targets = "native"

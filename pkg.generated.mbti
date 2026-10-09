@@ -1,0 +1,112 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh"
+
+// Values
+pub fn all_http_methods() -> Array[HttpMethod]
+
+pub fn api_error_for_status(status~ : Int, message~ : String) -> ApiError
+
+pub fn get_method() -> HttpMethod
+
+pub fn normalize_origin(String) -> Result[String, ApiError]
+
+pub fn parse_trace_jsonl(String, query? : TraceQuery, secrets? : Array[String]) -> Result[TraceQueryResult, ApiError]
+
+pub fn transport_error(message~ : String) -> ApiError
+
+pub fn valid_request_path(String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) enum ApiError {
+  InvalidRequest(message~ : String)
+  Transport(message~ : String)
+  Unauthorized
+  Forbidden
+  NotFound
+  Conflict(message~ : String)
+  RateLimited
+  Server(status~ : Int, message~ : String)
+  UnexpectedStatus(status~ : Int)
+  Decode(message~ : String)
+}
+pub fn ApiError::code(Self) -> String
+
+pub struct ApiFailure {
+  kind : ApiError
+  status : Int?
+  code : String?
+  request_id : String?
+}
+pub fn ApiFailure::new(kind~ : ApiError, status? : Int, code? : String, request_id? : String) -> Self
+
+pub(all) enum HttpMethod {
+  Get
+  Post
+  Put
+  Patch
+  Delete
+}
+pub fn HttpMethod::as_string(Self) -> String
+
+pub struct Request {
+  verb : HttpMethod
+  path : String
+  body : String?
+  headers : Array[(String, String)]
+}
+pub fn Request::new(verb~ : HttpMethod, path~ : String, body? : String, headers? : Array[(String, String)]) -> Self
+
+pub struct Response {
+  status : Int
+  body : String
+  headers : Array[(String, String)]
+}
+pub fn Response::header(Self, String) -> String?
+pub fn Response::new(status~ : Int, body~ : String, headers? : Array[(String, String)]) -> Self
+
+pub struct TraceQuery {
+  operation_id : String?
+  request_id : String?
+  status : Int?
+  verb : HttpMethod?
+  path_prefix : String?
+  limit : Int
+}
+pub fn TraceQuery::new(operation_id? : String, request_id? : String, status? : Int, verb? : HttpMethod, path_prefix? : String, limit? : Int) -> Result[Self, ApiError]
+
+pub struct TraceQueryResult {
+  records : Array[TraceRecord]
+  scanned : Int
+  matched : Int
+  truncated : Bool
+  incomplete_tail : Bool
+}
+pub fn TraceQueryResult::to_json(Self) -> Json
+
+pub struct TraceRecord {
+  operation_id : String
+  attempt : Int
+  verb : HttpMethod
+  path : String
+  status : Int?
+  duration_ms : Int64?
+  request_id : String?
+  error_code : String?
+}
+pub fn TraceRecord::new(operation_id~ : String, attempt~ : Int, verb~ : HttpMethod, path~ : String, status? : Int, duration_ms? : Int64, request_id? : String, error_code? : String) -> Self
+pub fn TraceRecord::redacted(Self, secrets? : Array[String]) -> Self
+pub fn TraceRecord::to_json(Self, secrets? : Array[String]) -> Json
+pub fn TraceRecord::to_json_line(Self, secrets? : Array[String]) -> String
+
+pub struct Transport {
+  origin : String
+  // private fields
+}
+pub fn Transport::new(origin~ : String, send~ : async (Request) -> Response) -> Self
+pub async fn Transport::send(Self, Request) -> Response
+
+// Type aliases
+
+// Traits

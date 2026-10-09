@@ -1,0 +1,11 @@
+import {
+  "ZSeanYves/gh/native",
+  "moonbitlang/core/env",
+  "moonbitlang/async",
+  "moonbitlang/async/stdio",
+  "moonbitlang/x/sys",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")

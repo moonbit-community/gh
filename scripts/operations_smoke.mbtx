@@ -1,0 +1,451 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/process",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/async@0.21.3/http",
+  "moonbitlang/async@0.21.3/socket",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn binary_evidence(path : String) -> Json {
+  guard @fs.kind(path) is @fs.Regular else {
+    fail("smoke binary must be a regular file")
+  }
+  let bytes = @fs.read_file(path).binary()
+  {
+    "path": path.to_json(),
+    "sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)).to_json(),
+    "size": bytes.length().to_json(),
+  }
+}
+
+///|
+async fn prepare_report(path : String, binary : String) -> Unit {
+  if @fs.exists(path) {
+    guard @fs.realpath(path) != binary else {
+      fail("smoke report must not replace the binary")
+    }
+    guard @fs.kind(path, follow_symlink=false) is @fs.Regular else {
+      fail("existing smoke report must be a regular file")
+    }
+    @fs.remove(path)
+  }
+}
+
+///|
+struct Reply {
+  path : String
+  verb : String
+  status : Int
+  body : String
+  headers : Map[@http.CaseInsensitiveString, String]
+  if_match : String?
+  disconnect : Bool
+}
+
+///|
+fn reply(
+  path : String,
+  body : String,
+  verb? : String = "GET",
+  status? : Int = 200,
+  headers? : Map[@http.CaseInsensitiveString, String] = Map([]),
+  if_match? : String,
+  disconnect? : Bool = false,
+) -> Reply {
+  { path, body, verb, status, headers, if_match, disconnect, }
+}
+
+///|
+async fn exercise(
+  binary : String,
+  args : Array[String],
+  replies : Array[Reply],
+) -> (Int, String, String) {
+  @async.with_timeout(15000, () => {
+    @async.with_task_group() <| group => {
+      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+      defer server.close()
+      let mut sent = 0
+      group.spawn_bg() <| () => {
+        for reply in replies {
+          let (conn, _) = server.accept()
+          defer conn.close()
+          let request = conn.read_request()
+          sent += 1
+          assert_eq(request.path, reply.path)
+          assert_eq(
+            if request.meth == @http.Get {
+              "GET"
+            } else if request.meth == @http.Post {
+              "POST"
+            } else {
+              "other"
+            },
+            reply.verb,
+          )
+          assert_eq(
+            request.headers.get("Authorization"),
+            Some("Bearer ops-private-token"),
+          )
+          assert_eq(request.headers.get("If-Match"), reply.if_match)
+          if reply.verb == "POST" {
+            let body = conn.read_all()
+            assert_eq(@json.parse(body.text()), Json::empty_object())
+          }
+          if reply.disconnect {
+            continue
+          }
+          conn.send_response(
+            reply.status,
+            "Fixture",
+            extra_headers=reply.headers,
+          )
+          conn..write(reply.body).end_response()
+        }
+      }
+      let argv = args +
+        ["--host", "http://127.0.0.1:\{server.addr.port()}", "--json"]
+      let (code, out, err) = @process.collect_output(
+        binary,
+        argv,
+        inherit_env=false,
+        extra_env={ "MOONHUB_TOKEN": "ops-private-token" },
+      )
+      assert_eq(sent, replies.length())
+      (code, out.text(), err.text())
+    }
+  })
+}
+
+///|
+async fn offline(
+  binary : String,
+  args : Array[String],
+) -> (Int, String, String) {
+  let (code, out, err) = @process.collect_output(
+    binary,
+    args + ["--json"],
+    inherit_env=false,
+    extra_env={
+      "MOONHUB_HOST": "invalid-host",
+      "MOONHUB_TOKEN": "invalid token",
+    },
+  )
+  (code, out.text(), err.text())
+}
+
+///|
+async fn main {
+  let root = @env.current_dir().unwrap_or(".")
+  let args = @env.args()
+  guard args.length() >= 1 && args.length() <= 3 else {
+    fail("usage: operations_smoke.mbtx [BINARY [REPORT]]")
+  }
+  let binary = @fs.realpath(
+    if args.length() >= 2 {
+      args[1]
+    } else {
+      root + "/_build/native/release/build/cmd/main/main.exe"
+    },
+  )
+  let report_path = if args.length() == 3 {
+    args[2]
+  } else {
+    root + "/_build/increment-4-smoke.json"
+  }
+  prepare_report(report_path, binary)
+  let evidence = binary_evidence(binary)
+  let directory = @fs.tmpdir(prefix="gh-operations-smoke-")
+  defer @fs.rmdir(directory, recursive=true)
+  let trace = directory + "/trace.jsonl"
+  let verified : Array[String] = []
+  let base = "/api/v1/repos/team/demo/pipelines"
+  let cases : Array[(Array[String], String, String, String, Int, String?)] = [
+    (["pipeline", "list"], "?page=1&per_page=30", "list", "GET", 200, None),
+    (["pipeline", "view", "42"], "/42", "view", "GET", 200, None),
+    (
+      ["pipeline", "cancel", "42", "--if-match", "\"run42\""],
+      "/42/cancel",
+      "cancel",
+      "POST",
+      202,
+      Some("\"run42\""),
+    ),
+    (
+      ["pipeline", "rerun", "41", "--if-match", "\"run41\""],
+      "/41/rerun",
+      "rerun",
+      "POST",
+      201,
+      Some("\"run41\""),
+    ),
+  ]
+  for (command, suffix, fixture, verb, status, if_match) in cases {
+    let body = @fs.read_file(root + "/testdata/pipelines/\{fixture}.json").text()
+    let (code, out, err) = exercise(
+      binary,
+      command + ["-R", "team/demo", "--trace", trace],
+      [
+        reply(base + suffix, body, verb~, status~, if_match?, headers={
+          "ETag": "\"run-new\"",
+        }),
+      ],
+    )
+    assert_eq(code, 0)
+    assert_eq(err, "")
+    let output = @json.parse(out)
+    if fixture == "cancel" {
+      assert_true(
+        output
+        is {
+          "outcome": "accepted",
+          "data": { "kind": "cancel_requested", "number": "42", .. },
+          ..
+        },
+      )
+    } else if fixture == "rerun" {
+      assert_true(
+        output
+        is {
+          "outcome": "applied",
+          "data": { "number": "43", "state": "queued", .. },
+          ..
+        },
+      )
+    } else {
+      assert_true(output is { "version": 1, "data": _, .. })
+    }
+    verified.push("pipeline " + fixture)
+  }
+  for
+    (status, expected_exit, outcome) in [
+      (403, 3, "rejected"),
+      (412, 4, "rejected"),
+      (503, 1, "unknown"),
+    ] {
+    let (code, out, err) = exercise(
+      binary,
+      [
+        "pipeline", "cancel", "42", "-R", "team/demo", "--if-match", "\"run42\"",
+        "--max-attempts", "5",
+      ],
+      [
+        reply(
+          base + "/42/cancel",
+          "ops-private-token",
+          verb="POST",
+          status~,
+          if_match="\"run42\"",
+        ),
+      ],
+    )
+    assert_eq(code, expected_exit)
+    assert_eq(out, "")
+    assert_true(
+      @json.parse(err) is { "error": { "outcome": String(actual), .. }, .. } &&
+      actual == outcome,
+    )
+    assert_false(err.contains("ops-private-token"))
+  }
+  verified.push("pipeline permissions stale ETag and no write retry")
+  let meta = @fs.read_file(root + "/testdata/read-api/meta.json").text()
+  let retry_trace = directory + "/retry.jsonl"
+  let (code, out, err) = exercise(binary, ["meta", "--trace", retry_trace], [
+    reply("/api/v1/meta", "upstream-private-detail", status=503, headers={
+      "X-Request-Id": "retry-1",
+      "Retry-After": "0",
+    }),
+    reply("/api/v1/meta", meta, headers={ "X-Request-Id": "retry-2" }),
+  ])
+  assert_eq(code, 0)
+  assert_eq(err, "")
+  assert_true(@json.parse(out) is { "data": { "api_version": 1, .. }, .. })
+  let retry_content = @fs.read_file(retry_trace).text()
+  let records = retry_content.trim_end(chars="\n").split("\n").collect()
+  assert_eq(records.length(), 2)
+  guard @json.parse(records[0])
+    is {
+      "attempt": 1,
+      "operation_id": String(operation),
+      "request_id": "retry-1",
+      "status": 503,
+      ..
+    } else {
+    fail("first retry record mismatch")
+  }
+  assert_true(
+    @json.parse(records[1])
+    is {
+      "attempt": 2,
+      "operation_id": String(same),
+      "request_id": "retry-2",
+      "status": 200,
+      ..
+    } &&
+    same == operation,
+  )
+  verified.push("transient GET recovery and request-id correlation")
+  let (code, _, _) = exercise(binary, ["meta"], [
+    reply("/api/v1/meta", "", disconnect=true),
+    reply("/api/v1/meta", meta),
+  ])
+  assert_eq(code, 0)
+  verified.push("GET transport failure recovery")
+  let transient = reply("/api/v1/meta", "", status=503)
+  let (code, out, err) = exercise(binary, ["meta"], [
+    transient, transient, transient,
+  ])
+  assert_eq(code, 1)
+  assert_eq(out, "")
+  assert_true(@json.parse(err) is { "error": { "status": 503, .. }, .. })
+  verified.push("default retry bound")
+  let (code, _, _) = exercise(binary, ["meta", "--max-attempts", "1"], [
+    transient,
+  ])
+  assert_eq(code, 1)
+  verified.push("CLI retry disable")
+  let (code, _, _) = exercise(binary, ["meta"], [
+    reply("/api/v1/meta", "", status=429, headers={ "Retry-After": "60" }),
+  ])
+  assert_eq(code, 1)
+  verified.push("Retry-After beyond wait budget stops")
+  let page = @fs.read_file(root + "/testdata/pipelines/list.json").text()
+  let pagination_trace = directory + "/pagination.jsonl"
+  let (code, _, _) = exercise(
+    binary,
+    [
+      "pipeline", "list", "-R", "team/demo", "--paginate", "--trace", pagination_trace,
+    ],
+    [
+      reply(base + "?page=1&per_page=30", page, headers={
+        "Link": "<?page=2&per_page=30>; rel=next",
+      }),
+      reply(base + "?page=2&per_page=30", "", status=502),
+      reply(base + "?page=2&per_page=30", "{\"version\":1,\"data\":[]}"),
+    ],
+  )
+  assert_eq(code, 0)
+  let pages = @fs.read_file(pagination_trace)
+    .text()
+    .trim_end(chars="\n")
+    .split("\n")
+    .collect()
+  assert_eq(pages.length(), 3)
+  for index, line in pages {
+    assert_true(
+      @json.parse(line) is { "attempt": Number(attempt, ..), .. } &&
+      attempt == (index + 1).to_double(),
+    )
+    assert_false(line.contains("?page="))
+  }
+  verified.push("retry and pagination share monotonic attempt sequence")
+  let (code, out, err) = offline(binary, [
+    "trace", "show", operation, "--trace", retry_trace,
+  ])
+  assert_eq(code, 0)
+  assert_eq(err, "")
+  assert_true(
+    @json.parse(out) is { "data": [_, _], "scan": { "matched": 2, .. }, .. },
+  )
+  verified.push("offline trace show without valid host or credentials")
+  let (code, out, _) = offline(binary, [
+    "trace", "list", "--trace", retry_trace, "--request-id", "retry-1", "--status",
+    "503", "--method", "GET", "--path-prefix", "/api/v1/meta", "--limit", "1",
+  ])
+  assert_eq(code, 0)
+  assert_true(
+    @json.parse(out) is { "data": [{ "request_id": "retry-1", .. }], .. },
+  )
+  verified.push("trace filters correlate server request")
+  @fs.write_file(retry_trace, retry_content + "{unfinished")
+  let (code, out, _) = offline(binary, [
+    "trace", "list", "--trace", retry_trace, "--limit", "1",
+  ])
+  assert_eq(code, 0)
+  assert_true(
+    @json.parse(out)
+    is { "scan": { "truncated": true, "incomplete_tail": true, .. }, .. },
+  )
+  @fs.write_file(retry_trace, retry_content + "invalid private data\n")
+  let (code, out, err) = offline(binary, [
+    "trace", "list", "--trace", retry_trace,
+  ])
+  assert_eq(code, 1)
+  assert_eq(out, "")
+  assert_false(err.contains("private data"))
+  verified.push("crash tail reporting and malformed complete record rejection")
+  guard @json.parse(
+      @fs.read_file(root + "/testdata/compatibility/cases.json").text(),
+    )
+    is Array(compatibility) else {
+    fail("invalid compatibility fixture")
+  }
+  for item in compatibility {
+    guard item
+      is {
+        "name": String(name),
+        "args": argv,
+        "path": String(path),
+        "status": status,
+        "exit": expected_exit,
+        "body": body,
+        ..
+      } else {
+      fail("invalid compatibility case")
+    }
+    let argv : Array[String] = @json.from_json(argv)
+    let status : Int = @json.from_json(status)
+    let expected_exit : Int = @json.from_json(expected_exit)
+    let (code, out, err) = exercise(binary, argv, [
+      reply(path, body.stringify(), status~, headers={
+        "X-Request-Id": "compat-request",
+      }),
+    ])
+    assert_eq(code, expected_exit)
+    assert_false((out + err).contains("private-upstream-detail"))
+    if expected_exit == 1 {
+      assert_true(
+        @json.parse(err)
+        is {
+          "error": { "code": "decode", "request_id": "compat-request", .. },
+          ..
+        },
+      )
+    }
+    if name == "Int64 run number preserved" {
+      assert_true(
+        @json.parse(out)
+        is {
+          "data": { "number": "9223372036854775807", "conclusion": Null, .. },
+          ..
+        },
+      )
+    }
+    verified.push("compatibility: " + name)
+  }
+  let all_trace = @fs.read_file(trace).text() +
+    @fs.read_file(pagination_trace).text() +
+    retry_content
+  assert_false(all_trace.contains("ops-private-token"))
+  assert_false(all_trace.contains("upstream-private-detail"))
+  assert_eq(binary_evidence(binary), evidence)
+  let report : Json = {
+    "version": 1,
+    "binary": evidence,
+    "kind": "local-operational-contract-fixture",
+    "passed": verified.to_json(),
+  }
+  @fs.write_file(
+    report_path,
+    report.stringify(indent=2) + "\n",
+    create_mode=@fs.CreateNew,
+  )
+  println(
+    "Increment 4: \{verified.length()} executable contract scenarios passed",
+  )
+}

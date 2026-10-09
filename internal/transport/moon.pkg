@@ -1,0 +1,15 @@
+import {
+  "ZSeanYves/gh",
+  "moonbitlang/async",
+  "moonbitlang/async/http",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/async/socket",
+} for "test"
+
+options(
+  supported_targets: "native",
+)

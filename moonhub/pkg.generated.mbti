@@ -1,0 +1,243 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/moonhub"
+
+import {
+  "ZSeanYves/gh",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn decode_response(@gh.Response, secrets? : Array[String]) -> Result[@gh.Response, @gh.ApiFailure]
+
+pub fn default_api_prefix() -> String
+
+pub fn parse_pipeline_number(String) -> Result[String, @gh.ApiError]
+
+pub fn resolve_token(base_url~ : String, explicit? : String, environment? : String, config_json? : String) -> Result[Token?, @gh.ApiError]
+
+pub fn resource_kinds() -> Array[ResourceKind]
+
+pub fn validate_api_request(@gh.Request) -> Result[Unit, @gh.ApiError]
+
+// Errors
+
+// Types and methods
+pub struct ApiResponse {
+  status : Int
+  data : Json
+  etag : EntityTag?
+  request_id : String?
+}
+
+pub struct ApiResult {
+  value : Result[ApiResponse, @gh.ApiFailure]
+  trace_failed : Bool
+  outcome : MutationOutcome?
+}
+
+pub struct CallResult {
+  response : Result[@gh.Response, @gh.ApiFailure]
+  trace_failed : Bool
+}
+
+pub struct Client {
+  // private fields
+}
+pub async fn Client::api(Self, @gh.Request, operation_id~ : String) -> ApiResult
+pub async fn Client::cancel_pipeline(Self, RepositoryRef, String, if_match~ : EntityTag, operation_id~ : String) -> MutationResult[PipelineCancelReceipt]
+pub async fn Client::close_issue(Self, RepositoryRef, Int, if_match~ : EntityTag, operation_id~ : String) -> MutationResult[Issue]
+pub async fn Client::comment_issue(Self, RepositoryRef, Int, body~ : String, operation_id~ : String) -> MutationResult[CommentReceipt]
+pub async fn Client::comment_merge_request(Self, RepositoryRef, Int, body~ : String, if_match~ : EntityTag, operation_id~ : String) -> MutationResult[CommentReceipt]
+pub async fn Client::create_issue(Self, RepositoryRef, title~ : String, description? : String, operation_id~ : String) -> MutationResult[Issue]
+pub async fn Client::create_merge_request(Self, RepositoryRef, title~ : String, source~ : String, target~ : String, description? : String, draft? : Bool, operation_id~ : String) -> MutationResult[MergeRequest]
+pub async fn Client::current_user(Self, operation_id~ : String) -> ReadResult[User]
+pub async fn Client::execute(Self, @gh.Request, operation_id~ : String, attempt? : Int) -> CallResult
+pub async fn Client::issue(Self, RepositoryRef, Int, operation_id~ : String) -> ReadResult[Issue]
+pub async fn Client::issues(Self, RepositoryRef, page? : Int, per_page? : Int, paginate? : Bool, max_pages? : Int, operation_id~ : String) -> ReadResult[Array[Issue]]
+pub async fn Client::merge_merge_request(Self, RepositoryRef, Int, if_match~ : EntityTag, operation_id~ : String) -> MutationResult[MergeReceipt]
+pub async fn Client::merge_request(Self, RepositoryRef, Int, operation_id~ : String) -> ReadResult[MergeRequest]
+pub async fn Client::merge_requests(Self, RepositoryRef, page? : Int, per_page? : Int, paginate? : Bool, max_pages? : Int, operation_id~ : String) -> ReadResult[Array[MergeRequest]]
+pub async fn Client::meta(Self, operation_id~ : String) -> ReadResult[Meta]
+pub fn Client::new(config~ : ClientConfig, transport~ : @gh.Transport, token? : Token, trace? : async (@gh.TraceRecord) -> Unit, clock? : () -> Int64, read_retry? : ReadRetryPolicy, retry_wait? : async (Int) -> Unit) -> Result[Self, @gh.ApiError]
+pub async fn Client::pipeline(Self, RepositoryRef, String, operation_id~ : String) -> ReadResult[Pipeline]
+pub async fn Client::pipelines(Self, RepositoryRef, page? : Int, per_page? : Int, paginate? : Bool, max_pages? : Int, operation_id~ : String) -> ReadResult[Array[Pipeline]]
+pub async fn Client::reopen_issue(Self, RepositoryRef, Int, if_match~ : EntityTag, operation_id~ : String) -> MutationResult[Issue]
+pub async fn Client::repositories(Self, page? : Int, per_page? : Int, paginate? : Bool, max_pages? : Int, operation_id~ : String) -> ReadResult[Array[Repository]]
+pub async fn Client::repository(Self, RepositoryRef, operation_id~ : String) -> ReadResult[Repository]
+pub async fn Client::rerun_pipeline(Self, RepositoryRef, String, if_match~ : EntityTag, operation_id~ : String) -> MutationResult[Pipeline]
+
+pub struct ClientConfig {
+  base_url : String
+  api_prefix : String
+}
+pub fn ClientConfig::endpoint(Self, path~ : String) -> String
+pub fn ClientConfig::new(base_url~ : String) -> Self
+
+pub struct CommentReceipt {
+  number : Int
+  kind : String
+}
+pub fn CommentReceipt::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn CommentReceipt::to_json(Self) -> Json
+pub impl @json.FromJson for CommentReceipt
+
+pub struct EntityTag {
+  // private fields
+}
+pub fn EntityTag::parse(String) -> Result[Self, @gh.ApiError]
+pub fn EntityTag::value(Self) -> String
+
+pub struct Issue {
+  number : Int
+  title : String
+  description : String
+  status : String
+  author : String?
+  assignee : String?
+  edit_version : String?
+  updated_at : String?
+}
+pub fn Issue::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Issue::to_json(Self) -> Json
+pub impl @json.FromJson for Issue
+
+pub struct MergeReceipt {
+  number : Int
+  version : String
+  job_status : String
+}
+pub fn MergeReceipt::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MergeReceipt::to_json(Self) -> Json
+pub impl @json.FromJson for MergeReceipt
+
+pub struct MergeRequest {
+  number : Int
+  title : String
+  description : String
+  source : String
+  target : String
+  draft : Bool
+  status : String
+  version : String?
+  edit_version : String?
+  merged_sha : String?
+  job_status : String?
+}
+pub fn MergeRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MergeRequest::to_json(Self) -> Json
+pub impl @json.FromJson for MergeRequest
+
+pub struct Meta {
+  api_version : Int
+  server_version : String
+  capabilities : Array[String]
+}
+pub fn Meta::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Meta::to_json(Self) -> Json
+pub impl @json.FromJson for Meta
+
+pub(all) enum MutationOutcome {
+  NotSent
+  Rejected
+  Applied
+  Accepted
+  Unknown
+}
+pub fn MutationOutcome::as_string(Self) -> String
+
+pub struct MutationResult[T] {
+  value : Result[T, @gh.ApiFailure]
+  trace_failed : Bool
+  etag : EntityTag?
+  outcome : MutationOutcome
+}
+
+pub struct Pipeline {
+  number : String
+  workflow_path : String
+  workflow_name : String
+  source_branch : String
+  commit_sha : String
+  state : String
+  conclusion : String?
+  created_at : String
+}
+pub fn Pipeline::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Pipeline::to_json(Self) -> Json
+pub impl @json.FromJson for Pipeline
+
+pub struct PipelineCancelReceipt {
+  number : String
+  kind : String
+}
+pub fn PipelineCancelReceipt::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn PipelineCancelReceipt::to_json(Self) -> Json
+pub impl @json.FromJson for PipelineCancelReceipt
+
+pub struct ReadResult[T] {
+  value : Result[T, @gh.ApiFailure]
+  trace_failed : Bool
+  pages : Int
+  next : String?
+  etag : EntityTag?
+  // private fields
+}
+
+pub struct ReadRetryPolicy {
+  max_attempts : Int
+  initial_delay_ms : Int
+  max_delay_ms : Int
+}
+pub fn ReadRetryPolicy::default() -> Self
+pub fn ReadRetryPolicy::new(max_attempts? : Int, initial_delay_ms? : Int, max_delay_ms? : Int) -> Result[Self, @gh.ApiError]
+
+pub struct Repository {
+  owner : String
+  name : String
+  visibility : String
+  default_branch : String?
+  ssh_url : String?
+}
+pub fn Repository::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn Repository::to_json(Self) -> Json
+pub impl @json.FromJson for Repository
+
+pub struct RepositoryRef {
+  owner : String
+  name : String
+}
+pub fn RepositoryRef::api_path(Self) -> Result[String, @gh.ApiError]
+pub fn RepositoryRef::new(owner~ : String, name~ : String) -> Self
+pub fn RepositoryRef::parse(String) -> Result[Self, @gh.ApiError]
+
+pub enum ResourceKind {
+  Repository
+  Issue
+  MergeRequest
+  Pipeline
+}
+
+type Token
+pub fn Token::authorization(Self) -> String
+pub fn Token::origin(Self) -> String
+pub fn Token::source(Self) -> TokenSource
+
+pub(all) enum TokenSource {
+  Explicit
+  Environment
+  Config
+}
+
+pub struct User {
+  id : String
+  name_key : String
+  display_name : String
+  is_site_admin : Bool
+}
+pub fn User::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn User::to_json(Self) -> Json
+pub impl @json.FromJson for User
+
+// Type aliases
+
+// Traits

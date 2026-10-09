@@ -1,0 +1,475 @@
+///|
+import {
+  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.21.3/process",
+  "moonbitlang/async@0.21.3/fs",
+  "moonbitlang/async@0.21.3/http",
+  "moonbitlang/async@0.21.3/socket",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn binary_evidence(path : String) -> Json {
+  guard @fs.kind(path) is @fs.Regular else {
+    fail("smoke binary must be a regular file")
+  }
+  let bytes = @fs.read_file(path).binary()
+  {
+    "path": path.to_json(),
+    "sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)).to_json(),
+    "size": bytes.length().to_json(),
+  }
+}
+
+///|
+async fn prepare_report(path : String, binary : String) -> Unit {
+  if @fs.exists(path) {
+    guard @fs.realpath(path) != binary else {
+      fail("smoke report must not replace the binary")
+    }
+    guard @fs.kind(path, follow_symlink=false) is @fs.Regular else {
+      fail("existing smoke report must be a regular file")
+    }
+    @fs.remove(path)
+  }
+}
+
+///|
+// One expected connection proves the escape hatch performs neither hidden
+// preflight nor automatic retry. Any extra request cannot finish before timeout.
+async fn exercise(
+  binary : String,
+  args : Array[String],
+  response_body : String,
+  path? : String = "/extensions/example",
+  verb? : String = "GET",
+  request_body? : String = "",
+  status? : Int = 200,
+  response_headers? : Map[@http.CaseInsensitiveString, String] = {
+    "X-Request-Id": "api-fixture-id",
+    "ETag": "\"api-result\"",
+    "Set-Cookie": "session=response-private-cookie",
+    "X-Private-Response": "response-private-cookie",
+  },
+  if_match? : String,
+  marker? : String,
+  stdin_path? : String,
+  disconnect? : Bool = false,
+  json? : Bool = true,
+) -> (Int, String, String) {
+  @async.with_timeout(15000, () => {
+    @async.with_task_group() <| group => {
+      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+      defer server.close()
+      let mut sent = 0
+      group.spawn_bg() <| () => {
+        let (conn, _) = server.accept()
+        defer conn.close()
+        let request = conn.read_request()
+        sent += 1
+        let actual_verb = match request.meth {
+          @http.Get => "GET"
+          @http.Post => "POST"
+          @http.Put => "PUT"
+          @http.Patch => "PATCH"
+          @http.Delete => "DELETE"
+          _ => "unsupported"
+        }
+        assert_eq(actual_verb, verb)
+        assert_eq(request.path, "/api/v1" + path)
+        assert_eq(
+          request.headers.get("Authorization"),
+          Some("Bearer api-private-token"),
+        )
+        assert_eq(request.headers.get("Accept"), Some("application/json"))
+        assert_eq(request.headers.get("If-Match"), if_match)
+        assert_eq(request.headers.get("X-Fixture"), marker)
+        assert_eq(conn.read_all().text(), request_body)
+        if !request_body.is_empty() {
+          assert_eq(
+            request.headers.get("Content-Type"),
+            Some("application/json"),
+          )
+        }
+        if !disconnect {
+          conn.send_response(status, "Fixture", extra_headers=response_headers)
+          conn..write(response_body).end_response()
+        }
+      }
+      let stdin = match stdin_path {
+        Some(path) => Some(@process.redirect_from_file(path))
+        None => None
+      }
+      let argv = args +
+        ["--host", "http://127.0.0.1:\{server.addr.port()}"] +
+        (if json { ["--json"] } else { [] })
+      let (code, out, err) = @process.collect_output(
+        binary,
+        argv,
+        stdin?,
+        inherit_env=false,
+        extra_env={
+          "MOONHUB_TOKEN": "api-private-token",
+          "MOONHUB_REPO": "ignored/repository",
+        },
+      )
+      assert_eq(sent, 1)
+      (code, out.text(), err.text())
+    }
+  })
+}
+
+///|
+async fn local_failure(
+  binary : String,
+  origin : String,
+  args : Array[String],
+) -> (Int, String, String) {
+  let (code, out, err) = @process.collect_output(
+    binary,
+    args + ["--host", origin, "--json"],
+    inherit_env=false,
+  )
+  (code, out.text(), err.text())
+}
+
+///|
+async fn main {
+  let root = @env.current_dir().unwrap_or(".")
+  let args = @env.args()
+  guard args.length() >= 1 && args.length() <= 3 else {
+    fail("usage: api_smoke.mbtx [BINARY [REPORT]]")
+  }
+  let binary = @fs.realpath(
+    if args.length() >= 2 {
+      args[1]
+    } else {
+      root + "/_build/native/release/build/cmd/main/main.exe"
+    },
+  )
+  let report_path = if args.length() == 3 {
+    args[2]
+  } else {
+    root + "/_build/increment-5-smoke.json"
+  }
+  prepare_report(report_path, binary)
+  let evidence = binary_evidence(binary)
+  let directory = @fs.tmpdir(prefix="gh-api-smoke-")
+  defer @fs.rmdir(directory, recursive=true)
+  let trace = directory + "/attempts.jsonl"
+  let fixtures = root + "/testdata/api/"
+  let payload_path = fixtures + "payload.json"
+  let payload = @fs.read_file(payload_path).text()
+  let future = @fs.read_file(fixtures + "future-envelope.json").text()
+  let created = @fs.read_file(fixtures + "created.json").text()
+  let accepted = @fs.read_file(fixtures + "accepted.json").text()
+  let null_value = @fs.read_file(fixtures + "scalar-null.json").text()
+  let malformed = @fs.read_file(fixtures + "malformed.txt").text()
+  let verified : Array[String] = []
+  let endpoint = "/extensions/example?private=query-private-value"
+  let (code, out, err) = exercise(
+    binary,
+    ["api", endpoint, "--trace", trace],
+    future,
+    path=endpoint,
+  )
+  assert_eq(code, 0)
+  assert_eq(err, "")
+  assert_true(
+    @json.parse(out)
+    is {
+      "version": 1,
+      "status": 200,
+      "data": { "version": 7, .. },
+      "request_id": "api-fixture-id",
+      "etag": "\"api-result\"",
+      "outcome": Null,
+      ..
+    },
+  )
+  assert_false(out.contains("response-private-cookie"))
+  verified.push("GET preserves full future JSON envelope and safe metadata")
+  for verb in ["POST", "PUT", "PATCH", "DELETE"] {
+    let (code, out, err) = exercise(
+      binary,
+      [
+        "api", "/extensions/example", "-X", verb, "--input", payload_path, "-H",
+        "If-Match: \"observed-api\"", "--header", "X-Fixture: private-header-value",
+        "--trace", trace,
+      ],
+      created,
+      verb~,
+      request_body=payload,
+      status=201,
+      if_match="\"observed-api\"",
+      marker="private-header-value",
+    )
+    assert_eq(code, 0)
+    assert_eq(err, "")
+    assert_true(@json.parse(out) is { "status": 201, "outcome": "applied", .. })
+    verified.push(
+      verb + " preserves JSON input bytes and conditional/custom headers",
+    )
+  }
+  let (code, out, err) = exercise(
+    binary,
+    ["api", "/extensions/example", "-X", "POST", "--input", "-"],
+    accepted,
+    verb="POST",
+    request_body=payload,
+    status=202,
+    stdin_path=payload_path,
+  )
+  assert_eq(code, 0)
+  assert_eq(err, "")
+  assert_true(@json.parse(out) is { "status": 202, "outcome": "accepted", .. })
+  verified.push("UTF-8 stdin input and accepted asynchronous write")
+  let (code, out, err) = exercise(
+    binary,
+    ["api", "/extensions/example", "-X", "POST"],
+    accepted,
+    verb="POST",
+    status=202,
+    json=false,
+  )
+  assert_eq(code, 0)
+  assert_eq(@json.parse(out), @json.parse(accepted))
+  assert_true(err.contains("accepted; inspect the endpoint for completion"))
+  verified.push("human JSON keeps accepted write status on stderr")
+  for (status, body) in [(204, ""), (205, ""), (200, null_value)] {
+    let (code, out, err) = exercise(
+      binary,
+      ["api", "/extensions/example", "-X", "DELETE"],
+      body,
+      verb="DELETE",
+      status~,
+      response_headers=Map([]),
+    )
+    assert_eq(code, 0)
+    assert_eq(err, "")
+    assert_true(
+      @json.parse(out)
+      is {
+        "data": Null,
+        "etag": Null,
+        "request_id": Null,
+        "outcome": "applied",
+        ..
+      },
+    )
+  }
+  verified.push("empty 204/205 and explicit JSON null responses")
+  let (code, _, _) = exercise(
+    binary,
+    [
+      "api",
+      "/extensions/example",
+      "-X",
+      "POST",
+      "--input",
+      fixtures + "scalar-null.json",
+    ],
+    created,
+    verb="POST",
+    request_body=null_value,
+    status=201,
+  )
+  assert_eq(code, 0)
+  verified.push("JSON null request differs from absent body")
+  for
+    (status, expected_exit, outcome) in [
+      (401, 3, "rejected"),
+      (403, 3, "rejected"),
+      (412, 4, "rejected"),
+      (503, 1, "unknown"),
+    ] {
+    let error_body = @fs.read_file(fixtures + "error-conflict.json").text()
+    let (code, out, err) = exercise(
+      binary,
+      ["api", "/extensions/example", "-X", "POST"],
+      error_body,
+      verb="POST",
+      status~,
+    )
+    assert_eq(code, expected_exit)
+    assert_eq(out, "")
+    assert_true(
+      @json.parse(err)
+      is {
+        "error": {
+          "outcome": String(actual),
+          "request_id": "api-fixture-id",
+          ..
+        },
+        ..
+      } &&
+      actual == outcome,
+    )
+    assert_false(err.contains("api-private-token"))
+  }
+  verified.push("HTTP status and write outcome stay authoritative")
+  for
+    (body, disconnect, expected_exit) in [
+      (malformed, false, 1),
+      ("", false, 1),
+      ("", true, 5),
+    ] {
+    let (code, out, err) = exercise(
+      binary,
+      ["api", "/extensions/example", "-X", "POST"],
+      body,
+      verb="POST",
+      disconnect~,
+    )
+    assert_eq(code, expected_exit)
+    assert_eq(out, "")
+    assert_true(
+      @json.parse(err) is { "error": { "outcome": "unknown", .. }, .. },
+    )
+    assert_false(err.contains("api-private-token"))
+  }
+  verified.push(
+    "malformed empty-success and disconnected writes remain unknown",
+  )
+  let (code, out, err) = exercise(
+    binary,
+    ["api", "/extensions/example", "-X", "POST"],
+    created,
+    verb="POST",
+    response_headers={ "ETag": "W/\"weak\"" },
+  )
+  assert_eq(code, 1)
+  assert_eq(out, "")
+  assert_true(@json.parse(err) is { "error": { "outcome": "unknown", .. }, .. })
+  verified.push("invalid success ETag cannot claim applied write")
+  let (code, out, err) = exercise(
+    binary,
+    ["api", "/extensions/example"],
+    "private-error",
+    status=503,
+  )
+  assert_eq(code, 1)
+  assert_eq(out, "")
+  assert_true(
+    @json.parse(err)
+    is { "error": { "status": 503, "outcome"? : None, .. }, .. },
+  )
+  verified.push("generic GET does not inherit typed read retries")
+  let (code, out, err) = exercise(
+    binary,
+    ["api", "/extensions/example", "-X", "POST"],
+    "",
+    verb="POST",
+    status=302,
+    response_headers={ "Location": "https://other.invalid" },
+  )
+  assert_eq(code, 1)
+  assert_eq(out, "")
+  assert_true(@json.parse(err) is { "error": { "outcome": "unknown", .. }, .. })
+  verified.push("redirect not followed and write result remains unknown")
+  let (code, out, err) = exercise(
+    binary,
+    [
+      "api",
+      "/extensions/example",
+      "-X",
+      "POST",
+      "--trace",
+      directory + "/missing/trace.jsonl",
+    ],
+    created,
+    verb="POST",
+    status=201,
+  )
+  assert_eq(code, 0)
+  assert_true(@json.parse(out) is { "outcome": "applied", .. })
+  assert_true(
+    @json.parse(err) is { "warning": { "code": "trace_failed", .. }, .. },
+  )
+  verified.push("trace failure preserves generic write result")
+  let probe = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  let closed_origin = "http://127.0.0.1:\{probe.addr.port()}"
+  probe.close()
+  for
+    bad in [
+      ["api", "https://other.invalid/private-argument"],
+      ["api", "/api/v1/meta"],
+      ["api", "/../user"],
+      ["api", "/extensions/example", "--input", payload_path],
+      ["api", "/extensions/example", "-X", "HEAD"],
+      ["api", "/extensions/example", "--max-attempts", "2"],
+      ["api", "/extensions/example", "--paginate"],
+      ["api", "/extensions/example", "-H", "Authorization: private-argument"],
+      ["api", "/extensions/example", "-H", "X-HTTP-Method-Override: DELETE"],
+      ["api", "/extensions/example", "-H", "If-Match: *"],
+      ["api", "/extensions/example", "-H", "X-Tag: one", "-H", "x-tag: two"],
+    ] {
+    let (code, out, err) = local_failure(binary, closed_origin, bad)
+    assert_eq(code, 2)
+    assert_eq(out, "")
+    assert_false(err.contains("private-argument"))
+  }
+  verified.push(
+    "paths methods retries and header policy rejected before network",
+  )
+  let invalid_utf8 = directory + "/invalid-utf8.json"
+  let oversized = directory + "/oversized.json"
+  let empty = directory + "/empty.json"
+  @fs.write_file(invalid_utf8, b"\xff")
+  @fs.write_file(oversized, "\"" + "x".repeat(80000) + "\"")
+  @fs.write_file(empty, "")
+  for
+    path in [
+      invalid_utf8,
+      oversized,
+      empty,
+      fixtures + "malformed.txt",
+      directory,
+      directory + "/missing",
+    ] {
+    let (code, out, err) = local_failure(binary, closed_origin, [
+      "api", "/extensions/example", "-X", "POST", "--input", path,
+    ])
+    assert_eq(code, 2)
+    assert_eq(out, "")
+    assert_true(
+      @json.parse(err) is { "error": { "outcome": "not_sent", .. }, .. },
+    )
+    assert_false(err.contains(directory))
+  }
+  verified.push("bounded strict UTF-8 JSON file failures are not sent")
+  let trace_text = @fs.read_file(trace).text()
+  let trace_records = trace_text.trim_end(chars="\n").split("\n").collect()
+  assert_eq(trace_records.length(), 5)
+  for line in trace_records {
+    assert_true(
+      @json.parse(line)
+      is { "attempt": 1, "path": "/api/v1/extensions/example", .. },
+    )
+  }
+  for
+    secret in [
+      "api-private-token", "query-private-value", "private-header-value", "9223372036854775807",
+      "\\u0061",
+    ] {
+    assert_false(trace_text.contains(secret))
+  }
+  verified.push("single-attempt metadata traces omit headers bodies and query")
+  assert_eq(binary_evidence(binary), evidence)
+  let report : Json = {
+    "version": 1,
+    "binary": evidence,
+    "kind": "local-generic-api-contract-fixture",
+    "passed": verified.to_json(),
+  }
+  @fs.write_file(
+    report_path,
+    report.stringify(indent=2) + "\n",
+    create_mode=@fs.CreateNew,
+  )
+  println(
+    "Increment 5: \{verified.length()} executable contract scenarios passed",
+  )
+}
