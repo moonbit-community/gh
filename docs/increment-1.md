@@ -111,8 +111,7 @@ HTTP 状态决定主类别；合法 v1 envelope 的已知 `error.code` 作为辅
 - ID 只允许最多 128 个 ASCII 字母数字及 `._-`；异常文本变为固定错误类别。
 - 不保存 header、正文、代码、响应正文，也不保存 body hash；哈希/大小不是本期必需项。
 - 回调前和 JSONL 序列化时都脱敏。可选字段是标量或 `null`，不是数组。
-- native 文件 sink 追加 JSONL；POSIX 使用 advisory lock 并请求 `0600` 权限，
-  Windows 使用单写者路径（上游 Windows 锁适配器当前返回 `ERROR_ACCESS_DENIED`）；
+- native 文件 sink 追加 JSONL、使用 advisory lock，并请求 POSIX `0600` 权限；
   不自动建父目录，不把 `-` 解释为 stdout，不接受已存在的符号链接或非普通文件。
 - 调用方必须控制父目录。上游缺少 no-follow open/fchmod，故不能宣称防御敌对
   并发换链。Windows ACL 及其他平台权限行为尚未单独验收。
