@@ -369,6 +369,10 @@ conversion/serialization and UTF-8 codecs. The implementation review pins
 `moonbitstack/moonjson@0.4.0` for strict wire JSON parsing: it preserves numeric
 spellings that core parsing rounds away. `internal/wire_json` owns this adapter
 and exact bounded integer policy; no parser is implemented in project code.
+The parser uses a depth budget of 128 on every platform (the root value is
+depth zero). Hosted Windows validation exposed stack exhaustion at the previous
+1024 setting. Excessive nesting is rejected through the existing error path;
+SDK consumers do not need custom linker stack settings.
 Increment 2 reuses `core/argparse` and pins `moonbitlang/x@0.5.5`
 for native process exit rather than adding project FFI. The pins align with the inspected MoonHub source and passed the local
 fixtures. Origins currently accept DNS/IPv4 names; IPv6 literals are deferred

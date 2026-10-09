@@ -45,7 +45,9 @@ This makes invocation count and mutation intent predictable for an AI caller.
 one valid UTF-8 JSON value within **80,000 bytes**, including whitespace. Reads
 use the existing bounded, 30-second native body reader. Objects, arrays and
 scalar JSON values, including `null`, are valid. Empty input, invalid UTF-8,
-invalid JSON and oversized input fail locally. GET cannot have input. Other
+invalid JSON and oversized input fail locally. Wire JSON parsing uses a depth
+budget of 128 on every platform, with the root value at depth zero; this applies
+to request bodies and responses. GET cannot have input. Other
 methods may omit a body; the client does not invent `{}`. After validating JSON,
 the client sends the original text, preserving its number spelling, whitespace
 and string escapes. Input does not come from an inline argv body flag.

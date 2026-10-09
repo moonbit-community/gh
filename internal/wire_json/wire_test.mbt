@@ -65,15 +65,22 @@ test "review wire parser keeps strict syntax and original numeric data" {
     assert_true(rejected)
   }
   assert_true(@wire_json.parse("{\"x\":1,\"x\":2}") is { "x": 2, .. })
-  let nested = Array::make(1024, "[").join("") +
-    "0" +
-    Array::make(1024, "]").join("")
-  ignore(@wire_json.parse(nested))
-  let rejected = try {
-    ignore(@wire_json.parse("[" + nested + "]"))
-    false
-  } catch {
-    _ => true
+}
+
+///|
+test "wire depth budget accepts its boundary and rejects deep arrays and objects" {
+  for (open, close) in [("[", "]"), ("{\"x\":", "}")] {
+    let nested = open.repeat(128) + "0" + close.repeat(128)
+    assert_eq(@wire_json.parse(nested).stringify(), nested)
+    for depth in [129, 1024, 10000] {
+      let excessive = open.repeat(depth) + "0" + close.repeat(depth)
+      let rejected = try {
+        ignore(@wire_json.parse(excessive))
+        false
+      } catch {
+        _ => true
+      }
+      assert_true(rejected)
+    }
   }
-  assert_true(rejected)
 }
