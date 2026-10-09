@@ -59,12 +59,15 @@ Windows MSVC emits C4005 for `EINVAL` in the pinned upstream async library's
 retained in the evidence logs; `--deny-warn` gates MoonBit diagnostics and does
 not mean that every upstream C compilation is warning-free.
 
-POSIX trace files are created with mode 0600 and existing files tightened.
-Windows uses the ACL inherited from the explicitly selected parent directory;
-the caller must select a private directory. The pinned upstream filesystem API
-cannot inspect or change Windows ACLs and does not implement `chmod` there.
-Neither a no-op POSIX permission adapter nor a successful trace append proves
-that an arbitrary Windows directory is private.
+POSIX trace files are created with mode 0600, existing files are tightened, and
+cooperating readers/writers use the upstream advisory lock. Windows uses the
+ACL inherited from the explicitly selected parent directory; the pinned
+upstream filesystem adapter currently returns `ERROR_ACCESS_DENIED` for its
+simulated advisory file lock, so the client uses a single-writer trace file on
+Windows until a native lock adapter is supplied. The adapter cannot inspect or
+change Windows ACLs and does not implement `chmod` there. Neither the no-op
+Windows lock/permission adapters nor a successful trace append proves that an
+arbitrary Windows directory is private or safe for concurrent writers.
 
 The matrix verifies Native client behavior with loopback HTTP and temporary
 files. Real MoonHub acceptance, system HTTPS trust and invalid certificate

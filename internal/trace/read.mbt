@@ -8,8 +8,8 @@ async fn read_locked_trace(path : String) -> String {
   if file.kind() != @fs.Regular {
     fail("trace input must be a regular file")
   }
-  file.lock(Shared)
-  defer file.unlock()
+  lock_shared(file)
+  defer unlock_trace(file)
   let size = file.size()
   if size > 8388608L {
     fail("trace input exceeds 8 MiB")
@@ -18,9 +18,23 @@ async fn read_locked_trace(path : String) -> String {
 }
 
 ///|
+#cfg(not(platform="windows"))
+async fn lock_shared(file : @fs.File) -> Unit {
+  file.lock(Shared)
+}
+
+///|
+#cfg(platform="windows")
+fn lock_shared(_file : @fs.File) -> Unit {
+
+}
+
+///|
 /// Read an explicitly selected UTF-8 JSONL file without network or credentials.
-/// Shared advisory locking gives a consistent snapshot with cooperating
-/// appenders. Read/open/lock are bounded to 30 seconds, input to 8 MiB.
+/// Shared advisory locking gives a consistent snapshot with cooperating POSIX
+/// appenders. Windows uses the single-writer path because the pinned upstream
+/// lock adapter returns ERROR_ACCESS_DENIED. Read/open/lock are bounded to 30
+/// seconds, input to 8 MiB.
 /// Symlinks and nonregular files are refused. As with append(), the upstream
 /// API does not provide no-follow open; callers must control the directory.
 /// Input paths and OS/parser messages are never included in failures.
