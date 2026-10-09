@@ -359,12 +359,7 @@ async fn build_candidate(candidate : Candidate) -> Unit {
     (name, args) in [
       ("check", ["check", "--deny-warn"]),
       ("check-all", ["check", "--target", "all", "--deny-warn"]),
-      (
-        "test",
-        [
-          "test", "--target", "native", "--strip", "-j", "1", "-p", "internal/transport",
-        ],
-      ),
+      ("test", ["test", "--target", "native", "--strip", "-j", "1"]),
       ("build", ["build", "--target", "native", "--release", "--deny-warn"]),
       (
         "verify-script",
@@ -415,7 +410,9 @@ async fn build_candidate(candidate : Candidate) -> Unit {
   let (_, help) = candidate.step(
     "binary-help",
     executable,
-    ["--help"],
+    // Empty argv is the documented top-level help path and avoids relying on
+    // a platform command-line parser to pass a leading option verbatim.
+    [],
     inherit_env=false,
   )
   if !help.contains("MoonHub") || !help.contains("api") {
