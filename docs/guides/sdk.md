@@ -63,8 +63,10 @@ There are three request levels:
 
 For `api` and `execute`, request paths are relative to `/api/v1`, for example
 `/user`. Do not include the prefix again. `Request::new` supports GET, POST, PUT,
-PATCH and DELETE, with optional text bodies and bounded headers. The JSON syntax
-and body restrictions of `api` are described in the
+PATCH and DELETE, with optional text bodies and caller-supplied headers. Both
+entry points validate request paths and reject reserved or malformed headers.
+The additional path, header-count, header-size and JSON-body limits belong to
+`Client.api`; raw `execute` does not impose those size limits. See the
 [API contract](../contracts/api-command.md).
 
 ## Credentials and configuration
