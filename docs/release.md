@@ -147,10 +147,11 @@ The automated equivalent is [Native CI](ci.md), which runs the candidate and
 release-tool verification on Linux x64, macOS arm64 and Windows x64. Its current
 hosted execution evidence is recorded separately from historical local runs.
 
-The prior local runtime acceptance platform is macOS arm64; Increment 6's fresh
-execution record is in [increment-6.md](increment-6.md). Linux and Windows require
-their own native build and smoke runs, especially TLS certificate trust, file
-locking/permissions, stdin/exit behavior and cancellation. `moon check --target
+Hosted Native builds and fixture acceptance have passed on Linux x64, macOS
+arm64 and Windows x64; the source revision, counts and artifact hashes are in
+[ci.md](ci.md#execution-record). Real-server acceptance, TLS certificate trust,
+permissions and broader OS-specific cancellation still require separate
+evidence. `moon check --target
 all` checks portable core/SDK/CLI types; it does not run those platforms and does
 not turn native-only packages into Wasm or JS executables. Ship a binary built
 and checked for its actual OS/architecture, never rename a macOS binary as a
@@ -196,7 +197,8 @@ Compare the printed hash with the manifest and smoke binary identity. The
 candidate runner computes its own hashes with upstream MoonBit crypto; the
 commands above are optional independent review tools. Directory names do not
 assert platform support: use the actual manifest OS/architecture and successful
-evidence. Linux and Windows remain unaccepted until those runs occur.
+evidence. The hosted results cover the recorded runners and fixtures; use these
+commands to validate other deployment hosts or architectures.
 
 The 66 smoke groups use loopback HTTP and disposable local files. They do not
 verify live TLS or every OS-specific filesystem behavior. Before advertising a

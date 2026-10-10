@@ -151,8 +151,10 @@ moon run --target native scripts/release_smoke.mbtx -- _build/releases/local-can
 
 ## 仍需独立完成的发布门槛
 
-当前已有历史运行证据来自 macOS arm64。本轮只在实际执行的宿主上新增验证；
-Linux 和 Windows 仍待各自的 Native 编译与执行，不因脚本提供步骤就变为支持。
+2026-10-10 的 hosted Native CI 已在 Linux x64、macOS arm64、Windows x64
+分别通过 134 项测试、66 个 CLI fixture 场景和 16 项发布工具回归。源码提交、
+运行链接和下载产物核验记录见 [ci.md](ci.md#execution-record)。这些结果仅覆盖
+实际执行的 runner 和场景，不代替下列独立发布门槛。
 宿主信息来自 Unix `uname` 或 Windows 处理器环境变量，不是对可执行文件头的
 架构鉴定；跨架构工具链或兼容层运行需要另行核对实际二进制格式。
 跨平台命令和停止条件见 [release.md](release.md#native-platform-handoff)。

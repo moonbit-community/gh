@@ -96,6 +96,32 @@ prove the remote outcome of an interrupted write.
 
 ## Execution record
 
-The first hosted run is pending. Record results only after GitHub has completed
-the jobs and uploaded the associated evidence; a workflow definition alone does
-not establish platform support.
+On 2026-10-10, [run 38015617543](https://github.com/moonbit-community/gh/actions/runs/38015617543)
+passed on source commit `17b436d40e28e139dbc54ee5679ad5ae3f7945bd` with clean
+checkouts on all three runners. The temporary diagnostic steps had been removed.
+
+| Native platform | Tests | CLI fixture scenarios | Release-tool regressions |
+| --- | --- | --- | --- |
+| Linux x64 | 134/134 | 66/66 | 16/16 |
+| macOS arm64 | 134/134 | 66/66 | 16/16 |
+| Windows x64 | 134/134 | 66/66 | 16/16 |
+
+All three downloaded artifacts were checked against their complete manifests:
+every inventoried file's size/SHA-256, all eleven successful candidate checks,
+the clean source revision, test counts, and the release report's manifest and
+binary identity matched.
+
+Independent `file` inspection of the downloaded binaries identified Linux ELF
+x86-64, macOS Mach-O arm64 and Windows PE32+ x86-64, respectively. The binary
+SHA-256 values for this run are:
+
+```text
+linux-x64     731afb92a51d5755ba308b5e488413212d097af6cb5bf4068970adde40a0712b
+macos-arm64   f31d0b64d67e96a3ce40df1398b37866260f05200e1f648b58a7143ad1339bc9
+windows-x64   a447a3c47175011860b6952d2bdf7c069c7f67c4b2350a50941ad9959514ce9a
+```
+
+This closes hosted Native fixture verification for these three platforms. It
+does not close the separate live-server, TLS, permission, signing or publication
+gates above. Subsequent runs produce their own manifests and checksums; do not
+apply these hashes to a different run's candidate.

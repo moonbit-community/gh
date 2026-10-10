@@ -104,5 +104,7 @@ file inventory, hashes and recorded checks; it does not establish publisher
 identity or replace a release signature. Candidate tooling regression is
 available as `scripts/release_smoke.mbtx -- CANDIDATE` through `moon run`.
 The manifest records `published: false` and `live_server_verified: false`.
-macOS, Linux and Windows each require their own Native run; a typecheck of all
-targets does not establish runtime compatibility.
+[Hosted Native CI](docs/ci.md#execution-record) has passed on Linux x64, macOS
+arm64 and Windows x64, with 134 tests, 66 CLI fixture scenarios and 16 release-tool
+regressions per platform. These are fixture results; live MoonHub, TLS and
+distribution acceptance remain separate gates in [release.md](docs/release.md).
