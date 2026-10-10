@@ -11,6 +11,18 @@ import {
 }
 
 ///|
+// Keep fixture credentials isolated while retaining the Windows system path
+// needed by networking. Never inherit HOME, user tokens, or proxy settings.
+fn fixture_environment(extra : Map[String, String]) -> Map[String, String] {
+  let result = extra.copy()
+  result["MOONHUB_CI"] = "1"
+  if @env.get_env_var("SystemRoot") is Some(root) {
+    result["SystemRoot"] = root
+  }
+  result
+}
+
+///|
 async fn binary_evidence(path : String) -> Json {
   guard @fs.kind(path) is @fs.Regular else {
     fail("smoke binary must be a regular file")
@@ -110,10 +122,10 @@ async fn exercise(
         argv,
         stdin?,
         inherit_env=false,
-        extra_env={
+        extra_env=fixture_environment({
           "MOONHUB_TOKEN": "api-private-token",
           "MOONHUB_REPO": "ignored/repository",
-        },
+        }),
       )
       assert_eq(sent, 1)
       (code, out.text(), err.text())
@@ -131,7 +143,7 @@ async fn local_failure(
     binary,
     args + ["--host", origin, "--json"],
     inherit_env=false,
-    extra_env={ "MOONHUB_CI": "1" },
+    extra_env=fixture_environment({}),
   )
   (code, out.text(), err.text())
 }
