@@ -32,7 +32,11 @@ async fn run_script(
     [root + "/scripts/" + script + ".mbtx", "--"] +
     args,
     cwd=cwd.unwrap_or(root),
-  ).output(timeout_ms=120000, max_output_bytes=1048576)
+  ).output(timeout_ms=120000, max_output_bytes=1048576) catch {
+    @async.TimeoutError =>
+      fail("release regression timed out: " + script + " " + args.join(" "))
+    error => raise error
+  }
 }
 
 ///|

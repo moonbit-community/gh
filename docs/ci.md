@@ -75,6 +75,13 @@ The pinned upstream Windows process adapter does not initialize an entirely
 empty environment block; a harmless `MOONHUB_CI=1` entry avoids that path while
 keeping parent credentials out of those child processes.
 
+CLI fixtures additionally retain only the parent's `SystemRoot`, when present.
+The isolated Windows child returned transport exit code 5 for the first
+loopback request without this system path, despite passing version/help.
+User credentials, home directories and proxy settings are still excluded from
+the fixture environment. Each `.mbtx` suite carries this small allowlist so it
+can also run independently of the candidate runner.
+
 The matrix verifies Native client behavior with loopback HTTP and temporary
 files. Real MoonHub acceptance, system HTTPS trust and invalid certificate
 rejection, a full ACL/permission review, signing, and registry publication remain
