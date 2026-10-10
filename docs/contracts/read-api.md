@@ -1,11 +1,11 @@
 # Proposed MoonHub v1 read API
 
-Status: **client-side proposal and fixtures for Increment 2**. The inspected
-MoonHub server does not yet expose this machine API. Passing these fixtures is
-client contract validation, not live MoonHub acceptance or server implementation.
+This proposed contract defines the JSON read API used by the MoonHub client.
+Client behavior is validated against fixtures; MoonHub server approval,
+implementation and end-to-end acceptance remain pending.
 
-All routes use `/api/v1`, JSON bodies, and the Increment 1 origin-bound Bearer
-token contract. These are MoonHub-native routes; `pr`/`mr` command spelling does
+All routes use `/api/v1`, JSON bodies, and origin-bound Bearer authentication.
+These are MoonHub-native routes; `pr`/`mr` command spelling does
 not change the Merge Request domain model. Browser cookies, form actions,
 database tables and the internal runner API are outside this contract.
 
@@ -22,7 +22,7 @@ database tables and the internal runner API are outside this contract.
 | `GET /repos/{owner}/{repo}/merge-requests` | `MergeRequest[]` | `merge-requests.json` |
 | `GET /repos/{owner}/{repo}/merge-requests/{number}` | `MergeRequest` | `merge-request.json` |
 
-Fixtures live in [`testdata/read-api/`](../testdata/read-api/). Repository
+Fixtures live in [`testdata/read-api/`](../../testdata/read-api/). Repository
 listing means repositories visible to the authenticated identity, with access
 filtering performed by the server. The server owner must confirm that behavior.
 The `/meta` endpoint can be called explicitly; ordinary reads do not silently
@@ -52,15 +52,15 @@ default Option array encoding.
 IDs and versions are canonical decimal strings, preserving integers beyond
 JSON's exact-number range. No sign, leading zero, fraction, whitespace or
 exponent is allowed. Versions may be `"0"`: MoonHub's `current_version` starts at
-zero. Resource numbers are exact positive signed 32-bit integers in this initial
+zero. Resource numbers are exact positive signed 32-bit integers in this
 contract; fractional and overflowing values are rejected. This limit must be
 revisited if the server needs larger public issue/MR numbers.
 
 Descriptions and titles are resource data and may contain private text. They
 may appear in requested command output, but must not appear in errors or trace
 records. `author` and `assignee` are name keys, not embedded user objects.
-`updated_at`, branch names and SHA strings are preserved as strings; this
-increment does not promise timestamp normalization, branch validation, or SHA
+`updated_at`, branch names and SHA strings are preserved as strings; the read
+contract does not promise timestamp normalization, branch validation, or SHA
 validation. Future API additions should preserve these existing field types.
 
 ## Repository reference validation
@@ -103,28 +103,28 @@ Every case-insensitive Link field is combined before parsing, with a combined
 64 KiB ASCII limit; duplicate next relations cannot hide in separate fields.
 An absent next link marks completion, regardless of page length. Every network
 attempt shares the caller's operation ID and has an increasing attempt number.
-Since Increment 4, typed GETs may retry only the bounded transient conditions in
-the [read retry policy](retry-policy.md). Retries and pages share one continuous
+Typed GETs may retry only the bounded transient conditions in
+the [read retry policy](../guides/retries.md). Retries and pages share one continuous
 attempt sequence; writes and raw `execute` remain single-attempt.
 
 ## Errors and observability
 
-HTTP errors retain Increment 1's status-authoritative decoding and sanitized
+HTTP errors use status-authoritative decoding and sanitized
 request IDs. Server error prose is not displayed. The fixture
 `error-forbidden.json` illustrates the existing v1 error envelope.
 
-`ReadResult[T]` carries `value`, `trace_failed`, `pages`, `next`, and (since
-Increment 3) `etag`. An individual resource read validates a supplied strong ETag;
+`ReadResult[T]` carries `value`, `trace_failed`, `pages`, `next`, and `etag`.
+An individual resource read validates a supplied strong ETag;
 absent tags remain null, and list results have no individual resource tag.
 Callers pass a server-issued tag explicitly to conditional writes; tags are not
-constructed from DTO version fields. Read JSON adds the corresponding `etag`
-field. MR data adds optional `job_status` to inspect asynchronous merges.
-See the [mutation contract](mutation-api-contract.md). Transport,
+constructed from DTO version fields. Read JSON includes the corresponding `etag`
+field. MR data includes optional `job_status` to inspect asynchronous merges.
+See the [mutation contract](mutation-api.md). Transport,
 HTTP, envelope, resource-schema and pagination failures are explicit errors;
 there is no partial typed success. `pages` counts successfully decoded envelopes,
 not necessarily successfully decoded DTOs. A resource-schema failure therefore
 may report nonzero pages. No response body or decoder detail is copied into a
-schema failure message. Since Increment 4, single-response schema failures retain
+schema failure message. Single-response schema failures retain
 the successful HTTP status and safe request ID in `ApiFailure`. A multi-page
 aggregate can contain an invalid item from any page, so no single response ID is
 assigned to that schema failure; its individual attempts remain traceable.
@@ -134,12 +134,12 @@ followed by a schema Decode error in the SDK result; the HTTP trace is not
 rewritten or duplicated after decoding. Trace sink errors remain independent
 of request success and accumulate across pagination and retries.
 
-## Server review gate
+## Server integration requirements
 
 Before calling this contract MoonHub-compatible, the server owner must approve
 the route/envelope/field definitions, token permissions and visibility filtering,
 pagination links and limits. Server implementation and an end-to-end run against
 that implementation are separate acceptance work. Client mutations and
-ETag/If-Match are covered by [Increment 3](mutation-api-contract.md); the
-[pipeline contract](pipeline-api-contract.md) defines Increment 4's proposed
+ETag/If-Match are covered by the [mutation contract](mutation-api.md); the
+[pipeline contract](pipeline-api.md) defines proposed pipeline
 client operations. Real server endpoints and token issuance remain pending.

@@ -1,8 +1,11 @@
 # Increment 6：可验证的本地 Native 交付候选
 
+> 历史报告：保留当时的实现范围、限制和验收数字，不代表当前使用说明。
+> 当前行为、命令和平台边界见[文档索引](../README.md)。
+
 状态：**路线 B 已实现；每次候选的验收结果由完成清单和本轮日志记录**。
 
-本轮只修改 gh 客户端仓库，落实 [架构书](architecture.md) 的发布准备工作。
+本轮只修改 gh 客户端仓库，落实 [架构书](../architecture.md) 的发布准备工作。
 选路原因和未选择的服务端路线见 [范围选择记录](increment-6-proposal.md)。
 MoonHub `/api/v1`、用户 API token 生命周期及真实服务器联调继续是独立门槛。
 
@@ -153,11 +156,11 @@ moon run --target native scripts/release_smoke.mbtx -- _build/releases/local-can
 
 2026-10-10 的 hosted Native CI 已在 Linux x64、macOS arm64、Windows x64
 分别通过 134 项测试、66 个 CLI fixture 场景和 16 项发布工具回归。源码提交、
-运行链接和下载产物核验记录见 [ci.md](ci.md#execution-record)。这些结果仅覆盖
+运行链接和下载产物核验记录见 [CI 历史报告](native-ci-2026-10-10.md#execution-record)。这些结果仅覆盖
 实际执行的 runner 和场景，不代替下列独立发布门槛。
 宿主信息来自 Unix `uname` 或 Windows 处理器环境变量，不是对可执行文件头的
 架构鉴定；跨架构工具链或兼容层运行需要另行核对实际二进制格式。
-跨平台命令和停止条件见 [release.md](release.md#native-platform-handoff)。
+跨平台命令和停止条件见[发布说明](../development/release.md#native-platform-handoff)。
 
 在声明一个平台可发布前，还要单独记录系统 TLS 信任链与无效证书拒绝、并发
 trace 锁、凭据／trace 文件权限或 Windows ACL、stdin/EOF、Unicode 路径与

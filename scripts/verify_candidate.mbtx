@@ -222,12 +222,29 @@ async fn main {
   }
   for
     path in [
-      "LICENSE", "README.md", "docs/release.md", "docs/third-party-notices.md", "scripts/verify_candidate.mbtx",
-      "runner-status.json",
+      "LICENSE", "README.md", "scripts/verify_candidate.mbtx", "runner-status.json",
+      "licenses/moonbit-core-LICENSE.txt", "licenses/moonbit-core-NOTICE.txt", "licenses/moonbit-async-LICENSE.txt",
+      "licenses/moonjson-LICENSE.txt",
     ] {
     guard listed.contains(path) else {
       fail("missing required candidate payload: " + path)
     }
+  }
+  // Existing version-1 candidates use the flat documentation layout. Require
+  // one complete layout; mixing individually optional paths could hide a
+  // missing release guide or attribution document.
+  guard (
+      listed.contains("docs/release.md") &&
+      listed.contains("docs/third-party-notices.md")
+    ) ||
+    (
+      listed.contains("docs/README.md") &&
+      listed.contains("docs/development/release.md") &&
+      listed.contains("docs/development/dependencies.md")
+    ) else {
+    fail(
+      "missing required candidate payload: release documentation and notices",
+    )
   }
   // Older version-1 candidates shipped the snapshot as moon.mod.
   guard listed.contains("moon.mod.txt") || listed.contains("moon.mod") else {

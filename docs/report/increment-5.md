@@ -1,5 +1,8 @@
 # Increment 5：通用 JSON API 入口
 
+> 历史报告：保留当时的实现范围、限制和验收数字，不代表当前使用说明。
+> 当前行为、命令和平台边界见[文档索引](../README.md)。
+
 本轮补齐架构书首版范围中的通用 `api` 命令。原来的增量清单只列到 Increment 4，
 没有分配这项已明确要求的能力；现在将其落实为 Increment 5，并保留原有分层。
 MoonHub 服务端实现和真实服务器联调仍是独立验收事项。
@@ -38,7 +41,7 @@ MoonHub 数据库或 Web 包。Native 组合仍使用现有输入读取器、鉴
 HTTP framing 和方法控制；自定义 header 不允许替换这些信息。共享校验限制字段
 数量、长度、ASCII 编码和重复名称，固定 JSON Accept/Content-Type、identity
 编码，并在出现 If-Match 时要求单个强 ETag。完整列表见
-[API 命令契约](api-command-contract.md)。
+[API 命令契约](../contracts/api-command.md)。
 
 Generic 成功响应保留**整个 JSON 值**，不假定服务器 envelope 版本，也不进行
 领域 DTO 字段筛选。204/205 仅接受空正文并映射为 null；其余 2xx 必须包含合法
@@ -99,7 +102,7 @@ stdin 解析职责。
 方法、原始文件／stdin 输入、强 ETag、自定义头、错误退出码、JSON null、写入结果、
 单次请求、不跟随重定向和落盘 trace。输入异常用关闭的 loopback origin 验证在
 网络前失败；不接触真实账户。报告输出到 `_build/increment-5-smoke.json`。
-运行命令见 [release.md](release.md)，固定数据位于 `testdata/api/`。
+运行命令见[发布说明](../development/release.md)，固定数据位于 `testdata/api/`。
 
 本地已通过 **123/123 项 Native 测试**、**18 组 Increment 5 可执行文件场景**，
 另有 **48 组既有 CLI 回归场景**（read 14、mutation 14、operations 20）全部通过，

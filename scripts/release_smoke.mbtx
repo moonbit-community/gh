@@ -100,7 +100,7 @@ async fn main {
   guard args.length() == 2 else { fail("usage: release_smoke.mbtx CANDIDATE") }
   let root = @fs.realpath(@env.current_dir().unwrap_or("."))
   let candidate = @fs.realpath(args[1])
-  let report_path = root + "/_build/increment-6-smoke.json"
+  let report_path = root + "/_build/release-smoke.json"
   if @fs.exists(report_path) {
     guard @fs.kind(report_path, follow_symlink=false) is @fs.Regular else {
       fail("existing release smoke report must be a regular file")
@@ -220,19 +220,35 @@ async fn main {
     fields.get("files") is Some(Array(files)) else {
     fail("missing inventory")
   }
-  fields["files"] = files
-    .filter(entry => !(entry is { "path": "README.md", .. }))
-    .to_json()
-  @fs.rename(copied + "/README.md", directory + "/saved-readme")
-  @fs.write_file(copied + "/manifest.json", incomplete_manifest.stringify())
-  rejected(
-    root,
-    "verify_candidate",
-    [copied],
-    "missing required candidate payload",
-  )
-  @fs.rename(directory + "/saved-readme", copied + "/README.md")
-  @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  let release_docs = if @fs.exists(copied + "/docs/development/release.md") {
+    [
+      "docs/README.md", "docs/development/release.md", "docs/development/dependencies.md",
+    ]
+  } else {
+    ["docs/release.md", "docs/third-party-notices.md"]
+  }
+  for
+    required in [
+      "README.md", "licenses/moonbit-core-LICENSE.txt", "licenses/moonbit-core-NOTICE.txt",
+      "licenses/moonbit-async-LICENSE.txt", "licenses/moonjson-LICENSE.txt",
+    ] +
+    release_docs {
+    fields["files"] = files
+      .filter(entry => {
+        !(entry is { "path": String(path), .. } && path == required)
+      })
+      .to_json()
+    @fs.rename(copied + "/" + required, directory + "/saved-payload")
+    @fs.write_file(copied + "/manifest.json", incomplete_manifest.stringify())
+    rejected(
+      root,
+      "verify_candidate",
+      [copied],
+      "missing required candidate payload",
+    )
+    @fs.rename(directory + "/saved-payload", copied + "/" + required)
+    @fs.write_file(copied + "/manifest.json", manifest_bytes)
+  }
   passed.push(
     "required payload cannot disappear together with its inventory entry",
   )
@@ -345,7 +361,5 @@ async fn main {
     report.stringify(indent=2) + "\n",
     create_mode=@fs.CreateNew,
   )
-  println(
-    "Increment 6: \{passed.length()} release-tool boundary scenarios passed",
-  )
+  println("Release tooling: \{passed.length()} boundary scenarios passed")
 }

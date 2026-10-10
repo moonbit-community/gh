@@ -129,16 +129,75 @@ async fn Candidate::copy(
   source : String,
   path : String,
 ) -> Unit {
-  if @fs.file_size(self.root + "/" + source) > 134217728L {
+  self.copy_from(self.root + "/" + source, path)
+}
+
+///|
+async fn Candidate::copy_from(
+  self : Candidate,
+  source : String,
+  path : String,
+) -> Unit {
+  if @fs.file_size(source) > 134217728L {
     raise CandidateError("source file exceeds the candidate file size limit")
   }
-  let content = @fs.read_file(self.root + "/" + source)
+  let content = @fs.read_file(source)
   @fs.write_file(
     self.directory + "/" + path,
     content,
     create_mode=@fs.CreateNew,
   )
   self.files.push(fingerprint(self.directory, path))
+}
+
+///|
+async fn Candidate::copy_docs(self : Candidate, path : String) -> Unit {
+  @fs.mkdir(self.directory + "/" + path)
+  for name in @fs.readdir(self.root + "/" + path, sort=true) {
+    let relative = path + "/" + name
+    match @fs.kind(self.root + "/" + relative, follow_symlink=false) {
+      Directory => self.copy_docs(relative)
+      Regular => if name.has_suffix(".md") { self.copy(relative, relative) }
+      _ => raise CandidateError("documentation contains a link or special file")
+    }
+  }
+}
+
+///|
+// Use the path resolved by the Native check, including custom MOON_HOME
+// installations. Do not guess the toolchain location from HOME or PATH.
+async fn core_directory(root : String) -> String {
+  guard @fs.read_file(root + "/_build/native/debug/check/packages.json").json()
+    is { "packages": Array(packages), .. } else {
+    raise CandidateError("missing Native package metadata for core notices")
+  }
+  for entry in packages {
+    if entry is { "root": "ZSeanYves/gh", "rel": "", "deps": Array(deps), .. } {
+      for dependency in deps {
+        if dependency
+          is { "path": "moonbitlang/core/prelude", "fspath": String(path), .. } {
+          return @fs.realpath(path + "/..")
+        }
+      }
+    }
+  }
+  raise CandidateError("Native package metadata does not locate core/prelude")
+}
+
+///|
+async fn Candidate::copy_licenses(self : Candidate) -> Unit {
+  @fs.mkdir(self.directory + "/licenses")
+  let core = core_directory(self.root)
+  for name in ["LICENSE", "NOTICE"] {
+    self.copy_from(core + "/" + name, "licenses/moonbit-core-" + name + ".txt")
+  }
+  for
+    (source, name) in [
+      (".mooncakes/moonbitlang/async/LICENSE", "moonbit-async-LICENSE.txt"),
+      (".mooncakes/moonbitstack/moonjson/LICENSE", "moonjson-LICENSE.txt"),
+    ] {
+    self.copy(source, "licenses/" + name)
+  }
 }
 
 ///|
@@ -359,7 +418,7 @@ async fn build_candidate(candidate : Candidate) -> Unit {
   }
   for
     (name, args) in [
-      ("check", ["check", "--deny-warn"]),
+      ("check", ["check", "--target", "native", "--deny-warn"]),
       ("check-all", ["check", "--target", "all", "--deny-warn"]),
       ("test", ["test", "--target", "native", "--strip", "-j", "1"]),
       ("build", ["build", "--target", "native", "--release", "--deny-warn"]),
@@ -373,8 +432,6 @@ async fn build_candidate(candidate : Candidate) -> Unit {
     ignore(candidate.step(name, "moon", args))
   }
   @fs.mkdir(candidate.directory + "/bin")
-  @fs.mkdir(candidate.directory + "/docs")
-  @fs.mkdir(candidate.directory + "/licenses")
   @fs.mkdir(candidate.directory + "/scripts")
   let binary_path = "bin/" + binary_name
   candidate.copy("_build/native/release/build/cmd/main/main.exe", binary_path)
@@ -388,14 +445,8 @@ async fn build_candidate(candidate : Candidate) -> Unit {
   candidate.copy(
     "scripts/verify_candidate.mbtx", "scripts/verify_candidate.mbtx",
   )
-  for name in @fs.readdir(candidate.root + "/licenses", sort=true) {
-    candidate.copy("licenses/" + name, "licenses/" + name)
-  }
-  for name in @fs.readdir(candidate.root + "/docs", sort=true) {
-    if name.has_suffix(".md") {
-      candidate.copy("docs/" + name, "docs/" + name)
-    }
-  }
+  candidate.copy_licenses()
+  candidate.copy_docs("docs")
   let executable = candidate.directory + "/" + binary_path
   let (_, version) = candidate.step(
     "binary-version",

@@ -1,8 +1,8 @@
 # Generic JSON API command
 
-Status: **client contract for Increment 5**. This completes the architecture's
-generic `api` escape hatch. It introduces no server route, authentication mode,
-or GitHub compatibility promise. The typed commands remain preferable when a
+The `api` command sends a JSON request through the configured MoonHub client.
+It uses the same server routes and authentication as the typed commands and
+does not promise GitHub compatibility. Typed commands remain preferable when a
 resource has an existing DTO, pagination policy or domain-specific receipt.
 
 ## Invocation and request boundary
@@ -92,8 +92,8 @@ The following names are reserved:
 `Accept` and `Content-Type`, when supplied, must be exactly `application/json`.
 The client supplies JSON Accept and, when there is a body, JSON Content-Type.
 `Accept-Encoding` can only be `identity`; the native adapter sets identity
-encoding in every case. This increment adds no compression, multipart upload,
-form body, alternate-host or credential-header capability.
+encoding in every case. Compression, multipart upload, form bodies,
+alternate-host requests and caller-supplied credential headers are unsupported.
 
 `If-Match`, when supplied, must parse as the existing bounded strong
 `EntityTag`: one quoted opaque ASCII value, 2–256 characters including quotes.
@@ -170,15 +170,14 @@ and caller headers are not recorded. Trace sink failure adds an independent
 stderr warning and preserves the response/outcome and exit code. Offline trace
 queries work without changes.
 
-## Reuse and compatibility fixtures
+## Implementation and contract fixtures
 
 Implementation reuses the upstream `moonbitlang/core/argparse`, JSON and UTF-8
 facilities, the existing async input reader, the single-attempt transport and
-the existing trace/error/ETag machinery. The code added here is MoonHub client
-policy. No general HTTP/JSON/argument parser, dependency or project FFI is
-introduced.
+the existing trace/error/ETag machinery. Project code handles MoonHub client
+policy; general capabilities use upstream packages, with no project FFI.
 
-Fixture bodies are in [`testdata/api/`](../testdata/api/):
+Fixture bodies are in [`testdata/api/`](../../testdata/api/):
 
 | Fixture | Intended HTTP case |
 | --- | --- |
@@ -195,5 +194,4 @@ real-executable fixtures; they are not embedded into these response bodies.
 The generic API command validates transport/output behavior against those local
 fixtures. Production acceptance still requires the separate MoonHub server to
 implement and approve `/api/v1`, token scopes, endpoint-specific authorization,
-conditional writes and request-ID behavior. This increment does not modify that
-server.
+conditional writes and request-ID behavior.

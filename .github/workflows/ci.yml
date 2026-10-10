@@ -64,6 +64,6 @@ jobs:
           name: native-${{ matrix.platform }}-${{ github.sha }}
           path: |
             _build/ci-candidate/
-            _build/increment-6-smoke.json
+            _build/release-smoke.json
           if-no-files-found: warn
           retention-days: 14

@@ -1,9 +1,10 @@
 # Proposed MoonHub v1 mutation API
 
-Status: **client proposal and contract fixtures for Increment 3**. The inspected
-MoonHub server still lacks the public `/api/v1` API. These tests validate the
-client, not server compatibility, authorization enforcement or actual merges.
-The [read contract](read-api-contract.md) supplies the existing resource schemas,
+This proposed contract defines Issue and Merge Request writes through the
+public `/api/v1` API. Client fixtures validate request and response handling;
+server compatibility, authorization enforcement and actual merges still require
+MoonHub integration and end-to-end acceptance.
+The [read contract](read-api.md) supplies the existing resource schemas,
 versioned envelopes and origin-bound Bearer authentication.
 
 ## Routes and results
@@ -31,7 +32,7 @@ Versions follow the read contract's canonical decimal-string rules. Unknown
 object fields are ignored. Optional ETags on receipt responses are validated
 when present. Receipt bodies do not claim that a merge completed.
 
-`MergeRequest` gains optional `job_status`, accepting `pending`, `running`,
+`MergeRequest` includes optional `job_status`, accepting `pending`, `running`,
 `succeeded`, `failed`, or null/absent. `pr view --json` exposes this alongside
 `status` and `merged_sha`, so callers can inspect the worker's later outcome.
 The client does not automatically poll or retry the job. Raw server `job_error`
@@ -42,13 +43,14 @@ contain 1–200 MoonBit `String.length()` units (UTF-16 code units); description
 have a 20,000-unit limit. Comments must contain non-whitespace
 text and have a 20,000-unit limit. Source and target identify branches in the
 same repository; the server owns Git branch existence, comparison and merge
-policy. No squash/rebase strategy, automatic branch deletion, review approval,
-assignee selection, linked-issue editing or cross-repository MR is introduced.
+policy. Squash/rebase strategy, automatic branch deletion, review approval,
+assignee selection, linked-issue editing and cross-repository MRs are outside
+this contract.
 Descriptions and comment bodies are serialized without trimming. The SDK rejects
 identical source/target branches, blank branch text, controls and names over 1,024
 `String.length()` units; full Git ref validation remains a server responsibility.
 
-Fixtures in [`testdata/mutations/`](../testdata/mutations/) illustrate bodies.
+Fixtures in [`testdata/mutations/`](../../testdata/mutations/) illustrate bodies.
 ETags and HTTP statuses remain response metadata supplied by contract tests.
 
 ## Preconditions and ETags
@@ -56,7 +58,7 @@ ETags and HTTP statuses remain response metadata supplied by contract tests.
 `EntityTag` is an opaque, strong, quoted HTTP entity tag, at most 256 ASCII
 characters including quotes. The client rejects weak tags, wildcard conditions,
 lists, controls, unquoted values and duplicate ETag fields. It never constructs
-a tag from `version` or `edit_version`. Read results now expose an optional
+a tag from `version` or `edit_version`. Read results expose an optional
 validated `etag`; the read CLI JSON envelope includes `etag`, with `null` when
 absent. Callers obtain an ETag from a resource read, inspect that resource, then
 explicitly pass that exact tag to a conditional mutation.
@@ -74,7 +76,7 @@ bounds prevent an unbounded file or pipe from delaying a command indefinitely.
 
 The server must implement a **strong validator for the complete selected
 representation**, not merely format `edit_version` as a string. Issue comments
-change `updated_at` without incrementing `edit_version`; MR `status`, merge-job
+change `updated_at` without increasing `edit_version`; MR `status`, merge-job
 state and `merged_sha` may change without either public version changing.
 A representation digest or equivalent composite must account for every field
 that can change its bytes. Compare the current tag and apply the mutation
@@ -113,7 +115,7 @@ success envelope/resource/receipt, or a missing required/invalid ETag all yield
 The caller must inspect the resource/server history before deciding whether
 another write is appropriate. No mutation is automatically retried, including
 create, comment, conflict, server failure or trace-sink failure. Idempotency keys
-and automatic retry are not part of this increment.
+and automatic retry are not supported.
 
 401 and 403 preserve authentication/permission failures; 409 and 412 preserve
 conflict classification. Error messages remain sanitized: request bodies,
@@ -123,15 +125,17 @@ each actual HTTP attempt; later schema failure does not rewrite its HTTP
 status. `trace_failed` is independent: a sink failure cannot turn `applied` or
 `accepted` into a transport error or trigger another request.
 
-## Existing MoonHub domain evidence and server work
+## Server integration requirements
 
-The inspected source is the separate local MoonHub checkout. These paths
-describe its current domain behavior; they are not imported by this client.
+The server adapter should preserve the following MoonHub domain behavior.
+These implementation references describe the reviewed server checkout, not
+dependencies imported by this client; confirm them against the integration
+target before implementing the API.
 
 - `collaboration/issues.mbt:create_issue` validates content and requires
   repository Write access. `mutate_issue` allows contributor comments; other
   changes additionally require the author or a team administrator. Its status
-  writes compare `edit_version` in the SQL update and increment it.
+  writes compare `edit_version` in the SQL update and increase it.
 - `collaboration/merge_requests.mbt:create_merge_request` compares branches,
   rejects duplicate open requests for a source/target pair and prepares checks.
   `submit_merge_review` allows contributor comments only for the current

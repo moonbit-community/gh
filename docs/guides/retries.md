@@ -1,7 +1,7 @@
 # Bounded read retries
 
-Increment 4 adds retries to the typed MoonHub GET operations, including pipeline
-reads. `Client::execute` remains a single attempt regardless of HTTP method.
+Typed MoonHub GET operations, including pipeline reads, support bounded retries.
+`Client::execute` remains a single attempt regardless of HTTP method.
 Every mutation remains a single attempt, including pipeline cancel and rerun.
 A trace sink failure never triggers a retry.
 
@@ -31,7 +31,7 @@ backoff. If the minimum exceeds the configured cap, retries stop and the current
 HTTP failure is returned. Empty, malformed, duplicate, comma-coalesced and
 HTTP-date hints also stop retries. This deliberately avoids retrying earlier
 than an uninterpretable server minimum. There is no jitter or wall-clock date
-interpretation in this version.
+interpretation.
 
 Attempts increase continuously from 1 across retries and pagination under the
 caller-supplied `operation_id`. Each actual HTTP attempt produces its own
@@ -54,8 +54,8 @@ permit at most 500. Each page's backoff budget is at most
 apply. This is not an overall command deadline; SDK callers can apply an outer
 async timeout, and cancellation during backoff prevents the next HTTP attempt.
 
-The upstream `moonbitlang/async@0.21.3` retry helper was inspected before adding
-this policy. It retries raised exceptions with a fixed strategy. It does not
+The upstream `moonbitlang/async@0.21.3` retry helper retries raised exceptions
+with a fixed strategy. It does not
 consume typed `ApiFailure` results or per-response `Retry-After` hints. Using it
 here would require artificial exceptions and separate mutable response state.
 The project therefore keeps a small bounded MoonHub policy loop, while reusing

@@ -129,7 +129,7 @@ async fn main {
   let report_path = if args.length() == 3 {
     args[2]
   } else {
-    root + "/_build/increment-2-smoke.json"
+    root + "/_build/read-smoke.json"
   }
   prepare_report(report_path, binary)
   let evidence = binary_evidence(binary)
@@ -298,6 +298,6 @@ async fn main {
     create_mode=@fs.CreateNew,
   )
   println(
-    "Increment 2: \{verified.length()} executable contract scenarios passed",
+    "Read commands: \{verified.length()} executable contract scenarios passed",
   )
 }

@@ -1,11 +1,10 @@
 # Proposed MoonHub v1 pipeline API
 
-Status: **client proposal and compatibility fixtures for Increment 4**. The
-separate MoonHub checkout at `672b8b5` contains the pipeline domain and browser
-controls, but does not expose these `/api/v1` endpoints. Client fixtures do not
-prove real server authorization, cancellation or execution. This contract reuses
-the [read envelope and pagination](read-api-contract.md) and
-[mutation outcomes and opaque preconditions](mutation-api-contract.md).
+This proposed contract defines pipeline reads, cancellation and snapshot reruns.
+Client behavior is validated against fixtures; MoonHub server integration is
+still required to verify authorization, cancellation and execution. It reuses
+the [read envelope and pagination](read-api.md) and
+[mutation outcomes and opaque preconditions](mutation-api.md).
 
 ## Routes and wire data
 
@@ -36,8 +35,8 @@ Each success body is `{"version":1,"data":T}`. A `Pipeline` contains:
 
 `number` is a canonical decimal **string** in `1..9223372036854775807`. The
 MoonHub domain uses `Int64`; using a string preserves values beyond the exact
-JSON/JavaScript integer range and avoids introducing the earlier Issue/MR
-client's Int32 bound. SDK arguments and CLI positionals use the same spelling:
+JSON/JavaScript integer range. Unlike Issue/MR numbers, pipeline numbers are not
+limited to Int32. SDK arguments and CLI positionals use the same spelling:
 no signs, whitespace, leading zeros, exponent, decimal point or separators.
 
 `state` is exactly `queued`, `running`, or `completed`. Only `completed` has a
@@ -55,7 +54,7 @@ reinterpretation. Unknown object fields are ignored for additive compatibility.
 The summary intentionally omits workflow source, normalized workflow JSON,
 hidden Git pin refs, internal database IDs, provider credentials, logs and
 attempt credentials. Job/step detail, log streaming, workflow dispatch, provider
-administration and push settings are outside this increment. `pipeline view`
+administration and push settings are outside this contract. `pipeline view`
 returns a run summary rather than silently scraping the browser detail page.
 
 Lists are newest first, scoped to readable repositories. They adopt the
@@ -120,9 +119,11 @@ is lost, inspect run history before submitting anything again. Transport loss,
 5xx, unexpected success status, invalid receipts and missing required ETags
 produce `unknown`, and trace-sink failure does not replace the write outcome.
 
-## Evidence and server review gate
+## Server integration requirements
 
-Inspected local MoonHub source at `672b8b5`:
+The following implementation references describe MoonHub at `672b8b5`.
+Confirm them against the integration target and preserve the domain safeguards
+when exposing the public API:
 
 - `pipeline/store.mbt` defines separate run/job states and conclusions,
   repository-scoped run lookup, signed Int64 numbers and the current 50-row
@@ -155,9 +156,9 @@ echo and atomic ETags, then run the public HTTP contract against a real server.
 Server tests must cover ordinary contributor denial, authorization revocation,
 completed-run cancellation, stale preconditions, concurrent runner completion,
 changed required-check context, immutable snapshot reruns and failed responses
-after a committed snapshot. No server source is modified by this increment.
+after a committed snapshot.
 
-Compatibility bodies live in [`testdata/pipelines/`](../testdata/pipelines/):
+Compatibility bodies live in [`testdata/pipelines/`](../../testdata/pipelines/):
 `list.json`, `view.json`, `completed.json`, `cancel.json`, `rerun.json` and
 `stale.json`. HTTP status and ETag are supplied by executable fixtures rather
 than embedded in resource bodies. The SDK tests cover large numbers, malformed

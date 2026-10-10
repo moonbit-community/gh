@@ -5,8 +5,8 @@ This is a [MoonBit](https://docs.moonbitlang.com) project.
 ## Project-specific architecture
 
 This repository is a MoonHub-first command-line client. It copies the
-command-oriented shape of `gh` for predictable human and AI use; it does not
-make GitHub API compatibility a first-release requirement.
+command-oriented shape of `gh` for predictable human and AI use; GitHub API
+compatibility is outside its supported scope.
 
 - The root package owns provider-neutral request, response, error, and trace
   contracts.
@@ -27,10 +27,12 @@ make GitHub API compatibility a first-release requirement.
   an existing package is unsuitable before replacing it. Project sources and
   automation remain MoonBit (`.mbt`/`.mbtx`); upstream FFI is allowed.
 
-The full scope, contracts, dependency direction, trace policy, runtime targets,
-and implementation milestones live in [`docs/architecture.md`](docs/architecture.md).
+The scope, dependency direction, trace policy, runtime targets, and current
+architecture live in [`docs/architecture.md`](docs/architecture.md).
 The working SDK path and current runtime limits are in
-[`docs/increment-1.md`](docs/increment-1.md).
+[`docs/guides/sdk.md`](docs/guides/sdk.md). Use the
+[documentation index](docs/README.md) for current contracts and guides;
+`docs/report/` preserves historical evidence rather than current instructions.
 
 You can browse and install extra skills here:
 <https://github.com/moonbitlang/skills>

@@ -5,13 +5,15 @@ toolchain core library and the pinned `moonbitlang/async@0.21.3` and
 `moonbitlang/x@0.5.5` dependencies; their native FFI remains upstream code.
 Strict JSON parsing reuses the pure MoonBit `moonbitstack/moonjson@0.4.0`.
 
-## Included attribution
+## Candidate attribution
 
-The `licenses/` directory contains unmodified copies from the local dependency
-and toolchain sources used for Increment 6:
+The source repository does not keep duplicate license files. The candidate
+builder reads attribution from the actual installed toolchain and resolved
+dependency sources and copies the complete texts into the candidate's
+`licenses/` directory:
 
 - `moonbit-core-LICENSE.txt`: Apache-2.0 text from the core library shipped with
-  `moon 0.1.20260920`, `moonc v0.10.14+7d59c7ec9`.
+  the toolchain used to build the candidate.
 - `moonbit-core-NOTICE.txt`: the core library's complete NOTICE, including its
   retained third-party notices.
 - `moonbit-async-LICENSE.txt`: Apache-2.0 text from async 0.21.3.
@@ -25,10 +27,13 @@ also carry Apache-2.0 headers (Copyright 2026 International Digital Economy
 Academy); the included Apache-2.0 text applies to those sources too. The
 candidate does not bundle an SSL implementation or a C compiler.
 
-These notices are a snapshot for the recorded toolchain and dependency versions.
-When upgrading them, refresh the copied notices from the actual sources before
-creating a distributable release. This local candidate does not claim an audited
-notice inventory for every future compiler, platform or linking configuration.
+All four files remain required candidate contents and are covered by the
+manifest's inventory and hashes. Missing upstream attribution fails candidate
+creation; deleting repository copies does not remove attribution from delivery.
+When upgrading dependencies or the toolchain, review the source locations and
+notice requirements before creating a distributable release. The recorded
+inventory does not establish attribution requirements for every future compiler,
+platform or linking configuration.
 
 ## HTTPS runtime dependency
 

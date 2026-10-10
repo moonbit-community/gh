@@ -1,10 +1,10 @@
 # Release and compatibility
 
-The manifest version remains `0.1.0`. Increments 1–5 implement the client and
-Increment 6 adds a local delivery candidate with evidence tied to its binary.
-No package, binary release or server deployment is published by these steps.
-The CLI identifies itself as a MoonHub
-client and does not promise compatibility with GitHub's `gh` command flags or API.
+The module version is `0.1.0`. Candidate tooling builds a Native executable and
+records validation evidence tied to that binary. Creating a candidate does not
+publish a package, binary release or server deployment.
+The CLI identifies itself as a MoonHub client and does not promise compatibility
+with GitHub's `gh` command flags or API.
 
 The module metadata snapshot is named `moon.mod.txt` so development tools do not
 treat the delivery directory as a nested build project. The runner checks for
@@ -12,12 +12,12 @@ unlisted files before writing the completed manifest.
 
 ## Create a local delivery candidate
 
-Use the verified MoonBit toolchain `0.1.20260920 (914d7da 2026-09-20)` with the
-manifest's exact dependency versions: `moonbitlang/async@0.21.3`,
-`moonbitlang/x@0.5.5`, and `moonbitstack/moonjson@0.4.0`. Run Moon commands sequentially because they share the
-build lock. The current full toolchain string is captured in each candidate;
-the historical version above is not a substitute for that record. From the
-repository root:
+Use the [CI-pinned toolchain and core](ci.md), currently
+`0.10.14+7d59c7ec9`, with the module's exact dependency versions:
+`moonbitlang/async@0.21.3`, `moonbitlang/x@0.5.5`, and
+`moonbitstack/moonjson@0.4.0`. Run Moon commands sequentially because they share
+the build lock. Each candidate captures its actual complete toolchain identity.
+From the repository root:
 
 ```sh
 moon update
@@ -34,15 +34,15 @@ moon run --target native scripts/release_candidate.mbtx -- _build/releases/local
 ```
 
 The runner checks Native and all-target types, runs Native tests sequentially,
-and builds the
-release binary, and stages it as `bin/moonhub-gh` (`moonhub-gh.exe` on Windows).
+builds the release binary, and stages it as `bin/moonhub-gh`
+(`moonhub-gh.exe` on Windows).
 It runs version/help and all four smoke suites against that staged file. The
 candidate includes LICENSE, usage/contract documentation, a copy of
 `scripts/verify_candidate.mbtx`, and an `evidence/` directory containing smoke
 reports and per-step stdout/stderr logs. Smoke reports record the actual binary
 path, byte size and SHA-256;
-historical `_build/increment-*-smoke.json` files are not accepted as fresh
-candidate evidence.
+reports from unrelated earlier invocations are not accepted as fresh candidate
+evidence.
 
 `manifest.json` is the completion marker. The runner writes it only after all
 checks and binary/file verification succeed. It records command results,
@@ -57,11 +57,10 @@ of the completion manifest. A null exit status denotes an unfinished, timed-out
 or unstarted subprocess, not a passing check.
 
 Every completed manifest records `published: false` and
-`live_server_verified: false`. An output directory is the deliberate first
-artifact: the pinned dependencies have no established archive writer, and this
-increment does not hand-write tar/zip or add a system archive fallback.
-See [Increment 6](increment-6.md) for the frozen acceptance and current evidence.
-The candidate carries `licenses/` and [third-party notices](third-party-notices.md).
+`live_server_verified: false`. The candidate format is an output directory:
+the pinned dependencies have no established archive writer. The
+builder does not hand-write tar/zip or use a system archive fallback.
+The candidate carries `licenses/` and [third-party notices](dependencies.md).
 Those notes also document the pinned TLS adapter's runtime SSL loading paths;
 loopback HTTP success and ordinary shared-library listings do not prove HTTPS
 availability. Refresh notices when changing the toolchain or dependencies.
@@ -106,8 +105,7 @@ moon run --target native scripts/release_smoke.mbtx -- _build/releases/local-can
 
 It uses temporary copies to exercise damaged/missing manifests, changed files,
 existing output protection and stale report handling. The input candidate stays
-intact; the tooling report is `_build/increment-6-smoke.json`. Its current
-execution status is tracked in [Increment 6](increment-6.md).
+intact; the tooling report is `_build/release-smoke.json`.
 
 ## Development checks and individual smoke runs
 
@@ -115,7 +113,7 @@ The same underlying checks can be run individually during development:
 
 ```sh
 moon update
-moon check --deny-warn
+moon check --target native --deny-warn
 moon check --target all --deny-warn
 moon test --target native --strip -j 1
 moon build --target native --release --deny-warn
@@ -129,8 +127,10 @@ moon fmt . scripts/read_smoke.mbtx scripts/mutation_smoke.mbtx scripts/operation
 
 The native release executable is
 `_build/native/release/build/cmd/main/main.exe`, including on macOS. Each smoke
-script accepts `[BINARY [REPORT]]` after `--`. With no arguments the old build
-binary and `_build/increment-N-smoke.json` defaults remain available. An explicit
+script accepts `[BINARY [REPORT]]` after `--`. With no arguments the release build
+binary is used and reports default to `_build/read-smoke.json`,
+`_build/mutation-smoke.json`, `_build/operations-smoke.json`, and
+`_build/api-smoke.json`, respectively. An explicit
 report parent directory must exist. For example, from the source root:
 
 ```sh
@@ -149,7 +149,8 @@ hosted execution evidence is recorded separately from historical local runs.
 
 Hosted Native builds and fixture acceptance have passed on Linux x64, macOS
 arm64 and Windows x64; the source revision, counts and artifact hashes are in
-[ci.md](ci.md#execution-record). Real-server acceptance, TLS certificate trust,
+[the archived Native CI report](../report/native-ci-2026-10-10.md#execution-record).
+Real-server acceptance, TLS certificate trust,
 permissions and broader OS-specific cancellation still require separate
 evidence. `moon check --target
 all` checks portable core/SDK/CLI types; it does not run those platforms and does
@@ -221,7 +222,7 @@ publication and an update mechanism are not implemented here.
 - Set `MOONHUB_HOST` or pass `--host` with the complete origin. HTTPS is required
   except loopback HTTP. No browser sessions, redirects or cookie reuse.
 - Set `MOONHUB_TOKEN` or select a private JSON file using `--config`. Tokens never
-  belong in argv. See [token configuration](increment-1.md) for precedence and
+  belong in argv. See [token configuration](../guides/sdk.md#credentials-and-configuration) for precedence and
   the origin-scoped format. Setup currently means supplying an existing token;
   the client does not mint tokens, implement login/device flow or persist a
   global credential store. `auth status` verifies it through `/api/v1/user`.
@@ -234,12 +235,12 @@ publication and an update mechanism are not implemented here.
 - On `outcome: unknown`, inspect the resource before another explicit write.
   Do not treat a trace warning as permission to resubmit. Process interruption
   can prevent any structured result; absence of output does not prove rollback.
-- Read retry defaults changed in Increment 4: at most three attempts per page
+- Typed read retries allow at most three attempts per page by default
   for documented transient conditions. `--max-attempts 1` restores one attempt.
-  All writes and raw `Client.execute` still use one attempt. See [retry policy](retry-policy.md).
+  All writes and raw `Client.execute` still use one attempt. See [retry policy](../guides/retries.md).
 - Generic `api PATH` and SDK `Client.api` also always send once, including GET.
   They return the full JSON body, bypassing typed DTO validation, with explicit
-  method and optional bounded file/stdin input. See [API command contract](api-command-contract.md).
+  method and optional bounded file/stdin input. See [API command contract](../contracts/api-command.md).
 - Select `--trace PATH` when needed. The file contains sanitized attempt metadata,
   excludes bodies and query strings, and needs a private parent directory. Query
   it offline with `trace list/show`. An 8 MiB scan cap makes rotation necessary
@@ -248,13 +249,13 @@ publication and an update mechanism are not implemented here.
 ## Compatibility fixtures
 
 Wire contracts are proposed `/api/v1` contracts in
-[read-api-contract.md](read-api-contract.md),
-[mutation-api-contract.md](mutation-api-contract.md) and
-[pipeline-api-contract.md](pipeline-api-contract.md).
+[read endpoints](../contracts/read-api.md),
+[mutations](../contracts/mutation-api.md) and
+[pipelines](../contracts/pipeline-api.md).
 Committed fixtures under `testdata/read-api`, `testdata/mutations`,
 `testdata/pipelines`, and `testdata/compatibility` drive SDK and executable tests.
 They are not captured live responses and do not claim server compatibility.
-Increment 5 adds `testdata/api` and `scripts/api_smoke.mbtx` for generic requests;
+`testdata/api` and `scripts/api_smoke.mbtx` cover generic requests;
 those success fixtures deliberately include envelopes that typed DTO operations
 would reject, because generic API access preserves the complete JSON body.
 
@@ -277,10 +278,10 @@ report an incomplete tail. No timestamp, body, replay facility or server log
 retention guarantee is implied. Request IDs correlate only when the server
 actually supplies them and its log retention is separately established.
 
-## First-release gates still open
+## Release acceptance requirements
 
-The generic JSON `api` requirement left open after Increment 4 is implemented
-in [Increment 5](increment-5.md). These independent gates remain open:
+Hosted Native fixture verification has passed on Linux x64, macOS arm64 and
+Windows x64. These independent acceptance requirements remain:
 
 1. Agree and implement MoonHub's public API, token issuance/scopes/revocation,
    permission filtering, paging, strong atomic ETags, request IDs and pipeline
@@ -290,12 +291,11 @@ in [Increment 5](increment-5.md). These independent gates remain open:
    denial/revocation, stale writes, queued merges, cancellation races, immutable
    snapshot reruns, and failures after committed writes. Review the server gates
    in each contract document before any real-user rollout.
-3. Complete target-platform checks above, select final release identity and
-   distribution, and set repository metadata to the actual project location.
-   Increment 6 provides a local candidate directory and fresh evidence; it does
-   not publish, sign, choose a remote URL or create the first Git commit.
-   Current local evidence supports that candidate, not production readiness
-   or all-platform delivery.
+3. Complete deployment-specific TLS, permission and cancellation checks above,
+   then choose and validate release signing, hosting and distribution. The
+   repository is hosted at `moonbit-community/gh`; candidate creation records
+   source identity and evidence but does not publish or sign a release.
+   Native fixture success does not establish production readiness.
 
 The minimum token setup flow is the documented environment/config workflow.
 Future interactive authentication depends on an agreed server protocol and is

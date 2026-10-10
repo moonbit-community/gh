@@ -1,5 +1,8 @@
 # Increment 2：只读 SDK 与 Native CLI
 
+> 历史报告：保留当时的实现范围、限制和验收数字，不代表当前使用说明。
+> 当前行为、命令和平台边界见[文档索引](../README.md)。
+
 本增量完成客户端和本地契约 fixture：`/meta`、当前用户、仓库 list/view、
 Issue list/view、Merge Request list/view，以及版本化 JSON、分页和退出码。
 MoonHub 源码仍没有公开的 `/api/v1`，因此这里的结果是**客户端契约验收**，
@@ -39,7 +42,7 @@ gh pr list --host https://moonhub.example -R team/demo --paginate --json
 gh issue view 7 --host https://moonhub.example -R team/demo --trace /trusted/trace.jsonl
 ```
 
-示例域名是占位符，需要实现了[读 API 契约](read-api-contract.md)的服务器。
+示例域名是占位符，需要实现了[读 API 契约](../contracts/read-api.md)的服务器。
 当前 MoonHub 的浏览器页面不能作为这些命令的 API。
 
 配置优先级：
@@ -68,7 +71,7 @@ capability 目前是查询信息，不是每次请求的预检门槛。
 `next` 是验证后的 SDK 相对路径（省略 `/api/v1`）或 `null`。它表示是否还有
 下一页，不是快照一致性承诺。DTO 可选字段输出标量或 `null`，不会出现
 MoonBit Option 的 `[]` / `[value]` 编码。ID 和版本使用十进制字符串，
-Issue/MR number 暂限定正 Int32。完整字段定义见[契约](read-api-contract.md)。
+Issue/MR number 暂限定正 Int32。完整字段定义见[契约](../contracts/read-api.md)。
 
 失败时 stdout 为空，stderr 输出：
 

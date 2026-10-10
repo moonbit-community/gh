@@ -1,9 +1,13 @@
 # Increment 4: pipelines and operational tooling
 
+> Historical report. Scope, limitations and test counts describe the recorded
+> implementation. Use the [documentation index](../README.md) for current
+> commands, behavior and runtime boundaries.
+
 This increment implements the client and local contract fixtures for the four
 architecture deliverables. The public MoonHub server API is still proposed;
 passing these fixtures does not establish live server integration or completion
-of every first-release requirement. See the [release checklist](release.md) for
+of every first-release requirement. See the [release checklist](../development/release.md) for
 the remaining generic `api` command and server acceptance work.
 The generic command was subsequently implemented in [Increment 5](increment-5.md);
 this document retains the Increment 4 acceptance snapshot.
@@ -17,7 +21,7 @@ moon run cmd/main -- pipeline cancel 42 --if-match '"tag-from-view"' --host http
 moon run cmd/main -- pipeline rerun 41 --if-match '"tag-from-view"' --host https://moonhub.example -R team/demo --json
 ```
 
-The [pipeline API contract](pipeline-api-contract.md) is grounded in MoonHub
+The [pipeline API contract](../contracts/pipeline-api.md) is grounded in MoonHub
 `672b8b5`. It distinguishes `state` (`queued`, `running`, `completed`) from a
 completed run's conclusion. Run numbers are repository-local decimal strings
 within positive signed Int64, preserving exact values in JSON and AI tools.
@@ -37,7 +41,7 @@ three attempts per page; `--max-attempts 1` disables retries and values up to 5
 are accepted. The default backoff is 100 then 200 ms. Only transport failures
 and HTTP 429/502/503/504 are retryable. A numeric `Retry-After` is a minimum wait;
 invalid, repeated, date-based or excessive hints stop retries conservatively.
-The default maximum accepted wait is 2 seconds. See [retry policy](retry-policy.md).
+The default maximum accepted wait is 2 seconds. See [retry policy](../guides/retries.md).
 
 Writes and the raw SDK `execute` always send once. A trace failure cannot trigger
 a retry or erase an accepted/applied write. Cancellation propagates; cancellation
@@ -100,17 +104,17 @@ There are no project FFI declarations or fallback calls to curl/GitHub gh.
 Public trace types stay in the root facade; the native filesystem adapter stays
 under `internal/trace`; CLI formatting remains independent of storage.
 
-The [executable smoke script](../scripts/operations_smoke.mbtx) launches the
+The [executable smoke script](../../scripts/operations_smoke.mbtx) launches the
 release binary against loopback HTTP and reads real trace files. It covers all
 four pipeline commands, exact If-Match, permission/stale-tag errors, no mutation
 retries, transient GET recovery/exhaustion/disable, Retry-After, continuous
 pagination attempts, offline filters, interrupted tails and malformed files.
-[Compatibility cases](../testdata/compatibility/cases.json) cover additive v1
+[Compatibility cases](../../testdata/compatibility/cases.json) cover additive v1
 fields, unsupported versions, unknown states, numeric-vs-string IDs, exact Int64
 IDs and status-authoritative errors. Prior read/mutation scripts remain regression
 checks; none contacts a live account.
 
-Reproduction commands and platform boundaries are in [release.md](release.md).
+Reproduction commands and platform boundaries are in [release documentation](../development/release.md).
 Reports are written to `_build/increment-{2,3,4}-smoke.json`. Generated reports
 are local evidence; the scripts and fixtures are the reproducible inputs.
 
