@@ -60,7 +60,10 @@ Cooperating trace readers/writers use the upstream shared/exclusive file locks
 on all three platforms. Windows opens the appender with `ReadWrite` plus append
 so that the upstream adapter retains `GENERIC_READ`, which `LockFileEx` accepts;
 the original write-only append handle held only `FILE_APPEND_DATA` and could
-not lock. A regression holds a competing lock and verifies that appending waits.
+not lock. Readers and writers retry upstream `try_lock` with a short async sleep
+so contention remains cancellable without blocking a filesystem worker. A
+regression holds a competing lock, verifies reader/writer cancellation without
+writing, then checks successful append/read after unlocking.
 POSIX trace files are created with mode 0600 and existing files tightened.
 Windows inherits its explicitly private parent directory's ACL; the pinned
 adapter cannot inspect/change ACLs or implement `chmod` there. Successful

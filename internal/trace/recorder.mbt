@@ -39,7 +39,7 @@ pub async fn append(
     fail("Trace output must be a regular file")
   }
   restrict_posix_permissions(path)
-  file.lock(Exclusive)
+  acquire_lock(file, Exclusive)
   defer file.unlock()
   file.write(line)
 }

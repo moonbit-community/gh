@@ -45,38 +45,28 @@ async test "trace file appends sanitized JSONL without truncating prior records"
 }
 
 ///|
-async test "trace append waits for cooperating file lock before writing" {
-  @async.with_timeout(10000, () => {
-    let directory = @fs.tmpdir(prefix="moonhub-gh-lock-")
-    defer @fs.rmdir(directory, recursive=true)
-    let path = "\{directory}/attempts.jsonl"
-    @fs.write_file(path, "", permission=0o600)
-    let blocker = @fs.open(path, mode=ReadWrite)
-    defer blocker.close()
-    blocker.lock(Exclusive)
-    @async.with_task_group() <| group => {
-      let started = @async.Semaphore(1)
-      let writer = group.spawn(() => {
-        started.release()
-        @trace.append(
-          path,
-          @gh.TraceRecord::new(
-            operation_id="waiting-writer",
-            attempt=1,
-            verb=@gh.Get,
-            path="/api/v1/meta",
-          ),
-        )
-      })
-      started.acquire()
-      @async.sleep(50)
-      let bytes_before_unlock = blocker.size()
-      blocker.unlock()
-      writer.wait()
-      assert_eq(bytes_before_unlock, 0L)
-    }
-    assert_true(@trace.read(path) is Ok(result) && result.scanned == 1)
-  })
+async test "trace lock contention is cancellable and never writes before acquiring" {
+  let directory = @fs.tmpdir(prefix="moonhub-gh-lock-")
+  defer @fs.rmdir(directory, recursive=true)
+  let path = "\{directory}/attempts.jsonl"
+  @fs.write_file(path, "", permission=0o600)
+  let blocker = @fs.open(path, mode=ReadWrite)
+  defer blocker.close()
+  assert_true(blocker.try_lock(Exclusive))
+  let record = @gh.TraceRecord::new(
+    operation_id="waiting-writer",
+    attempt=1,
+    verb=@gh.Get,
+    path="/api/v1/meta",
+  )
+  assert_true(
+    @async.with_timeout_opt(100, () => @trace.append(path, record)) is None,
+  )
+  assert_true(@async.with_timeout_opt(100, () => @trace.read(path)) is None)
+  assert_eq(blocker.size(), 0L)
+  blocker.unlock()
+  @trace.append(path, record)
+  assert_true(@trace.read(path) is Ok(result) && result.scanned == 1)
 }
 
 ///|

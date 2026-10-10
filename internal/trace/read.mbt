@@ -8,7 +8,7 @@ async fn read_locked_trace(path : String) -> String {
   if file.kind() != @fs.Regular {
     fail("trace input must be a regular file")
   }
-  file.lock(Shared)
+  acquire_lock(file, Shared)
   defer file.unlock()
   let size = file.size()
   if size > 8388608L {
