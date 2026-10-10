@@ -5,6 +5,7 @@ import {
   "moonbitlang/async@0.21.3/fs",
   "moonbitlang/async@0.21.3/http",
   "moonbitlang/async@0.21.3/socket",
+  "moonbitlang/async@0.21.3/stdio",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "moonbitlang/x@0.5.5/crypto",
@@ -62,7 +63,7 @@ async fn exercise(
   args : Array[String],
   replies : Array[Reply],
 ) -> (Int, String, String) {
-  println("read smoke: " + args[0])
+  @stdio.stderr.write("read smoke: " + args[0] + "\n")
   @async.with_timeout(15000, () => {
     @async.with_task_group() <| group => {
       let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
@@ -95,7 +96,7 @@ async fn exercise(
         inherit_env=false,
         extra_env={ "MOONHUB_TOKEN": "smoke-private-token" },
       )
-      println("read smoke: child exited with \{code}")
+      @stdio.stderr.write("read smoke: child exited with \{code}\n")
       (code, out.text(), err.text())
     }
   })
@@ -103,6 +104,7 @@ async fn exercise(
 
 ///|
 async fn main {
+  @stdio.stderr.write("read smoke: started\n")
   let root = @env.current_dir().unwrap_or(".")
   let args = @env.args()
   guard args.length() >= 1 && args.length() <= 3 else {
@@ -115,14 +117,18 @@ async fn main {
       root + "/_build/native/release/build/cmd/main/main.exe"
     },
   )
+  @stdio.stderr.write("read smoke: resolved binary\n")
   let report_path = if args.length() == 3 {
     args[2]
   } else {
     root + "/_build/increment-2-smoke.json"
   }
   prepare_report(report_path, binary)
+  @stdio.stderr.write("read smoke: prepared report\n")
   let evidence = binary_evidence(binary)
+  @stdio.stderr.write("read smoke: hashed binary\n")
   let directory = @fs.tmpdir(prefix="gh-read-smoke-")
+  @stdio.stderr.write("read smoke: created fixture directory\n")
   defer @fs.rmdir(directory, recursive=true)
   let trace = directory + "/trace.jsonl"
   let cases : Array[(Array[String], String, String)] = [

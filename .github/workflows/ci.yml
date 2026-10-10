@@ -57,7 +57,7 @@ jobs:
 
       - name: Diagnose Windows read fixtures
         if: runner.os == 'Windows'
-        timeout-minutes: 5
+        timeout-minutes: 2
         run: moon run --target native --strip --verbose scripts/read_smoke.mbtx -- _build/native/release/build/cmd/main/main.exe _build/windows-read-diagnostic.json
 
       - name: Check, test, build and exercise the staged Native binary
