@@ -5,9 +5,9 @@ async test "native composition sends authenticated JSON and persists sanitized o
   let directory = @fs.tmpdir(prefix="gh-client-")
   defer @fs.rmdir(directory, recursive=true)
   let trace_path = directory + "/trace.jsonl"
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  defer server.close()
   @async.with_task_group() <| group => {
-    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-    defer server.close()
     group.spawn_bg() <| () => {
       for status in [201, 412] {
         let (conn, _) = server.accept()

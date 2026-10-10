@@ -73,9 +73,10 @@ async fn exercise(
   disconnect? : Bool = false,
 ) -> (Int, String, String) {
   @async.with_timeout(15000, () => {
+    // Keep the listening handle alive until pending accepts are cancelled.
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
     @async.with_task_group() <| group => {
-      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-      defer server.close()
       group.spawn_bg() <| () => {
         let (conn, _) = server.accept()
         defer conn.close()
@@ -132,9 +133,10 @@ async fn conditional_workflow(
   closed : String,
 ) -> Unit {
   @async.with_timeout(15000, () => {
+    // Keep the listening handle alive until pending accepts are cancelled.
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
     @async.with_task_group() <| group => {
-      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-      defer server.close()
       group.spawn_bg() <| () => {
         let mut tag = "\"workflow-open-1\""
         for stage in 0..<4 {

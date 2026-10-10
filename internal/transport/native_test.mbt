@@ -1,8 +1,8 @@
 ///|
 async test "native adapter sends all methods, bearer headers, and UTF-8 bodies" {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  defer server.close()
   @async.with_task_group() <| group => {
-    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-    defer server.close()
     let methods = [@gh.Get, Post, Put, Patch, Delete]
     group.spawn_bg() <| () => {
       for verb in methods {
@@ -63,9 +63,9 @@ async fn with_response(
   max_response_bytes? : Int = 8388608,
   headers? : @http.Headers = Map([]),
 ) -> Unit {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  defer server.close()
   @async.with_task_group() <| group => {
-    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-    defer server.close()
     group.spawn_bg() <| () => {
       let (conn, _) = server.accept()
       defer conn.close()
@@ -124,9 +124,9 @@ async test "response cap accepts exact bytes and rejects oversize" {
 
 ///|
 async test "timeout includes waiting for response headers" {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  defer server.close()
   @async.with_task_group() <| group => {
-    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-    defer server.close()
     group.spawn_bg(no_wait=true) <| () => {
       let (conn, _) = server.accept()
       defer conn.close()

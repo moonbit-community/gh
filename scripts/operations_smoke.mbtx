@@ -79,9 +79,10 @@ async fn exercise(
   replies : Array[Reply],
 ) -> (Int, String, String) {
   @async.with_timeout(15000, () => {
+    // Keep the listening handle alive until pending accepts are cancelled.
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
     @async.with_task_group() <| group => {
-      let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
-      defer server.close()
       let mut sent = 0
       group.spawn_bg() <| () => {
         for reply in replies {

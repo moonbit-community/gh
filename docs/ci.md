@@ -82,6 +82,12 @@ User credentials, home directories and proxy settings are still excluded from
 the fixture environment. Each `.mbtx` suite carries this small allowlist so it
 can also run independently of the candidate runner.
 
+Fixture listeners outlive their task groups. When a child cannot launch or a
+request times out, the group cancels pending accepts before closing the
+listening socket. Closing it first detaches the handle needed for Windows IO
+cancellation. The release regression suite exercises failed executable launches
+and checks that they remove old success reports.
+
 The matrix verifies Native client behavior with loopback HTTP and temporary
 files. Real MoonHub acceptance, system HTTPS trust and invalid certificate
 rejection, a full ACL/permission review, signing, and registry publication remain
