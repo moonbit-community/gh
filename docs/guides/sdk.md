@@ -171,14 +171,23 @@ another request. See [request tracing](tracing.md).
 Each HTTP attempt opens a connection, with a default 30-second timeout covering
 connection, request writing and response reading. The default response body cap
 is 8 MiB. `@native.client` accepts `timeout_ms` and `max_response_bytes` overrides.
-Only identity-encoded, valid UTF-8 bodies are accepted. The body limit does not
-impose an additional aggregate response-header byte limit.
+Only identity-encoded, valid UTF-8 bodies are accepted. The incremental HTTP/1
+codec limits status/header/chunk/trailer lines to 8 KiB excluding CRLF. Headers
+and trailers each have a 64 KiB total and 100-field limit, including duplicate
+fields and cookies. A trailing CR awaiting LF counts against the line limit,
+so lines through 8191 bytes are accepted regardless of fragmentation.
+Its pending byte buffer is capped at 16 KiB,
+independently of the response body cap. Oversize inputs fail without truncation.
 
 The adapter uses upstream TLS verification and does not follow redirects, reuse
 cookies, load proxy environment settings, pool connections or provide custom CA
 configuration. Binary streaming, compression and multipart uploads are outside
-the current interface. The upstream HTTP parser combines duplicate header lines;
-the client cannot recover their original wire layout.
+the current interface. Duplicate non-cookie headers are combined for the public
+response; `Set-Cookie` fields and trailers are not exposed. Informational and
+upgrade responses are rejected; unsupported transfer/content encodings and
+ambiguous framing also fail.
+Responses advertising a nonempty `204` body are rejected. An unframed `205`
+keeps the existing immediate-empty behavior rather than waiting for EOF.
 
 HTTPS runtime loading and certificate acceptance need verification on deployment
 hosts; loopback HTTP tests do not prove them. See

@@ -2,12 +2,15 @@ import {
   "ZSeanYves/gh",
   "moonbitlang/async",
   "moonbitlang/async/http",
+  "ZSeanYves/MoonbitHTTP/http1",
+  "ZSeanYves/MoonbitHTTP/types" @http_types,
   "moonbitlang/core/buffer",
   "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "moonbitlang/async/socket",
+  "moonbitlang/async/io",
 } for "test"
 
 options(

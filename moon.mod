@@ -29,4 +29,5 @@ import {
   "moonbitlang/async@0.21.3",
   "moonbitlang/x@0.5.5",
   "moonbitstack/moonjson@0.4.0",
+  "ZSeanYves/MoonbitHTTP@0.6.0",
 }

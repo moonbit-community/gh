@@ -4,6 +4,10 @@ The candidate keeps project code and automation in MoonBit. It reuses the
 toolchain core library and the pinned `moonbitlang/async@0.21.3` and
 `moonbitlang/x@0.5.5` dependencies; their native FFI remains upstream code.
 Strict JSON parsing reuses the pure MoonBit `moonbitstack/moonjson@0.4.0`.
+Bounded HTTP/1 encoding and decoding reuse the pure MoonBit
+`ZSeanYves/MoonbitHTTP@0.6.0` `http1`/`types` packages. Only these codec packages
+are imported; DNS and TLS remain on async 0.21.3. This published version fits
+the existing runtime without an async upgrade or another TLS implementation.
 
 ## Candidate attribution
 
@@ -19,6 +23,7 @@ dependency sources and copies the complete texts into the candidate's
 - `moonbit-async-LICENSE.txt`: Apache-2.0 text from async 0.21.3.
 - `moonjson-LICENSE.txt`: Apache-2.0 text from moonjson 0.4.0. Its source headers
   attribute the parser to Copyright 2026 Leo Cheng.
+- `MoonbitHTTP-LICENSE.txt`: Apache-2.0 text from MoonbitHTTP 0.6.0.
 
 Core, async and x sources attribute their code to International Digital Economy
 Academy. The x 0.5.5 module declares Apache-2.0 and its used crypto/sys source
@@ -27,7 +32,7 @@ also carry Apache-2.0 headers (Copyright 2026 International Digital Economy
 Academy); the included Apache-2.0 text applies to those sources too. The
 candidate does not bundle an SSL implementation or a C compiler.
 
-All four files remain required candidate contents and are covered by the
+All five files remain required candidate contents and are covered by the
 manifest's inventory and hashes. Missing upstream attribution fails candidate
 creation; deleting repository copies does not remove attribution from delivery.
 When upgrading dependencies or the toolchain, review the source locations and

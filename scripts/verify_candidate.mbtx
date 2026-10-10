@@ -54,12 +54,16 @@ fn canonical_integer(value : Json) -> Int raise {
 
 ///|
 // Keep number spellings so rounded fractions and underflow cannot stand in for
-// a schema version, a zero exit status, or a byte count.
+// a schema version, a zero exit status, or a byte count. Match the runtime's
+// depth limit so the standalone verifier also fits the default Windows stack.
 async fn read_json(path : String) -> Json {
   @moonjson.loads(@fs.read_file(path).text(), {
     ..@moonjson.strict,
-    depth: 1024,
-  })
+    depth: 128,
+  }) catch {
+    @moonjson.Malformed::TooDeep(_) => fail("candidate JSON exceeds depth 128")
+    error => raise error
+  }
 }
 
 ///|
@@ -228,6 +232,16 @@ async fn main {
     ] {
     guard listed.contains(path) else {
       fail("missing required candidate payload: " + path)
+    }
+  }
+  if manifest is { "dependencies": Array(dependencies), .. } &&
+    dependencies.any(item => {
+      item is String(value) && value.has_prefix("ZSeanYves/MoonbitHTTP@")
+    }) {
+    guard listed.contains("licenses/MoonbitHTTP-LICENSE.txt") else {
+      fail(
+        "missing required candidate payload: licenses/MoonbitHTTP-LICENSE.txt",
+      )
     }
   }
   // Existing version-1 candidates use the flat documentation layout. Require

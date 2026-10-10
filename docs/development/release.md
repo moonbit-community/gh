@@ -15,7 +15,8 @@ unlisted files before writing the completed manifest.
 Use the [CI-pinned toolchain and core](ci.md), currently
 `0.10.14+7d59c7ec9`, with the module's exact dependency versions:
 `moonbitlang/async@0.21.3`, `moonbitlang/x@0.5.5`, and
-`moonbitstack/moonjson@0.4.0`. Run Moon commands sequentially because they share
+`moonbitstack/moonjson@0.4.0`, plus `ZSeanYves/MoonbitHTTP@0.6.0`.
+Run Moon commands sequentially because they share
 the build lock. Each candidate captures its actual complete toolchain identity.
 From the repository root:
 
@@ -104,7 +105,9 @@ moon run --target native scripts/release_smoke.mbtx -- _build/releases/local-can
 ```
 
 It uses temporary copies to exercise damaged/missing manifests, changed files,
-existing output protection and stale report handling. The input candidate stays
+existing output protection, stale report handling and bounded JSON recursion.
+All six verifier JSON inputs use depth 128; deeper arrays and objects are rejected
+with a controlled error. The input candidate stays
 intact; the tooling report is `_build/release-smoke.json`.
 
 ## Development checks and individual smoke runs

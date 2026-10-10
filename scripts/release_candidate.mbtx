@@ -195,6 +195,7 @@ async fn Candidate::copy_licenses(self : Candidate) -> Unit {
     (source, name) in [
       (".mooncakes/moonbitlang/async/LICENSE", "moonbit-async-LICENSE.txt"),
       (".mooncakes/moonbitstack/moonjson/LICENSE", "moonjson-LICENSE.txt"),
+      (".mooncakes/ZSeanYves/MoonbitHTTP/LICENSE", "MoonbitHTTP-LICENSE.txt"),
     ] {
     self.copy(source, "licenses/" + name)
   }

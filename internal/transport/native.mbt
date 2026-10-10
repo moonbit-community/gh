@@ -29,59 +29,48 @@ pub fn native_transport(
     guard @gh.valid_request_path(request.path) else { raise InvalidRequest }
     let headers = request_headers(request.headers)
     @async.with_timeout(timeout_ms) <| () => {
-      let client = @http.Client(origin, headers~)
+      let client = @http.Client(origin)
       defer client.close()
+      // Switch while the client is still clean. DNS/TLS remain upstream; all
+      // HTTP framing passes through the bounded community codec below.
+      client.enter_passthrough_mode()
       let body = match request.body {
         Some(body) => @utf8.encode(body)
         None => b""
       }
-      client.request(native_method(request.verb), request.path, extra_headers={
-        "Content-Length": body.length().to_string(),
-      })
+      let fields = @http_types.HeaderMap::new()
+      for (name, value) in headers {
+        match fields.append_string(name.0, value) {
+          Ok(_) => ()
+          Err(_) => raise InvalidRequest
+        }
+      }
+      let authority = origin.split_once("://").unwrap().1.to_owned()
+      ignore(fields.append_string("Host", authority))
+      let head = @http1.encode_request_head(
+        {
+          http_method: native_method(request.verb),
+          uri: { value: request.path },
+          version: Http11,
+          headers: fields,
+          body: (),
+        },
+        ContentLength(body.length()),
+      )
+      match head {
+        Ok(bytes) => client.write(bytes)
+        Err(error) => raise error
+      }
       if body.length() > 0 {
         client.write(body)
       }
-      let response = client.end_request()
-      if response.headers.get("Content-Encoding") is Some(encoding) &&
-        encoding.trim().to_owned().to_lower() != "identity" {
-        raise UnsupportedEncoding
-      }
-      let buffer = @buffer.Buffer()
-      for ;; {
-        let remaining = max_response_bytes - buffer.length()
-        // Read one extra byte at the limit to distinguish EOF from truncation.
-        let read_size = if remaining == 0 {
-          1
-        } else if remaining < 8192 {
-          remaining
-        } else {
-          8192
-        }
-        match client.read_some(max_len=read_size) {
-          None => break
-          Some(bytes) => {
-            guard bytes.length() <= remaining else { raise ResponseTooLarge }
-            buffer.write_bytes(bytes)
-          }
-        }
-      }
-      let body = @utf8.decode(buffer.to_bytes()) catch {
-        _ => raise InvalidTextResponse
-      }
-      let headers = response.headers
-        .iter()
-        .map(fn(pair) {
-          let (name, value) = pair
-          (name.0, value)
-        })
-        .collect()
-      @gh.Response::new(status=response.code, body~, headers~)
+      read_response(client, request.verb, max_response_bytes)
     }
   })
 }
 
 ///|
-fn native_method(verb : @gh.HttpMethod) -> @http.RequestMethod {
+fn native_method(verb : @gh.HttpMethod) -> @http_types.Method {
   match verb {
     Get => Get
     Post => Post
