@@ -62,6 +62,7 @@ async fn exercise(
   args : Array[String],
   replies : Array[Reply],
 ) -> (Int, String, String) {
+  println("read smoke: " + args[0])
   @async.with_timeout(15000, () => {
     @async.with_task_group() <| group => {
       let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
@@ -94,6 +95,7 @@ async fn exercise(
         inherit_env=false,
         extra_env={ "MOONHUB_TOKEN": "smoke-private-token" },
       )
+      println("read smoke: child exited with \{code}")
       (code, out.text(), err.text())
     }
   })

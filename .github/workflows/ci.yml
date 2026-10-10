@@ -51,10 +51,14 @@ jobs:
       - name: Check generated interfaces are committed
         run: git diff --exit-code -- '*.mbti'
 
-      - name: Diagnose Windows Native tests
+      - name: Build Windows CLI for diagnostics
+        if: runner.os == 'Windows'
+        run: moon build --target native --release --deny-warn
+
+      - name: Diagnose Windows read fixtures
         if: runner.os == 'Windows'
         timeout-minutes: 5
-        run: moon test --target native --strip -j 1 --verbose
+        run: moon run --target native --strip --verbose scripts/read_smoke.mbtx -- _build/native/release/build/cmd/main/main.exe _build/windows-read-diagnostic.json
 
       - name: Check, test, build and exercise the staged Native binary
         run: moon run --target native scripts/release_candidate.mbtx -- _build/ci-candidate
