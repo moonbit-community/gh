@@ -4,20 +4,20 @@
 pub struct TraceQuery {
   operation_id : String?
   request_id : String?
-  status : Int?
+  status : Int32?
   verb : HttpMethod?
   path_prefix : String?
-  limit : Int
+  limit : Int32
 }
 
 ///|
 pub fn TraceQuery::new(
   operation_id? : String,
   request_id? : String,
-  status? : Int,
+  status? : Int32,
   verb? : HttpMethod,
   path_prefix? : String,
-  limit? : Int = 100,
+  limit~ : Int32 = 100,
 ) -> Result[TraceQuery, ApiError] {
   if limit < 1 || limit > 1000 {
     return Err(InvalidRequest(message="trace limit must be between 1 and 1000"))
@@ -44,8 +44,8 @@ pub fn TraceQuery::new(
 ///|
 pub struct TraceQueryResult {
   records : Array[TraceRecord]
-  scanned : Int
-  matched : Int
+  scanned : Int32
+  matched : Int32
   truncated : Bool
   incomplete_tail : Bool
 }
@@ -59,10 +59,10 @@ pub fn TraceQueryResult::to_json(self : TraceQueryResult) -> Json {
     "version": 1,
     "data": Json::array(records),
     "scan": {
-      "scanned": self.scanned.to_json(),
-      "matched": self.matched.to_json(),
-      "truncated": self.truncated.to_json(),
-      "incomplete_tail": self.incomplete_tail.to_json(),
+      "scanned": Json(self.scanned),
+      "matched": Json(self.matched),
+      "truncated": Json(self.truncated),
+      "incomplete_tail": Json(self.incomplete_tail),
     },
   }
 }
@@ -179,7 +179,7 @@ fn decode_trace_record(
 pub fn parse_trace_jsonl(
   content : String,
   query? : TraceQuery,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> Result[TraceQueryResult, ApiError] {
   if content.length() > 8388608 {
     return Err(Decode(message="trace input exceeds its size limit"))

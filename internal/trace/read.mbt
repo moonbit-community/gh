@@ -27,7 +27,7 @@ async fn read_locked_trace(path : String) -> String {
 pub async fn read(
   path : String,
   query? : @gh.TraceQuery,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> Result[@gh.TraceQueryResult, @gh.ApiError] {
   if path.is_empty() || path == "-" {
     return Err(
@@ -37,7 +37,7 @@ pub async fn read(
     )
   }
   let content = @async.with_timeout(30000, () => read_locked_trace(path)) catch {
-    error if @async.is_cancellation_error(error) => raise error
+    error if @async.is_being_cancelled() => raise error
     _ =>
       return Err(
         @gh.InvalidRequest(

@@ -5,13 +5,21 @@ import {
   "ZSeanYves/gh/internal/auth",
   "ZSeanYves/gh/internal/transport",
   "ZSeanYves/gh/internal/trace",
+  "ZSeanYves/gh/github",
+  "ZSeanYves/gh/github_cli",
+  "ZSeanYves/gh/internal/github_auth",
   "moonbitlang/async",
   "moonbitlang/core/env",
   "moonbitlang/core/buffer",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/debug",
+  "moonbitlang/x/crypto",
   "moonbitlang/async/fs",
   "moonbitlang/async/io",
   "moonbitlang/async/stdio",
+  "moonbitlang/async/process",
 }
 
 import {

@@ -1,0 +1,980 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+// Explicitly scoped to the user's disposable repository. No mutations,
+// arbitrary URLs/queries, inherited credentials, or automatic pagination.
+let allowed_repo = "ZSeanYves/gh_test"
+
+///|
+struct Probe {
+  name : String
+  args : Array[String]
+  oracle_args : Array[String]
+  path : String
+  verb : String
+  schema : String
+  included : Bool
+}
+
+///|
+// Preserve the output kind: empty stdout is not the JSON value [] or null.
+// gh v2.102.0 workflow list returns before its exporter when no results remain.
+enum ProbeOutput {
+  Structured(Json)
+  Text(String)
+  EmptyStdout
+} derive(Eq)
+
+///|
+fn probes() -> Array[Probe] {
+  let result : Array[Probe] = []
+  for
+    (name, path, schema) in [
+      ("user", "/user", "user"),
+      ("repository", "/repos/" + allowed_repo, "repository"),
+      (
+        "issues",
+        "/repos/" + allowed_repo + "/issues?state=all&per_page=2",
+        "list",
+      ),
+      (
+        "pulls",
+        "/repos/" + allowed_repo + "/pulls?state=all&per_page=2",
+        "list",
+      ),
+      ("releases", "/repos/" + allowed_repo + "/releases?per_page=2", "list"),
+      ("runs", "/repos/" + allowed_repo + "/actions/runs?per_page=2", "runs"),
+      (
+        "workflows",
+        "/repos/" + allowed_repo + "/actions/workflows?per_page=2",
+        "workflows",
+      ),
+    ] {
+    result.push({
+      name,
+      args: ["api", path, "--hostname", "github.com", "--include"],
+      oracle_args: ["api", path, "--hostname", "github.com", "--include"],
+      path: path.split("?").next().unwrap_or("").to_owned(),
+      verb: "GET",
+      schema,
+      included: true,
+    })
+  }
+  for
+    (name, query, schema, variables) in [
+      (
+        "graphql-viewer",
+        "query LiveFixtureViewer { viewer { login } }",
+        "viewer",
+        [],
+      ),
+      (
+        "graphql-repository",
+        "query LiveFixtureRepository($owner:String!, $name:String!) { repository(owner:$owner, name:$name) { nameWithOwner isPrivate } }",
+        "graphql-repository",
+        ["-f", "owner=ZSeanYves", "-f", "name=gh_test"],
+      ),
+    ] {
+    result.push({
+      name,
+      args: [
+        "api",
+        "graphql",
+        "--hostname",
+        "github.com",
+        "--include",
+        "-f",
+        "query=" + query,
+      ] +
+      variables,
+      oracle_args: [
+        "api",
+        "graphql",
+        "--hostname",
+        "github.com",
+        "--include",
+        "-f",
+        "query=" + query,
+      ] +
+      variables,
+      path: "/graphql",
+      verb: "POST",
+      schema,
+      included: true,
+    })
+  }
+  for
+    (name, flags) in [
+      ("jq", ["--jq", ".full_name"]),
+      ("template", ["--template", "{{.full_name}}"]),
+    ] {
+    result.push({
+      name,
+      args: ["api", "/repos/" + allowed_repo, "--hostname", "github.com"] +
+      flags,
+      oracle_args: ["api", "/repos/" + allowed_repo, "--hostname", "github.com"] +
+      flags,
+      path: "/repos/" + allowed_repo,
+      verb: "GET",
+      schema: "repository-text",
+      included: false,
+    })
+  }
+  result.push({
+    name: "repo-view",
+    args: ["repo", "view", allowed_repo, "--json", "name,nameWithOwner"],
+    oracle_args: ["repo", "view", allowed_repo, "--json", "name,nameWithOwner"],
+    path: "/repos/" + allowed_repo,
+    verb: "GET",
+    schema: "repo-view",
+    included: false,
+  })
+  for
+    (name, project_args, oracle_args, schema) in [
+      (
+        "repo-details",
+        [
+          "repo", "view", allowed_repo, "--json", "name,nameWithOwner,visibility",
+        ],
+        [
+          "repo", "view", allowed_repo, "--json", "name,nameWithOwner,visibility",
+        ],
+        "repo-details",
+      ),
+      (
+        "issue-list",
+        [
+          "issue", "list", "-R", allowed_repo, "--state", "all", "--limit", "3",
+          "--json", "number,title,state",
+        ],
+        [
+          "issue", "list", "-R", allowed_repo, "--state", "all", "--limit", "3",
+          "--json", "number,title,state",
+        ],
+        "issue-list",
+      ),
+      (
+        "pr-list",
+        [
+          "pr", "list", "-R", allowed_repo, "--state", "all", "--limit", "3", "--json",
+          "number,title,state",
+        ],
+        [
+          "pr", "list", "-R", allowed_repo, "--state", "all", "--limit", "3", "--json",
+          "number,title,state",
+        ],
+        "pr-list",
+      ),
+      (
+        "release-list",
+        [
+          "release", "list", "-R", allowed_repo, "--limit", "3", "--json", "tagName,name,isDraft,isPrerelease",
+        ],
+        [
+          "release", "list", "-R", allowed_repo, "--limit", "3", "--json", "tagName,name,isDraft,isPrerelease",
+        ],
+        "release-list",
+      ),
+      (
+        "run-list",
+        [
+          "run", "list", "-R", allowed_repo, "--limit", "3", "--json", "databaseId,status,conclusion,name",
+        ],
+        [
+          "run", "list", "-R", allowed_repo, "--limit", "3", "--json", "databaseId,status,conclusion,name",
+        ],
+        "run-list",
+      ),
+      (
+        "workflow-list",
+        [
+          "workflow", "list", "-R", allowed_repo, "--limit", "10", "--json", "id,name,state",
+        ],
+        [
+          "workflow", "list", "-R", allowed_repo, "--limit", "10", "--json", "id,name,state",
+        ],
+        "workflow-list",
+      ),
+      (
+        "search-issues",
+        [
+          "search",
+          "issues",
+          "repo:" + allowed_repo,
+          "--sort",
+          "created",
+          "--order",
+          "desc",
+          "--limit",
+          "3",
+          "--json",
+          "number,title,state",
+        ],
+        [
+          "search",
+          "issues",
+          "repo:" + allowed_repo,
+          "--sort",
+          "created",
+          "--order",
+          "desc",
+          "--limit",
+          "3",
+          "--json",
+          "number,title,state",
+        ],
+        "search-issues",
+      ),
+      (
+        "search-repos",
+        [
+          "search", "repos", "gh_test", "in:name", "user:ZSeanYves", "--limit", "3",
+          "--json", "fullName",
+        ],
+        [
+          "search", "repos", "gh_test", "in:name", "user:ZSeanYves", "--limit", "3",
+          "--json", "fullName",
+        ],
+        "search-repos",
+      ),
+    ] {
+    result.push({
+      name,
+      args: project_args,
+      oracle_args,
+      path: match name {
+        "repo-details" => "/repos/" + allowed_repo
+        "issue-list" => "/repos/" + allowed_repo + "/issues"
+        "pr-list" => "/repos/" + allowed_repo + "/pulls"
+        "release-list" => "/repos/" + allowed_repo + "/releases"
+        "run-list" => "/repos/" + allowed_repo + "/actions/runs"
+        "workflow-list" => "/repos/" + allowed_repo + "/actions/workflows"
+        "search-issues" => "/search/issues"
+        "search-repos" => "/search/repositories"
+        _ => ""
+      },
+      verb: "GET",
+      schema,
+      included: false,
+    })
+  }
+  result
+}
+
+///|
+fn isolated_environment(config : String, token : String) -> Map[String, String] {
+  let result : Map[String, String] = {
+    "GH_TOKEN": token,
+    "GH_HOST": "github.com",
+    "GH_CONFIG_DIR": config,
+    "HOME": config,
+    "USERPROFILE": config,
+    "XDG_CONFIG_HOME": config,
+    "XDG_CACHE_HOME": config,
+    "PATH": "/usr/bin:/bin",
+    "GH_PROMPT_DISABLED": "1",
+    "GIT_TERMINAL_PROMPT": "0",
+    "GH_NO_UPDATE_NOTIFIER": "1",
+    "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+    "GH_TELEMETRY": "0",
+    "DO_NOT_TRACK": "1",
+    "GH_PAGER": "cat",
+    "PAGER": "cat",
+    "LC_ALL": "C",
+    "LANG": "C",
+    "NO_COLOR": "1",
+  }
+  if @env.get_env_var("SystemRoot") is Some(root) {
+    result["SystemRoot"] = root
+  }
+  result
+}
+
+///|
+fn positive_integer(value : Json) -> Bool {
+  match value {
+    Number(n, ..) => n > 0 && n <= 9007199254740991.0 && n.floor() == n
+    _ => false
+  }
+}
+
+///|
+// Selected business fields are validated in memory. Raw bodies are never
+// persisted; an empty collection proves connectivity only.
+fn validate_json(schema : String, value : Json) -> Result[Json, String] {
+  if schema == "repo-details" {
+    return match value {
+      {
+        "name": "gh_test",
+        "nameWithOwner": String(name),
+        "visibility": String(visibility),
+        ..
+      } if name == allowed_repo && !visibility.is_empty() => Ok(value)
+      _ => Err("response_schema_mismatch")
+    }
+  }
+  if schema
+    is ("issue-list"
+    | "pr-list"
+    | "search-issues"
+    | "release-list"
+    | "run-list"
+    | "workflow-list"
+    | "search-repos") {
+    return match value {
+      Array(items) if items.all(item => valid_business_item(schema, item)) =>
+        if schema == "search-repos" &&
+          !items.is_empty() &&
+          !items.any(item => {
+            item is { "fullName": String(name), .. } && name == allowed_repo
+          }) {
+          Err("response_outside_repository_scope")
+        } else if schema == "search-repos" &&
+          !items.is_empty() &&
+          !items.all(item => {
+            item is { "fullName": String(name), .. } &&
+            name.has_prefix("ZSeanYves/") &&
+            name.to_lower().contains("gh_test")
+          }) {
+          Err("response_outside_repository_scope")
+        } else {
+          Ok(value)
+        }
+      _ => Err("response_schema_mismatch")
+    }
+  }
+  match (schema, value) {
+    ("user", { "login": String(login), "id": id, .. }) if !login.is_empty() &&
+      positive_integer(id) => Ok(Json(login))
+    (
+      "repository",
+      {
+        "full_name": String(full_name),
+        "name": "gh_test",
+        "owner": { "login": "ZSeanYves", .. },
+        ..
+      },
+    ) if full_name == allowed_repo => Ok(Json(full_name))
+    ("repo-view", { "name": "gh_test", "nameWithOwner": String(name), .. }) if name ==
+      allowed_repo => Ok(Json(name))
+    ("list", Array(items)) if items.all(item => {
+        item is { "id": id, .. } && positive_integer(id)
+      }) => Ok({ "count": items.length() })
+    (
+      "runs",
+      { "total_count": Number(total, ..), "workflow_runs": Array(items), .. },
+    )
+    | (
+      "workflows",
+      { "total_count": Number(total, ..), "workflows": Array(items), .. },
+    ) if total >= 0 &&
+      total.floor() == total &&
+      items.all(item => item is { "id": id, .. } && positive_integer(id)) =>
+      Ok({ "count": items.length() })
+    ("viewer", Object(fields)) if !fields.contains("errors") =>
+      match fields.get("data") {
+        Some({ "viewer": { "login": String(login), .. }, .. }) if !login.is_empty() =>
+          Ok(Json(login))
+        _ => Err("graphql_viewer_schema")
+      }
+    ("graphql-repository", Object(fields)) if !fields.contains("errors") =>
+      match fields.get("data") {
+        Some(
+          {
+            "repository": {
+              "nameWithOwner": String(name),
+              "isPrivate": True
+              | False,
+              ..
+            },
+            ..
+          }
+        ) if name == allowed_repo => Ok(Json(name))
+        _ => Err("graphql_repository_schema")
+      }
+    _ => Err("response_schema_mismatch")
+  }
+}
+
+///|
+fn valid_business_item(schema : String, value : Json) -> Bool {
+  match schema {
+    "issue-list" | "pr-list" | "search-issues" =>
+      value
+      is { "number": number, "title": String(_), "state": String(state), .. } &&
+      positive_integer(number) &&
+      !state.is_empty()
+    "release-list" =>
+      value
+      is {
+        "tagName": String(tag),
+        "name": String(_),
+        "isDraft": True
+        | False,
+        "isPrerelease": True
+        | False,
+        ..
+      } &&
+      !tag.is_empty()
+    "run-list" =>
+      value
+      is {
+        "databaseId": id,
+        "status": String(status),
+        "conclusion": String(_)
+        | Null,
+        "name": String(_),
+        ..
+      } &&
+      positive_integer(id) &&
+      !status.is_empty()
+    "workflow-list" =>
+      value is { "id": id, "name": String(_), "state": String(state), .. } &&
+      positive_integer(id) &&
+      !state.is_empty()
+    "search-repos" =>
+      value is { "fullName": String(name), .. } && !name.is_empty()
+    _ => false
+  }
+}
+
+///|
+fn parse_included(
+  text : String,
+) -> Result[(Int32, Map[String, String], String), String] {
+  let normalized = text.replace_all(old="\r\n", new="\n")
+  guard normalized.split_once("\n\n") is Some((head, body)) else {
+    return Err("missing_http_headers")
+  }
+  let lines = head.split("\n").collect()
+  let first = lines[0].split(" ").collect()
+  guard first.length() >= 2 && first[0].has_prefix("HTTP/") else {
+    return Err("invalid_http_status_line")
+  }
+  let status = @string.parse_int(first[1]) catch {
+    _ => return Err("invalid_http_status")
+  }
+  let headers : Map[String, String] = Map([])
+  for line in lines[1:] {
+    if line.split_once(":") is Some((name, value)) {
+      headers[name.to_owned().to_lower()] = value.trim().to_owned()
+    }
+  }
+  Ok((status, headers, body.to_owned()))
+}
+
+///|
+fn check_trace(text : String, probe : Probe, token : String) -> Bool {
+  if text.contains(token) {
+    return false
+  }
+  let lines = text.trim().split("\n").collect()
+  if lines.length() != 1 {
+    return false
+  }
+  let value = @json.parse(lines[0]) catch { _ => return false }
+  guard value is Object(fields) &&
+    value
+    is {
+      "provider": "github",
+      "host": "api.github.com",
+      "status": 200,
+      "method": String(verb),
+      "path": String(path),
+      "attempt": 1,
+      ..
+    } else {
+    return false
+  }
+  if verb != probe.verb || path != probe.path {
+    return false
+  }
+  let allowed = [
+    "version", "provider", "host", "operation_name", "operation_id", "attempt", "method",
+    "path", "status", "duration_ms", "request_id", "error_code", "query_fingerprint",
+  ]
+  if !fields.keys().all(key => allowed.contains(key)) {
+    return false
+  }
+  if probe.path == "/graphql" {
+    guard fields.get("query_fingerprint") is Some(String(fingerprint)) &&
+      fingerprint.has_prefix("shape-v1-") &&
+      fingerprint.length() == 73 else {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn failure_category(status : Int32, stderr : String, body : String) -> String {
+  if status == 429 ||
+    (status == 403 && (stderr + body).to_lower().contains("rate limit")) {
+    "rate_limited"
+  } else if status == 401 {
+    "authentication"
+  } else if status == 403 || status == 404 {
+    "permission_or_resource_or_client"
+  } else {
+    "command_failed"
+  }
+}
+
+///|
+fn validate_output(
+  schema : String,
+  body : String,
+) -> Result[ProbeOutput, String] {
+  if schema == "workflow-list" && body.is_empty() {
+    return Ok(EmptyStdout)
+  }
+  if schema == "repository-text" {
+    return if body.trim() == allowed_repo {
+      Ok(Text(allowed_repo))
+    } else {
+      Err("output_mismatch")
+    }
+  }
+  let value = @json.parse(body) catch { _ => return Err("invalid_json") }
+  match validate_json(schema, value) {
+    Ok(value) => Ok(Structured(value))
+    Err(code) => Err(code)
+  }
+}
+
+///|
+async fn run_probe(
+  binary : String,
+  config : String,
+  token : String,
+  probe : Probe,
+  project~ : Bool,
+  argv~ : Array[String],
+) -> (Json, ProbeOutput?, Bool) {
+  let environment = isolated_environment(config, token)
+  let trace = config + "/" + probe.name + ".jsonl"
+  if project {
+    environment["GH_TRACE_FILE"] = trace
+  }
+  let result = @shell.Cmd(
+    binary,
+    argv,
+    cwd=config,
+    inherit_env=false,
+    env=environment,
+  ).output(timeout_ms=45000, max_output_bytes=2097152) catch {
+    _ =>
+      return (
+        {
+          "passed": false,
+          "diagnostic": "process_timeout_output_limit_or_spawn",
+        },
+        None,
+        false,
+      )
+  }
+  let stdout = result.stdout()
+  let stderr = result.stderr()
+  let record : Map[String, Json] = {
+    "exit_code": Json(result.exit_code()),
+    "passed": Json(false),
+    "stdout_characters": Json(stdout.length()),
+    "stderr_characters": Json(stderr.length()),
+  }
+  if stdout.contains(token) || stderr.contains(token) {
+    record["diagnostic"] = Json("secret_in_output")
+    return (Json(record), None, false)
+  }
+  let (status, headers, body) = if probe.included {
+    match parse_included(stdout) {
+      Ok(value) => value
+      Err(code) => {
+        record["diagnostic"] = Json(code)
+        return (Json(record), None, false)
+      }
+    }
+  } else {
+    (0, Map([]), stdout)
+  }
+  if probe.included {
+    record["http_status"] = Json(status)
+  }
+  for
+    name in ["x-ratelimit-remaining", "x-ratelimit-limit", "x-ratelimit-reset"] {
+    if headers.get(name) is Some(value) {
+      let number = @string.parse_int64(value) catch { _ => continue }
+      record[name] = Json(number)
+    }
+  }
+  record["next_link_present"] = Json(
+    headers.get("link").map_or(false, h => h.contains("rel=\"next\"")),
+  )
+  if result.exit_code() != 0 || (probe.included && status != 200) {
+    record["diagnostic"] = Json(failure_category(status, stderr, body))
+    return (Json(record), None, false)
+  }
+  if !stderr.is_empty() {
+    record["diagnostic"] = Json("unexpected_stderr")
+    return (Json(record), None, false)
+  }
+  let normalized = match validate_output(probe.schema, body) {
+    Ok(value) => value
+    Err(code) => {
+      record["diagnostic"] = Json(code)
+      return (Json(record), None, false)
+    }
+  }
+  record["output_kind"] = Json(
+    match normalized {
+      Structured(_) => "json"
+      Text(_) => "text"
+      EmptyStdout => "empty"
+    },
+  )
+  if normalized is EmptyStdout {
+    record["item_count"] = Json(0)
+    record["nonempty_semantics_verified"] = Json(false)
+    record["selected_fields_schema_verified"] = Json(false)
+  }
+  if normalized is Structured({ "count": count, .. }) {
+    record["item_count"] = count
+    record["nonempty_semantics_verified"] = Json(false)
+  }
+  if normalized is Structured(Array(items)) {
+    record["item_count"] = Json(items.length())
+    record["nonempty_semantics_verified"] = Json(false)
+    record["selected_fields_schema_verified"] = Json(true)
+  }
+  if project {
+    let valid = if @fs.exists(trace) && @fs.file_size(trace) <= 65536L {
+      check_trace(@fs.read_file(trace).text(), probe, token)
+    } else {
+      false
+    }
+    record["single_request_trace_verified"] = Json(valid)
+    if !valid {
+      record["diagnostic"] = Json("trace_contract_mismatch")
+      return (Json(record), None, false)
+    }
+  }
+  record["passed"] = Json(true)
+  (Json(record), Some(normalized), true)
+}
+
+///|
+fn self_test() -> Unit raise {
+  assert_eq(probes().length(), 20)
+  for probe in probes() {
+    assert_eq(probe.args, probe.oracle_args)
+    assert_false(probe.args.is_empty())
+    assert_false(probe.path.is_empty())
+    if probe.name == "search-repos" {
+      // gh quotes each keyword separately; combining these arguments changes
+      // the meaning of the owner qualifier and broadens the live search.
+      assert_eq(probe.args, [
+        "search", "repos", "gh_test", "in:name", "user:ZSeanYves", "--limit", "3",
+        "--json", "fullName",
+      ])
+    }
+  }
+  assert_true(validate_output("workflow-list", "") is Ok(EmptyStdout))
+  assert_true(
+    validate_output("workflow-list", "[]\n") is Ok(Structured(Array([]))),
+  )
+  assert_false(
+    validate_output("workflow-list", "") ==
+    validate_output("workflow-list", "[]\n"),
+  )
+  for body in ["\n", " ", "null", "{}", "not JSON"] {
+    assert_true(validate_output("workflow-list", body) is Err(_))
+  }
+  for
+    schema in [
+      "issue-list", "pr-list", "run-list", "release-list", "list", "workflows",
+    ] {
+    assert_true(validate_output(schema, "") is Err("invalid_json"))
+  }
+  assert_true(
+    validate_output(
+      "workflow-list", "[{\"id\":7,\"name\":\"CI\",\"state\":\"active\"}]\n",
+    )
+    is Ok(Structured(Array([_]))),
+  )
+  for
+    schema in [
+      "issue-list", "pr-list", "release-list", "run-list", "workflow-list", "search-issues",
+      "search-repos",
+    ] {
+    assert_true(validate_json(schema, []) is Ok(Array([])))
+    assert_true(validate_json(schema, { "items": [] }) is Err(_))
+    assert_true(validate_json(schema, [Json::null()]) is Err(_))
+  }
+  let issues : Json = [{ "number": 3, "title": "fixture", "state": "CLOSED" }]
+  assert_eq(validate_json("issue-list", issues), Ok(issues))
+  assert_true(
+    validate_json("issue-list", [
+      { "number": "3", "title": "fixture", "state": "CLOSED" },
+    ])
+    is Err(_),
+  )
+  assert_true(
+    validate_json("run-list", [
+      {
+        "databaseId": Json::null(),
+        "status": Json::null(),
+        "conclusion": Json::null(),
+        "name": Json::null(),
+      },
+    ])
+    is Err(_),
+  )
+  assert_true(
+    validate_json("search-repos", [{ "nameWithOwner": allowed_repo }]) is Err(_),
+  )
+  assert_true(
+    validate_json("search-repos", [{ "fullName": allowed_repo }]) is Ok(_),
+  )
+  assert_true(
+    validate_json("search-repos", [{ "fullName": "acme/gh_test" }])
+    is Err("response_outside_repository_scope"),
+  )
+  assert_true(
+    validate_json("search-repos", [
+      { "fullName": allowed_repo },
+      { "fullName": "ZSeanYves/gh_test_extra" },
+    ])
+    is Ok(_),
+  )
+  assert_false(
+    validate_json("issue-list", issues) ==
+    validate_json("issue-list", [
+      { "number": 3, "title": "fixture", "state": "closed" },
+    ]),
+  )
+  let order_a : Json = { "state": "CLOSED", "number": 3 }
+  let order_b : Json = { "number": 3, "state": "CLOSED" }
+  assert_eq(order_a, order_b)
+  let explicit_null : Json = { "field": Json::null() }
+  let missing : Json = Json::empty_object()
+  assert_false(explicit_null == missing)
+  assert_true(validate_json("list", []) is Ok(_))
+  assert_true(validate_json("list", [{ "id": -1 }]) is Err(_))
+  assert_true(
+    validate_json("repo-view", {
+      "name": "gh_test",
+      "nameWithOwner": Json::null(),
+    })
+    is Err(_),
+  )
+  assert_true(
+    validate_json("repo-view", {
+      "name": "gh_test",
+      "nameWithOwner": allowed_repo,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    validate_json("viewer", {
+      "data": { "viewer": { "login": "fixture" } },
+      "errors": [],
+    })
+    is Err(_),
+  )
+  assert_true(
+    parse_included("HTTP/2.0 200 OK\r\nX-RateLimit-Remaining: 7\r\n\r\n{}")
+    is Ok((200, _, "{}")),
+  )
+  assert_true(parse_included("not HTTP") is Err(_))
+  assert_eq(failure_category(403, "secondary rate limit", ""), "rate_limited")
+  let environment = isolated_environment("/fixture", "fixture-token")
+  assert_false(environment.contains("GH_FORCE_TTY"))
+  assert_false(environment.contains("GITHUB_TOKEN"))
+  assert_false(check_trace("fixture-token", probes()[0], "fixture-token"))
+  println("live fixture self-test passed (no network)")
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  if args.length() == 2 && args[1] == "--self-test" {
+    self_test()
+    return
+  }
+  guard args.length() <= 3 else {
+    fail(
+      "usage: live_github_fixture.mbtx [PROJECT_BINARY [NEW_REPORT_PATH]] | --self-test",
+    )
+  }
+  guard @env.get_env_var("LIVE_GITHUB") == Some("1") else {
+    fail("live requests require LIVE_GITHUB=1")
+  }
+  guard @env.get_env_var("GH_LIVE_REPO") == Some(allowed_repo) else {
+    fail("GH_LIVE_REPO must be ZSeanYves/gh_test")
+  }
+  guard @env.get_env_var("GH_TOKEN") is Some(token) &&
+    !token.is_empty() &&
+    token.iter().all(c => c.to_int() > 32 && c.to_int() != 127) else {
+    fail(
+      "set a GitHub API token in GH_TOKEN locally; do not put it in arguments",
+    )
+  }
+  guard @env.get_env_var("GH_HOST").unwrap_or("github.com") == "github.com" else {
+    fail("this runner permits github.com only")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let binary = @fs.realpath(
+    args.get(1).unwrap_or(root + "/_build/native/debug/build/cmd/main/main.exe"),
+  )
+  guard @fs.kind(binary) is @fs.Regular && @fs.can_execute(binary) else {
+    fail("project binary must be an executable regular file")
+  }
+  let report_path = args
+    .get(2)
+    .unwrap_or(root + "/_build/live-github-fixture.json")
+  guard !@fs.exists(report_path) else {
+    fail("report already exists; supply a new report path")
+  }
+  let config = @fs.tmpdir(prefix="gh-live-fixture-")
+  defer @fs.rmdir(config, recursive=true)
+  @fs.chmod(config, 0o700)
+  let oracle = match @env.get_env_var("GH_ORACLE_BINARY") {
+    None => None
+    Some(path) => {
+      let path = @fs.realpath(path)
+      guard path != binary && @fs.kind(path) is @fs.Regular else {
+        fail("oracle must be a separate regular executable")
+      }
+      guard @env.get_env_var("GH_ORACLE_SHA256") is Some(expected) &&
+        @crypto.bytes_to_hex_string(
+          @crypto.sha256(@fs.read_file(path).binary()),
+        ) ==
+        expected else {
+        fail("GH_ORACLE_SHA256 is missing or mismatched")
+      }
+      let version = @shell.Cmd(
+        path,
+        ["--version"],
+        cwd=config,
+        inherit_env=false,
+        env=isolated_environment(config, ""),
+      ).output(timeout_ms=10000, max_output_bytes=65536)
+      guard version.exit_code() == 0 &&
+        (
+          version.stdout().has_prefix("gh version 2.102.0 (") ||
+          version.stdout().has_prefix("gh version 2.102.0\n")
+        ) else {
+        fail("oracle must be gh v2.102.0")
+      }
+      Some(path)
+    }
+  }
+  let cases : Array[Json] = []
+  let all_probes = probes()
+  let mut passed = true
+  for probe in all_probes {
+    let (project_result, project_value, project_passed) = run_probe(
+      binary,
+      config,
+      token,
+      probe,
+      project=true,
+      argv=probe.args,
+    )
+    let entry : Map[String, Json] = {
+      "name": Json(probe.name),
+      "schema": Json(probe.schema),
+      "project": project_result,
+    }
+    passed = project_passed
+    // Stop immediately on errors, especially auth/permission/rate limits.
+    // A failing project probe never triggers a second request via the oracle.
+    if project_passed && oracle is Some(reference) {
+      let (oracle_result, oracle_value, oracle_passed) = run_probe(
+        reference,
+        config,
+        token,
+        probe,
+        project=false,
+        argv=probe.oracle_args,
+      )
+      let matches = oracle_passed && project_value == oracle_value
+      entry["oracle"] = oracle_result
+      entry["normalized_output_matches"] = Json(matches)
+      if project_value is Some(EmptyStdout) {
+        entry["empty_stdout_matches"] = Json(matches)
+        entry["nonempty_semantics_verified"] = Json(false)
+      }
+      if project_value is Some(Structured(Array(items))) {
+        entry["selected_fields_output_matches"] = Json(matches)
+        entry["nonempty_semantics_verified"] = Json(
+          matches && !items.is_empty(),
+        )
+      }
+      if !matches {
+        entry["diagnostic"] = Json(
+          if oracle_passed {
+            "oracle_output_mismatch"
+          } else {
+            "oracle_probe_failed"
+          },
+        )
+      }
+      passed = matches
+    }
+    cases.push(Json(entry))
+    println(
+      probe.name + (if passed { ": passed" } else { ": FAILED (see report)" }),
+    )
+    if !passed {
+      break
+    }
+  }
+  let report : Json = {
+    "schema": 2,
+    "repository": allowed_repo,
+    "host": "github.com",
+    "mode": "read-only-smoke",
+    "live_requests_attempted": true,
+    "live_server_verified": passed && cases.length() == all_probes.length(),
+    "oracle_version": "2.102.0",
+    "oracle_executed": oracle is Some(_) &&
+    cases.any(entry => entry is Object(fields) && fields.contains("oracle")),
+    "core_parity_verified": false,
+    "pagination_verified": false,
+    "oauth_verified": false,
+    "keyring_verified": false,
+    "multi_account_verified": false,
+    "write_operations_verified": false,
+    "command_budget": if oracle is Some(_) {
+      all_probes.length() * 2
+    } else {
+      all_probes.length()
+    },
+    "project_request_budget": all_probes.length(),
+    "oracle_request_count_verified": false,
+    "project_binary_sha256": @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(binary).binary()),
+    ),
+    "cases": Json(cases),
+  }
+  @fs.write_file(
+    report_path,
+    report.stringify(indent=2) + "\n",
+    permission=0o600,
+    create_mode=@fs.CreateNew,
+  )
+  println("Report: " + report_path)
+  if !passed {
+    fail("live fixture failed; only sanitized diagnostics were saved")
+  }
+}

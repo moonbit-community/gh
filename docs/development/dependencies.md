@@ -1,13 +1,37 @@
 # Third-party code and runtime requirements
 
 The candidate keeps project code and automation in MoonBit. It reuses the
-toolchain core library and the pinned `moonbitlang/async@0.21.3` and
+toolchain core library and the pinned `moonbitlang/async@0.22.5` and
 `moonbitlang/x@0.5.5` dependencies; their native FFI remains upstream code.
 Strict JSON parsing reuses the pure MoonBit `moonbitstack/moonjson@0.4.0`.
 Bounded HTTP/1 encoding and decoding reuse the pure MoonBit
-`ZSeanYves/MoonbitHTTP@0.6.0` `http1`/`types` packages. Only these codec packages
-are imported; DNS and TLS remain on async 0.21.3. This published version fits
-the existing runtime without an async upgrade or another TLS implementation.
+`ZSeanYves/MoonbitHTTP@0.7.0` `protocol/http1`/`core/types` packages. Only these codec packages
+are imported; DNS and TLS remain on async 0.22.5. The HTTP codec is retained
+because the CLI transport requires raw bytes, duplicate headers, arbitrary
+methods, bounded framing, and explicit retry/redirect policy that the high-level
+`async/http` client does not expose.
+
+## MoonbitHTTP removal evaluation
+
+The request-stream length check is only one part of the dependency's current
+role. `internal/transport/{framing,raw_framing}.mbt` also depends on its
+incremental HTTP/1 response events for status-line parsing, repeated headers,
+chunked bodies and trailers, 204/304/HEAD body rules, close-delimited bodies,
+informational responses, and bounded header/body buffering. The `async/http`
+high-level client stores headers in a `Map`, accepts a fixed method enum, skips
+informational responses in `end_request`, and has no equivalent configurable
+header/body limits. Its `enter_passthrough_mode` is a raw socket stream and does
+not provide HTTP framing.
+
+Therefore MoonbitHTTP is not an unused dependency and is not removed in the
+core-parity migration. Ignoring the request length limit would silently remove
+response and security guarantees required by `gh api`, including binary bodies,
+duplicate fields and deterministic no-retry behavior. A later removal is safe
+only after a project-owned `internal/http1` codec (or a reviewed vendored
+subset) passes the existing framing and raw-transport fixtures on Native,
+Wasm, Wasm-GC and JS where supported. That work should run as a dual-adapter
+migration, compare byte-level behavior, then delete the MoonbitHTTP import and
+license entry in one change.
 
 ## Candidate attribution
 
@@ -20,10 +44,10 @@ dependency sources and copies the complete texts into the candidate's
   the toolchain used to build the candidate.
 - `moonbit-core-NOTICE.txt`: the core library's complete NOTICE, including its
   retained third-party notices.
-- `moonbit-async-LICENSE.txt`: Apache-2.0 text from async 0.21.3.
+- `moonbit-async-LICENSE.txt`: Apache-2.0 text from async 0.22.5.
 - `moonjson-LICENSE.txt`: Apache-2.0 text from moonjson 0.4.0. Its source headers
   attribute the parser to Copyright 2026 Leo Cheng.
-- `MoonbitHTTP-LICENSE.txt`: Apache-2.0 text from MoonbitHTTP 0.6.0.
+- `MoonbitHTTP-LICENSE.txt`: Apache-2.0 text from MoonbitHTTP 0.7.0.
 
 Core, async and x sources attribute their code to International Digital Economy
 Academy. The x 0.5.5 module declares Apache-2.0 and its used crypto/sys source

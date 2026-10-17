@@ -44,7 +44,7 @@ pub fn Request::new(
   verb~ : HttpMethod,
   path~ : String,
   body? : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> Request {
   { verb, path, body, headers: headers.copy(), }
 }
@@ -54,16 +54,16 @@ pub fn Request::new(
 /// the native upstream HTTP implementation coalesces them.
 /// Raw response bodies must not be placed into diagnostics or traces.
 pub struct Response {
-  status : Int
+  status : Int32
   body : String
   headers : Array[(String, String)]
 }
 
 ///|
 pub fn Response::new(
-  status~ : Int,
+  status~ : Int32,
   body~ : String,
-  headers? : Array[(String, String)] = [],
+  headers~ : Array[(String, String)] = [],
 ) -> Response {
   { status, body, headers: headers.copy(), }
 }
@@ -88,8 +88,8 @@ pub(all) enum ApiError {
   NotFound
   Conflict(message~ : String)
   RateLimited
-  Server(status~ : Int, message~ : String)
-  UnexpectedStatus(status~ : Int)
+  Server(status~ : Int32, message~ : String)
+  UnexpectedStatus(status~ : Int32)
   Decode(message~ : String)
 }
 
@@ -112,7 +112,7 @@ pub fn ApiError::code(self : ApiError) -> String {
 
 ///|
 /// Only call for non-2xx responses. Message must already be safe to display.
-pub fn api_error_for_status(status~ : Int, message~ : String) -> ApiError {
+pub fn api_error_for_status(status~ : Int32, message~ : String) -> ApiError {
   match status {
     400 | 422 => InvalidRequest(message~)
     401 => Unauthorized
@@ -120,7 +120,7 @@ pub fn api_error_for_status(status~ : Int, message~ : String) -> ApiError {
     404 => NotFound
     409 | 412 => Conflict(message~)
     429 => RateLimited
-    500..=599 => Server(status~, message~)
+    500..<=599 => Server(status~, message~)
     _ => UnexpectedStatus(status~)
   }
 }
@@ -135,7 +135,7 @@ pub fn transport_error(message~ : String) -> ApiError {
 /// server error envelope is malformed. code is a recognized server error code.
 pub struct ApiFailure {
   kind : ApiError
-  status : Int?
+  status : Int32?
   code : String?
   request_id : String?
 }
@@ -143,7 +143,7 @@ pub struct ApiFailure {
 ///|
 pub fn ApiFailure::new(
   kind~ : ApiError,
-  status? : Int,
+  status? : Int32,
   code? : String,
   request_id? : String,
 ) -> ApiFailure {

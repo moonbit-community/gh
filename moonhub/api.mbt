@@ -3,7 +3,7 @@
 /// including any envelope. Only validated correlation and ETag headers escape
 /// the raw transport boundary.
 pub struct ApiResponse {
-  status : Int
+  status : Int32
   data : Json
   etag : EntityTag?
   request_id : String?

@@ -149,8 +149,8 @@ fn trace_error(kind : @gh.ApiError, json~ : Bool) -> Output {
     let envelope : Json = {
       "version": 1,
       "error": {
-        "code": kind.code().to_json(),
-        "message": message.to_json(),
+        "code": Json(kind.code()),
+        "message": Json(message),
         "status": Json::null(),
         "request_id": Json::null(),
       },

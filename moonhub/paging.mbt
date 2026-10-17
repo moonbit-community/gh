@@ -5,12 +5,12 @@
 pub struct ReadResult[T] {
   value : Result[T, @gh.ApiFailure]
   trace_failed : Bool
-  pages : Int
+  pages : Int32
   next : String?
   etag : EntityTag?
   // Single-resource decoding uses this context. Lists decode each page before
   // following its Link, so their failures already carry the correct response.
-  priv response_context : (Int, String?)?
+  priv response_context : (Int32, String?)?
 }
 
 ///|
@@ -79,7 +79,7 @@ fn response_next_path(
 fn[T] failed_read(
   error : @gh.ApiFailure,
   trace_failed : Bool,
-  pages : Int,
+  pages : Int32,
 ) -> ReadResult[T] {
   {
     value: Err(error),
@@ -149,9 +149,9 @@ async fn[T : @json.FromJson] Client::read_list(
   self : Client,
   path~ : String,
   operation_id~ : String,
-  paginate? : Bool = false,
-  max_pages? : Int = 20,
-  max_items? : Int = 1000,
+  paginate~ : Bool = false,
+  max_pages~ : Int32 = 20,
+  max_items~ : Int32 = 1000,
 ) -> ReadResult[Array[T]] {
   if max_pages < 1 || max_pages > 100 || max_items < 1 || max_items > 10000 {
     return invalid_read(@gh.InvalidRequest(message="invalid pagination bounds"))

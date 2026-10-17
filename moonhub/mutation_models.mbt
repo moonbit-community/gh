@@ -32,14 +32,14 @@ pub struct MutationResult[T] {
 /// The current server records comments as events rather than public resources.
 /// number identifies the issue or merge request that received the comment.
 pub struct CommentReceipt {
-  number : Int
+  number : Int32
   kind : String
 }
 
 ///|
 /// A merge is queued asynchronously. Acceptance is not evidence of completion.
 pub struct MergeReceipt {
-  number : Int
+  number : Int32
   version : String
   job_status : String
 }
@@ -74,14 +74,14 @@ pub impl @json.FromJson for MergeReceipt with fn from_json(value, path) {
 
 ///|
 pub fn CommentReceipt::to_json(self : CommentReceipt) -> Json {
-  { "number": self.number.to_json(), "kind": self.kind.to_json() }
+  { "number": Json(self.number), "kind": Json(self.kind) }
 }
 
 ///|
 pub fn MergeReceipt::to_json(self : MergeReceipt) -> Json {
   {
-    "number": self.number.to_json(),
-    "version": self.version.to_json(),
-    "job_status": self.job_status.to_json(),
+    "number": Json(self.number),
+    "version": Json(self.version),
+    "job_status": Json(self.job_status),
   }
 }

@@ -2,9 +2,9 @@
 /// Bounded retries for typed GET operations. Raw execute and all mutations
 /// always send one attempt. max_attempts includes the first attempt per page.
 pub struct ReadRetryPolicy {
-  max_attempts : Int
-  initial_delay_ms : Int
-  max_delay_ms : Int
+  max_attempts : Int32
+  initial_delay_ms : Int32
+  max_delay_ms : Int32
 }
 
 ///|
@@ -16,9 +16,9 @@ pub fn ReadRetryPolicy::default() -> ReadRetryPolicy {
 /// One attempt disables retries. Delay bounds apply both to local backoff and
 /// the accepted Retry-After minimum; an excessive server minimum stops retries.
 pub fn ReadRetryPolicy::new(
-  max_attempts? : Int = 3,
-  initial_delay_ms? : Int = 100,
-  max_delay_ms? : Int = 2000,
+  max_attempts~ : Int32 = 3,
+  initial_delay_ms~ : Int32 = 100,
+  max_delay_ms~ : Int32 = 2000,
 ) -> Result[ReadRetryPolicy, @gh.ApiError] {
   if max_attempts < 1 ||
     max_attempts > 5 ||
@@ -34,14 +34,14 @@ pub fn ReadRetryPolicy::new(
 ///|
 priv enum RetryAfter {
   Absent
-  Delay(Int)
+  Delay(Int32)
   Stop
 }
 
 ///|
 /// Dates need a trustworthy wall clock and are deliberately not guessed.
 /// Invalid, duplicate, coalesced or excessive hints stop retries conservatively.
-fn retry_after(response : @gh.Response, maximum : Int) -> RetryAfter {
+fn retry_after(response : @gh.Response, maximum : Int32) -> RetryAfter {
   let mut found = false
   let mut seconds = 0
   for (name, value) in response.headers {
@@ -51,7 +51,7 @@ fn retry_after(response : @gh.Response, maximum : Int) -> RetryAfter {
       }
       found = true
       for ch in value.iter() {
-        guard ch is ('0'..='9') else { return Stop }
+        guard ch is ('0'..<='9') else { return Stop }
         seconds = seconds * 10 + ch.to_int() - 48
         if seconds > maximum / 1000 {
           return Stop
@@ -82,8 +82,8 @@ async fn Client::read_attempts(
   self : Client,
   path~ : String,
   operation_id~ : String,
-  first_attempt~ : Int,
-) -> (CallResult, Int) {
+  first_attempt~ : Int32,
+) -> (CallResult, Int32) {
   for used = 1, delay = self.read_retry.initial_delay_ms, prior_trace_failed = false {
     let (call, hint) = self.execute_attempt(
       @gh.Request::new(verb=@gh.Get, path~),

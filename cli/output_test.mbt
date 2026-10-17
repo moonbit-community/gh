@@ -1,6 +1,6 @@
 ///|
 test "exit policy and JSON errors exclude untrusted messages" {
-  let cases : Array[(@gh.ApiError, Int?, Int)] = [
+  let cases : Array[(@gh.ApiError, Int32?, Int32)] = [
     (@gh.InvalidRequest(message="secret-server-body"), None, 2),
     (@gh.InvalidRequest(message="secret-server-body"), Some(422), 1),
     (@gh.Unauthorized, Some(401), 3),

@@ -136,7 +136,7 @@ fn render_api(result : @moonhub.ApiResult, json : Bool) -> Output {
         let envelope : Json = {
           "version": 1,
           "data": response.data,
-          "status": response.status.to_json(),
+          "status": Json(response.status),
           "request_id": nullable_string(response.request_id),
           "etag": nullable_string(response.etag.map(tag => tag.value())),
           "outcome": nullable_string(outcome.map(value => value.as_string())),

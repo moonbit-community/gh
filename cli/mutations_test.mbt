@@ -76,7 +76,7 @@ async test "all write commands send one POST with exact body and render mutation
   let issue = "{\"number\":7,\"title\":\"Issue\",\"description\":\"Body\",\"status\":\"open\",\"edit_version\":\"2\"}"
   let closed_issue = "{\"number\":7,\"title\":\"Issue\",\"description\":\"Body\",\"status\":\"closed\",\"edit_version\":\"2\"}"
   let mr = "{\"number\":8,\"title\":\"MR\",\"description\":\"Body\",\"source\":\"feature\",\"target\":\"main\",\"draft\":true,\"status\":\"open\",\"version\":\"1\",\"edit_version\":\"1\"}"
-  let cases : Array[(Array[String], String, Int, String, String, String?)] = [
+  let cases : Array[(Array[String], String, Int32, String, String, String?)] = [
     (
       ["issue", "create", "--title", "Issue", "--body", "Body"],
       "/issues",
@@ -243,7 +243,7 @@ async test "unresolved bodies never send and supplied stdin body is sent without
 
 ///|
 async test "write errors preserve exit categories and unknown outcome requires inspection" {
-  let cases : Array[(Int, Int, String)] = [
+  let cases : Array[(Int32, Int32, String)] = [
     (403, 3, "rejected"),
     (412, 4, "rejected"),
     (503, 1, "unknown"),

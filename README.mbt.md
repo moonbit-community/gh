@@ -1,46 +1,52 @@
-# MoonHub CLI for MoonBit
+# GitHub CLI compatibility in MoonBit
 
 [![Native CI](https://github.com/moonbit-community/gh/actions/workflows/ci.yml/badge.svg)](https://github.com/moonbit-community/gh/actions/workflows/ci.yml)
 
-A MoonBit port of `gh` adapted for MoonHub, with a reusable SDK and predictable
-commands for people and AI agents.
+A GitHub-first MoonBit CLI and SDK targeting the pinned GitHub CLI
+**v2.102.0** behavior for commands, authentication, raw REST/GraphQL requests,
+output, and exit status.
 
-The client targets MoonHub's proposed versioned JSON API. Real MoonHub integration
-is pending; GitHub API compatibility is outside the supported scope.
+The core command tier is implemented and validated against loopback fixtures and
+the pinned oracle. This branch claims **v2.102.0 core parity** for the command
+families listed in the [compatibility contract](docs/compat/gh-v2.102.0.md).
+The separate [oracle evidence status](docs/compat/oracle-status.md) records the
+captured upstream behavior, fixture evidence and limits. Full built-in command
+parity remains deferred for release-specific integrations.
 
-## Features
+## Direction
 
-- Host and token configuration, API metadata, and authentication status.
-- Repository listing and inspection.
-- Issue listing, inspection, creation, comments, closing, and reopening.
-- Merge request listing, inspection, creation, comments, and merge submission
-  through `pr` commands.
-- Pipeline listing, inspection, cancellation, and snapshot reruns.
-- Generic JSON API requests with file or stdin input.
-- Stable JSON output, documented exit codes, bounded pagination and read retries.
-- Conditional writes using ETags and explicit mutation outcomes.
-- Redacted request traces with offline search and request-ID correlation.
-- An SDK with injectable transport, clock, and trace callbacks.
+- Provider-neutral raw HTTP transport with byte-preserving requests and responses.
+- A GitHub facade, command layer, and Native composition independent of MoonHub.
+- `gh api`, repository/status, issue/PR/discussion, release/Actions, search,
+  organization/project and credential-management commands with typed operations,
+  output filters and Native interaction seams.
+- Explicit retries, redacted tracing, and reproducible fixture/oracle acceptance.
+- MoonBit project sources and automation; upstream Native FFI and controlled
+  system git, editor, browser, and credential adapters are allowed.
 
-## Runtime support
+The existing `moonhub/` and `cli/` packages are frozen migration assets. Their
+old `/api/v1` proposal is not the GitHub protocol. Future MoonHub adaptation
+will use its real `/-/api/v1` service after GitHub core parity.
 
-- **Native:** the CLI, HTTP/TLS adapter, token-file configuration, and JSONL trace
-  files. CI exercises Linux x64, macOS arm64, and Windows x64 with local HTTP
-  fixtures; live-server and HTTPS deployment acceptance remain separate checks.
-- **Wasm / Wasm GC / JavaScript:** portable request, SDK, parsing, and trace
-  contracts are type-checked. Applications must supply their own host adapters;
-  a runnable CLI and equivalent network/file support are not provided.
+## Development
 
-## Usage
+The Native executable and portable packages are validated separately. Portable
+tests do not imply that Native network, files, or process behavior runs on
+Wasm, Wasm GC, or JavaScript.
 
-From a source checkout, configure an existing token through `MOONHUB_TOKEN` or
-`--config`, then run:
-
-```sh
-moon run cmd/main -- --help
-moon run cmd/main -- repo list --host https://moonhub.example --json
-moon run cmd/main -- issue list --host https://moonhub.example -R team/demo --json
+```text
+moon check --target native --frozen
+moon test --target native --frozen
+moon run --target native cmd/main -- --help
 ```
 
-See the [CLI guide](docs/guides/cli.md), [SDK guide](docs/guides/sdk.md), and
-[documentation index](docs/README.md) for configuration, API contracts, and builds.
+Capture the pinned upstream oracle using a separately supplied v2.102.0 binary:
+
+```text
+moon run --target native scripts/gh_oracle.mbtx -- /absolute/path/to/gh-v2.102.0 OUTPUT_DIR [EXPECTED_BINARY_SHA256]
+```
+
+The runner uses isolated credentials and literal process arguments. Capturing
+upstream help and local errors is reference collection, not proof that this
+implementation matches. The [documentation index](docs/README.md) identifies
+current GitHub work and the retained legacy MoonHub guides.

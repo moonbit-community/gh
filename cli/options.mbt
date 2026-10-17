@@ -8,20 +8,20 @@ pub enum ReadCommand {
   Repositories
   Repository(@moonhub.RepositoryRef)
   Issues(@moonhub.RepositoryRef)
-  Issue(@moonhub.RepositoryRef, Int)
+  Issue(@moonhub.RepositoryRef, Int32)
   MergeRequests(@moonhub.RepositoryRef)
-  MergeRequest(@moonhub.RepositoryRef, Int)
+  MergeRequest(@moonhub.RepositoryRef, Int32)
   Pipelines(@moonhub.RepositoryRef)
   Pipeline(@moonhub.RepositoryRef, String)
   CancelPipeline(@moonhub.RepositoryRef, String, @moonhub.EntityTag)
   RerunPipeline(@moonhub.RepositoryRef, String, @moonhub.EntityTag)
   CreateIssue(@moonhub.RepositoryRef, String)
-  CommentIssue(@moonhub.RepositoryRef, Int)
-  CloseIssue(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
-  ReopenIssue(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
+  CommentIssue(@moonhub.RepositoryRef, Int32)
+  CloseIssue(@moonhub.RepositoryRef, Int32, @moonhub.EntityTag)
+  ReopenIssue(@moonhub.RepositoryRef, Int32, @moonhub.EntityTag)
   CreateMergeRequest(@moonhub.RepositoryRef, String, String, String, Bool)
-  CommentMergeRequest(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
-  MergeMergeRequest(@moonhub.RepositoryRef, Int, @moonhub.EntityTag)
+  CommentMergeRequest(@moonhub.RepositoryRef, Int32, @moonhub.EntityTag)
+  MergeMergeRequest(@moonhub.RepositoryRef, Int32, @moonhub.EntityTag)
 }
 
 ///|
@@ -42,11 +42,11 @@ pub struct RunOptions {
   config_path : String?
   trace_path : String?
   json : Bool
-  page : Int
-  per_page : Int
+  page : Int32
+  per_page : Int32
   paginate : Bool
-  max_pages : Int
-  max_attempts : Int
+  max_pages : Int32
+  max_attempts : Int32
   body_input : BodyInput?
 }
 
@@ -78,11 +78,11 @@ pub enum Invocation {
 ///|
 fn command(
   name : String,
-  options? : Array[@argparse.OptionArg] = [],
-  flags? : Array[@argparse.FlagArg] = [],
-  positionals? : Array[@argparse.PositionArg] = [],
-  subcommands? : Array[@argparse.Command] = [],
-  about? : String = "",
+  options~ : Array[@argparse.OptionArg] = [],
+  flags~ : Array[@argparse.FlagArg] = [],
+  positionals~ : Array[@argparse.PositionArg] = [],
+  subcommands~ : Array[@argparse.Command] = [],
+  about~ : String = "",
 ) -> @argparse.Command {
   @argparse.Command(
     // Upstream's built-in help/version actions terminate the process. Ordinary
@@ -285,8 +285,8 @@ fn value(matches : @argparse.Matches, name : String) -> String? {
 }
 
 ///|
-fn positive_int(value : String, maximum : Int) -> Int? {
-  guard !value.is_empty() && value.iter().all(ch => ch is ('0'..='9')) else {
+fn positive_int(value : String, maximum : Int32) -> Int32? {
+  guard !value.is_empty() && value.iter().all(ch => ch is ('0'..<='9')) else {
     return None
   }
   let number = @string.parse_int(value) catch { _ => return None }

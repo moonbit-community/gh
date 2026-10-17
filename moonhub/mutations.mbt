@@ -24,7 +24,7 @@ async fn[T : @json.FromJson] Client::write_json(
   self : Client,
   path~ : String,
   body~ : Json,
-  expected_status~ : Int,
+  expected_status~ : Int32,
   require_etag~ : Bool,
   valid~ : (T) -> Bool,
   if_match? : EntityTag,
@@ -110,7 +110,7 @@ async fn[T : @json.FromJson] Client::write_json(
 fn mutation_resource_path(
   repo : RepositoryRef,
   collection : String,
-  number : Int,
+  number : Int32,
 ) -> Result[String, @gh.ApiError] {
   if number <= 0 {
     return Err(@gh.InvalidRequest(message="resource number must be positive"))
@@ -145,7 +145,7 @@ pub async fn Client::create_issue(
   self : Client,
   repo : RepositoryRef,
   title~ : String,
-  description? : String = "",
+  description~ : String = "",
   operation_id~ : String,
 ) -> MutationResult[Issue] {
   let title = title.trim().to_owned()
@@ -162,7 +162,7 @@ pub async fn Client::create_issue(
   }
   self.write_json(
     path=base + "/issues",
-    body={ "title": title.to_json(), "description": description.to_json() },
+    body={ "title": Json(title), "description": Json(description) },
     expected_status=201,
     require_etag=true,
     valid=issue => issue.status == "open",
@@ -174,7 +174,7 @@ pub async fn Client::create_issue(
 pub async fn Client::comment_issue(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   body~ : String,
   operation_id~ : String,
 ) -> MutationResult[CommentReceipt] {
@@ -191,7 +191,7 @@ pub async fn Client::comment_issue(
   }
   self.write_json(
     path~,
-    body={ "body": body.to_json() },
+    body={ "body": Json(body) },
     expected_status=201,
     require_etag=false,
     valid=receipt => receipt.number == number,
@@ -203,7 +203,7 @@ pub async fn Client::comment_issue(
 pub async fn Client::close_issue(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   if_match~ : EntityTag,
   operation_id~ : String,
 ) -> MutationResult[Issue] {
@@ -226,7 +226,7 @@ pub async fn Client::close_issue(
 pub async fn Client::reopen_issue(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   if_match~ : EntityTag,
   operation_id~ : String,
 ) -> MutationResult[Issue] {
@@ -252,8 +252,8 @@ pub async fn Client::create_merge_request(
   title~ : String,
   source~ : String,
   target~ : String,
-  description? : String = "",
-  draft? : Bool = false,
+  description~ : String = "",
+  draft~ : Bool = false,
   operation_id~ : String,
 ) -> MutationResult[MergeRequest] {
   let title = title.trim().to_owned()
@@ -280,11 +280,11 @@ pub async fn Client::create_merge_request(
   self.write_json(
     path=base + "/merge-requests",
     body={
-      "title": title.to_json(),
-      "description": description.to_json(),
-      "source": source.to_json(),
-      "target": target.to_json(),
-      "draft": draft.to_json(),
+      "title": Json(title),
+      "description": Json(description),
+      "source": Json(source),
+      "target": Json(target),
+      "draft": Json(draft),
     },
     expected_status=201,
     require_etag=true,
@@ -302,7 +302,7 @@ pub async fn Client::create_merge_request(
 pub async fn Client::comment_merge_request(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   body~ : String,
   if_match~ : EntityTag,
   operation_id~ : String,
@@ -320,7 +320,7 @@ pub async fn Client::comment_merge_request(
   }
   self.write_json(
     path~,
-    body={ "body": body.to_json() },
+    body={ "body": Json(body) },
     if_match~,
     expected_status=201,
     require_etag=false,
@@ -333,7 +333,7 @@ pub async fn Client::comment_merge_request(
 pub async fn Client::merge_merge_request(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   if_match~ : EntityTag,
   operation_id~ : String,
 ) -> MutationResult[MergeReceipt] {

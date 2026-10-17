@@ -7,7 +7,7 @@ pub fn next_path(
   link : String,
   origin~ : String,
   current_path~ : String,
-  api_prefix? : String = "/api/v1",
+  api_prefix~ : String = "/api/v1",
 ) -> Result[String?, @gh.ApiError] {
   let invalid = @gh.Decode(message="invalid pagination link")
   guard link.length() <= 65536 &&
@@ -116,7 +116,7 @@ pub fn next_path(
 }
 
 ///|
-fn skip_space(value : String, start : Int) -> Int {
+fn skip_space(value : String, start : Int32) -> Int32 {
   let mut cursor = start
   while cursor < value.length() &&
         (value[cursor] == ' ' || value[cursor] == '\t') {
@@ -127,12 +127,12 @@ fn skip_space(value : String, start : Int) -> Int {
 
 ///|
 fn is_token(ch : Char) -> Bool {
-  ch is ('a'..='z' | 'A'..='Z' | '0'..='9') ||
+  ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9') ||
   "!#$%&'*+-.^_`|~".contains_char(ch)
 }
 
 ///|
-fn parameter_value(link : String, start : Int) -> (String, Int)? {
+fn parameter_value(link : String, start : Int32) -> (String, Int32)? {
   guard start < link.length() else { return None }
   let mut cursor = start
   if link[cursor] == '"' {
@@ -196,10 +196,10 @@ fn resolve_target(
 }
 
 ///|
-fn page_query(path : String) -> (String, Int, Int)? {
+fn page_query(path : String) -> (String, Int32, Int32)? {
   guard path.split_once("?") is Some((route, query)) else { return None }
-  let mut page : Int? = None
-  let mut per_page : Int? = None
+  let mut page : Int32? = None
+  let mut per_page : Int32? = None
   for field in query.split("&") {
     guard field.split_once("=") is Some((key, value)) else { return None }
     guard !value.is_empty() &&

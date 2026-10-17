@@ -16,7 +16,12 @@ pub struct Client {
   priv trace : (async (@gh.TraceRecord) -> Unit)?
   priv clock : () -> Int64
   priv read_retry : ReadRetryPolicy
-  priv retry_wait : async (Int) -> Unit
+  priv retry_wait : async (Int32) -> Unit
+}
+
+///|
+async fn default_retry_wait(delay : Int32) -> Unit {
+  @async.sleep(delay)
 }
 
 ///|
@@ -26,9 +31,9 @@ pub fn Client::new(
   transport~ : @gh.Transport,
   token? : Token,
   trace? : async (@gh.TraceRecord) -> Unit,
-  clock? : () -> Int64 = @async.now,
-  read_retry? : ReadRetryPolicy = ReadRetryPolicy::default(),
-  retry_wait? : async (Int) -> Unit = @async.sleep,
+  clock~ : () -> Int64 = @async.now,
+  read_retry~ : ReadRetryPolicy = ReadRetryPolicy::default(),
+  retry_wait~ : async (Int32) -> Unit = default_retry_wait,
 ) -> Result[Client, @gh.ApiError] {
   let origin = match @gh.normalize_origin(config.base_url) {
     Ok(origin) => origin
@@ -72,7 +77,7 @@ fn allowed_headers(headers : Array[(String, String)]) -> Bool {
   let seen : Map[String, Unit] = Map([])
   for (key, value) in headers {
     guard !key.is_empty() &&
-      key.iter().all(ch => ch is ('a'..='z' | 'A'..='Z' | '0'..='9' | '-')) &&
+      key.iter().all(ch => ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9' | '-')) &&
       value.iter().all(ch => ch.to_int() >= 32 && ch.to_int() != 127) else {
       return false
     }
@@ -132,7 +137,7 @@ pub async fn Client::execute(
   self : Client,
   request : @gh.Request,
   operation_id~ : String,
-  attempt? : Int = 1,
+  attempt~ : Int32 = 1,
 ) -> CallResult {
   self.execute_attempt(request, operation_id~, attempt~).0
 }
@@ -142,7 +147,7 @@ async fn Client::execute_attempt(
   self : Client,
   request : @gh.Request,
   operation_id~ : String,
-  attempt~ : Int,
+  attempt~ : Int32,
 ) -> (CallResult, RetryAfter) {
   guard attempt > 0 && safe_request_id(operation_id) is Some(_) else {
     return (
@@ -167,27 +172,35 @@ async fn Client::execute_attempt(
   }
   let started = (self.clock)()
   let body = request.body
-  let response = self.transport.send(
-    @gh.Request::new(verb=request.verb, path~, body?, headers~),
-  ) catch {
-    err if @async.is_cancellation_error(err) => {
-      let elapsed = (self.clock)() - started
-      // Cancellation still produces a best-effort completion record; preserve
-      // the original cancellation and bound time spent in a failing observer.
-      ignore(
-        self.record(
-          @gh.TraceRecord::new(
-            operation_id~,
-            attempt~,
-            verb=request.verb,
-            path~,
-            duration_ms=elapsed,
-            error_code="cancelled",
+  let response = try {
+    match
+      @async.handle_cancellation(() => {
+        self.transport.send(
+          @gh.Request::new(verb=request.verb, path~, body?, headers~),
+        )
+      }) {
+      None => {
+        let elapsed = (self.clock)() - started
+        // Cancellation still produces a best-effort completion record; preserve
+        // the original cancellation and bound time spent in a failing observer.
+        ignore(
+          self.record(
+            @gh.TraceRecord::new(
+              operation_id~,
+              attempt~,
+              verb=request.verb,
+              path~,
+              duration_ms=elapsed,
+              error_code="cancelled",
+            ),
           ),
-        ),
-      )
-      raise err
+        )
+        @async.pause()
+        fail("cancelled request did not stop")
+      }
+      Some(response) => response
     }
+  } catch {
     _ => {
       let elapsed = (self.clock)() - started
       let trace_ok = self.record(

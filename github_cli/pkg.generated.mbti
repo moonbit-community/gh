@@ -1,0 +1,139 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/github_cli"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn build_fields(Array[(String, Json)], Array[String]) -> Result[Map[String, Json], String]
+
+pub fn failure(message~ : String, exit_code? : Int) -> Output
+
+pub fn graphql_payload(Map[String, Json]) -> Json
+
+pub fn help_text() -> String
+
+pub fn parse(Array[String]) -> Invocation raise ParseError
+
+pub fn query_fields(Array[(String, Json)]) -> Array[(String, String)]
+
+pub fn render_response(Int, Array[(String, String)], Bytes, jq? : String, template? : String, include_headers? : Bool, silent? : Bool, verbose? : Bool, allow_escape_sequences? : Bool) -> Output
+
+pub fn success(stdout~ : String, stderr? : String) -> Output
+
+pub fn typed_field(String) -> Json
+
+// Errors
+pub suberror ParseError {
+  MissingValue(String)
+  InvalidValue(String)
+  UnknownOption(String)
+  UnexpectedArgument(String)
+}
+
+// Types and methods
+pub struct ApiOptions {
+  path : String
+  verb : String
+  explicit_method : Bool
+  hostname : String?
+  headers : Array[(String, String)]
+  raw_fields : Array[(String, String)]
+  json_fields : Array[(String, String)]
+  input : String?
+  jq : String?
+  template : String?
+  paginate : Bool
+  slurp : Bool
+  show_headers : Bool
+  silent : Bool
+  verbose : Bool
+  allow_escape_sequences : Bool
+  cache : String?
+  previews : Array[String]
+  empty_arrays : Array[String]
+}
+pub fn ApiOptions::allow_escape_sequences(Self) -> Bool
+pub fn ApiOptions::cache(Self) -> String?
+pub fn ApiOptions::empty_arrays(Self) -> Array[String]
+pub fn ApiOptions::headers(Self) -> Array[(String, String)]
+pub fn ApiOptions::hostname(Self) -> String?
+pub fn ApiOptions::input(Self) -> String?
+pub fn ApiOptions::jq(Self) -> String?
+pub fn ApiOptions::json_fields(Self) -> Array[(String, String)]
+pub fn ApiOptions::paginate(Self) -> Bool
+pub fn ApiOptions::path(Self) -> String
+pub fn ApiOptions::previews(Self) -> Array[String]
+pub fn ApiOptions::raw_fields(Self) -> Array[(String, String)]
+pub fn ApiOptions::show_headers(Self) -> Bool
+pub fn ApiOptions::silent(Self) -> Bool
+pub fn ApiOptions::slurp(Self) -> Bool
+pub fn ApiOptions::template(Self) -> String?
+pub fn ApiOptions::verb(Self) -> String
+pub fn ApiOptions::verbose(Self) -> Bool
+
+pub struct BusinessOptions {
+  command : String
+  args : Array[String]
+}
+pub fn BusinessOptions::args(Self) -> Array[String]
+pub fn BusinessOptions::command(Self) -> String
+
+pub enum Invocation {
+  Help
+  HelpTopic(String)
+  Version
+  Completion(shell~ : String?)
+  Config(Array[String])
+  Alias(Array[String])
+  Auth(Array[String])
+  Api(ApiOptions)
+  Business(BusinessOptions)
+  Unsupported(String)
+}
+
+pub struct Output {
+  stdout : String
+  stderr : String
+  exit_code : Int
+  // private fields
+}
+pub fn Output::exit_code(Self) -> Int
+pub fn Output::from_bytes(Bytes, stderr? : String, exit_code? : Int) -> Self
+pub fn Output::new(stdout? : String, stderr? : String, exit_code? : Int) -> Self
+pub fn Output::stderr(Self) -> String
+pub fn Output::stdout(Self) -> String
+pub fn Output::stdout_bytes(Self) -> Bytes
+
+pub struct RepositoryContext {
+  host : String
+  owner : String
+  name : String
+  branch : String?
+} derive(Eq, @debug.Debug)
+pub fn RepositoryContext::branch(Self) -> String?
+pub fn RepositoryContext::equal(Self, Self) -> Bool
+pub fn RepositoryContext::from_remote(String) -> Result[Self, RepositoryError]
+pub fn RepositoryContext::full_name(Self) -> String
+pub fn RepositoryContext::host(Self) -> String
+pub fn RepositoryContext::name(Self) -> String
+pub fn RepositoryContext::not_equal(Self, Self) -> Bool
+pub fn RepositoryContext::owner(Self) -> String
+pub fn RepositoryContext::parse(String, default_host? : String) -> Result[Self, RepositoryError]
+pub fn RepositoryContext::substitute(Self, String) -> Result[String, RepositoryError]
+pub fn RepositoryContext::to_repr(Self) -> @debug.Repr
+pub fn RepositoryContext::with_branch(Self, String) -> Result[Self, RepositoryError]
+
+pub(all) enum RepositoryError {
+  InvalidRepository
+  InvalidRemote
+  MissingBranch
+} derive(Eq, @debug.Debug)
+pub fn RepositoryError::equal(Self, Self) -> Bool
+pub fn RepositoryError::not_equal(Self, Self) -> Bool
+pub fn RepositoryError::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

@@ -23,7 +23,7 @@ test "read retry policy accepts only bounded attempt and delay settings" {
 ///|
 async test "transient reads retain every request ID and combine trace failures across retries" {
   let records : Array[@gh.TraceRecord] = []
-  let waits : Array[Int] = []
+  let waits : Array[Int32] = []
   let mut sends = 0
   let transport = @gh.Transport::new(origin="https://moonhub.example", send=_ => {
     @async.pause()
@@ -87,7 +87,7 @@ async test "transient reads retain every request ID and combine trace failures a
 ///|
 async test "retry attempts are continuous across pagination while each page has its own budget" {
   let records : Array[@gh.TraceRecord] = []
-  let waits : Array[Int] = []
+  let waits : Array[Int32] = []
   let paths : Array[String] = []
   let transport = @gh.Transport::new(origin="https://moonhub.example", send=request => {
     @async.pause()
@@ -134,7 +134,7 @@ async test "retry attempts are continuous across pagination while each page has 
 ///|
 async test "retryable failures stop at three attempts and return the final failure correlation" {
   for status in [0, 429, 502, 503, 504] {
-    let waits : Array[Int] = []
+    let waits : Array[Int32] = []
     let mut sends = 0
     let transport = @gh.Transport::new(origin="https://moonhub.example", send=_ => {
       @async.pause()
@@ -251,7 +251,7 @@ async test "custom bounded backoff saturates and one attempt disables retry" {
       fail("invalid policy")
     }
     let mut sends = 0
-    let waits : Array[Int] = []
+    let waits : Array[Int32] = []
     let transport = @gh.Transport::new(origin="https://moonhub.example", send=_ => {
       @async.pause()
       sends += 1

@@ -46,7 +46,15 @@ fn valid_token(value : String) -> Bool {
         }
         padding = true
       }
-      'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '.' | '_' | '~' | '+' | '/' => {
+      'a'..<='z'
+      | 'A'..<='Z'
+      | '0'..<='9'
+      | '-'
+      | '.'
+      | '_'
+      | '~'
+      | '+'
+      | '/' => {
         if padding {
           return false
         }

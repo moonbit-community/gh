@@ -1,9 +1,9 @@
 ///|
 import {
-  "moonbitlang/async@0.21.3",
-  "moonbitlang/async@0.21.3/fs",
-  "moonbitlang/async@0.21.3/io",
-  "moonbitlang/async@0.21.3/shell",
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/io",
+  "moonbitlang/async@0.22.5/shell",
   "moonbitlang/x@0.5.5/crypto",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
@@ -69,7 +69,7 @@ async fn Candidate::step(
   })
   self.status("running")
   println("candidate: " + name)
-  // async 0.21.3 leaves the Windows environment block uninitialized when both
+  // async 0.22.5 leaves the Windows environment block uninitialized when both
   // inheritance and explicit entries are absent. A harmless explicit entry
   // keeps version/help isolated from user credentials and creates a valid block.
   let output = @shell.Cmd(executable, args, cwd=self.root, inherit_env~, env={

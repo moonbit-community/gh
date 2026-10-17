@@ -2,7 +2,7 @@
 /// Proposed MoonHub v1 discovery response. This is a client contract, not a
 /// claim that the current MoonHub server exposes these endpoints.
 pub struct Meta {
-  api_version : Int
+  api_version : Int32
   server_version : String
   capabilities : Array[String]
 }
@@ -26,7 +26,7 @@ pub struct Repository {
 
 ///|
 pub struct Issue {
-  number : Int
+  number : Int32
   title : String
   description : String
   status : String
@@ -38,7 +38,7 @@ pub struct Issue {
 
 ///|
 pub struct MergeRequest {
-  number : Int
+  number : Int32
   title : String
   description : String
   source : String
@@ -74,7 +74,7 @@ fn valid_owner(value : String) -> Bool {
     return false
   }
   for index, character in value {
-    if !(character is ('a'..='z' | '0'..='9')) &&
+    if !(character is ('a'..<='z' | '0'..<='9')) &&
       !(index > 0 && character is ('_' | '-')) {
       return false
     }
@@ -86,7 +86,7 @@ fn valid_owner(value : String) -> Bool {
 fn valid_repository_name(value : String) -> Bool {
   guard !value.is_empty() && value.length() <= 100 else { return false }
   for index, character in value {
-    if !(character is ('a'..='z' | 'A'..='Z' | '0'..='9')) &&
+    if !(character is ('a'..<='z' | 'A'..<='Z' | '0'..<='9')) &&
       !(index > 0 && character is ('_' | '-' | '.')) {
       return false
     }
@@ -166,8 +166,8 @@ fn decimal_string(value : String, allow_zero~ : Bool) -> Bool {
   if value == "0" {
     return allow_zero
   }
-  guard value.iter().next() is Some('1'..='9') else { return false }
-  value.iter().all(character => character is ('0'..='9'))
+  guard value.iter().next() is Some('1'..<='9') else { return false }
+  value.iter().all(character => character is ('0'..<='9'))
 }
 
 ///|
@@ -188,7 +188,7 @@ fn positive_number(
   fields : Map[String, Json],
   key : String,
   path : @json.JsonPath,
-) -> Int raise @json.JsonDecodeError {
+) -> Int32 raise @json.JsonDecodeError {
   guard fields.get(key) is Some(value) &&
     @wire_json.integer(value, minimum=1, maximum=2147483647) is Some(integer) else {
     resource_invalid(path.add_key(key))
@@ -297,7 +297,7 @@ pub impl @json.FromJson for MergeRequest with fn from_json(value, path) {
 ///|
 fn nullable_string(value : String?) -> Json {
   match value {
-    Some(value) => value.to_json()
+    Some(value) => Json(value)
     None => Json::null()
   }
 }
@@ -305,28 +305,28 @@ fn nullable_string(value : String?) -> Json {
 ///|
 pub fn Meta::to_json(self : Meta) -> Json {
   {
-    "api_version": self.api_version.to_json(),
-    "server_version": self.server_version.to_json(),
-    "capabilities": self.capabilities.to_json(),
+    "api_version": Json(self.api_version),
+    "server_version": Json(self.server_version),
+    "capabilities": Json(self.capabilities),
   }
 }
 
 ///|
 pub fn User::to_json(self : User) -> Json {
   {
-    "id": self.id.to_json(),
-    "name_key": self.name_key.to_json(),
-    "display_name": self.display_name.to_json(),
-    "is_site_admin": self.is_site_admin.to_json(),
+    "id": Json(self.id),
+    "name_key": Json(self.name_key),
+    "display_name": Json(self.display_name),
+    "is_site_admin": Json(self.is_site_admin),
   }
 }
 
 ///|
 pub fn Repository::to_json(self : Repository) -> Json {
   {
-    "owner": self.owner.to_json(),
-    "name": self.name.to_json(),
-    "visibility": self.visibility.to_json(),
+    "owner": Json(self.owner),
+    "name": Json(self.name),
+    "visibility": Json(self.visibility),
     "default_branch": nullable_string(self.default_branch),
     "ssh_url": nullable_string(self.ssh_url),
   }
@@ -335,10 +335,10 @@ pub fn Repository::to_json(self : Repository) -> Json {
 ///|
 pub fn Issue::to_json(self : Issue) -> Json {
   {
-    "number": self.number.to_json(),
-    "title": self.title.to_json(),
-    "description": self.description.to_json(),
-    "status": self.status.to_json(),
+    "number": Json(self.number),
+    "title": Json(self.title),
+    "description": Json(self.description),
+    "status": Json(self.status),
     "author": nullable_string(self.author),
     "assignee": nullable_string(self.assignee),
     "edit_version": nullable_string(self.edit_version),
@@ -349,13 +349,13 @@ pub fn Issue::to_json(self : Issue) -> Json {
 ///|
 pub fn MergeRequest::to_json(self : MergeRequest) -> Json {
   {
-    "number": self.number.to_json(),
-    "title": self.title.to_json(),
-    "description": self.description.to_json(),
-    "source": self.source.to_json(),
-    "target": self.target.to_json(),
-    "draft": self.draft.to_json(),
-    "status": self.status.to_json(),
+    "number": Json(self.number),
+    "title": Json(self.title),
+    "description": Json(self.description),
+    "source": Json(self.source),
+    "target": Json(self.target),
+    "draft": Json(self.draft),
+    "status": Json(self.status),
     "version": nullable_string(self.version),
     "edit_version": nullable_string(self.edit_version),
     "merged_sha": nullable_string(self.merged_sha),

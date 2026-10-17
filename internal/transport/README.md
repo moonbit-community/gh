@@ -2,7 +2,7 @@
 
 `native_transport` builds the injected root `Transport` over
 `moonbitlang/async/http` for connection setup and the
-`ZSeanYves/MoonbitHTTP@0.6.0` HTTP/1 codec. This package is Native-only and adds no project FFI or
+`ZSeanYves/MoonbitHTTP@0.7.0` HTTP/1 codec. This package is Native-only and adds no project FFI or
 system-command fallback. Upstream networking and TLS implementations may use FFI.
 
 - Bind to one normalized HTTPS origin. HTTP is accepted only for loopback

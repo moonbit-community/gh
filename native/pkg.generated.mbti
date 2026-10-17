@@ -4,19 +4,115 @@ package "ZSeanYves/gh/native"
 import {
   "ZSeanYves/gh",
   "ZSeanYves/gh/cli",
+  "ZSeanYves/gh/github",
+  "ZSeanYves/gh/github_cli",
+  "ZSeanYves/gh/internal/github_auth",
   "ZSeanYves/gh/moonhub",
+  "moonbitlang/core/debug",
 }
 
 // Values
 pub async fn client(base_url~ : String, token? : String, config_path? : String, trace_path? : String, timeout_ms? : Int, max_response_bytes? : Int, read_retry? : @moonhub.ReadRetryPolicy) -> Result[@moonhub.Client, @gh.ApiError]
 
+pub async fn configured_editor(String?) -> String
+
+pub async fn execute_github_api(@github_cli.ApiOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext) -> @github_cli.Output
+
+pub async fn execute_github_business(@github_cli.BusinessOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext) -> @github_cli.Output
+
+pub async fn github_alias_command(Array[String], config_dir? : String, input? : String) -> @github_cli.Output
+
+pub async fn github_auth_command(Array[String], environment? : @github_auth.Environment, config_dir? : String, transport? : @github.Transport, credential_backend? : CredentialBackend, oauth_adapter? : OAuthAdapter) -> @github_cli.Output
+
+pub async fn github_auth_setup_git(Array[String], @github_auth.Environment, runner? : async (Array[String]) -> Result[NativeProcessResult, ProcessAdapterError]) -> @github_cli.Output
+
+pub fn github_client(base_url~ : String, graphql_url? : String, token? : String, trace_path? : String, timeout_ms? : Int, max_response_bytes? : Int) -> Result[@github.Client, @github_cli.Output]
+
+pub async fn github_config_command(Array[String], config_dir? : String) -> @github_cli.Output
+
+pub async fn open_browser(String, String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+
 pub async fn read_trace(String, query? : @gh.TraceQuery, secrets? : Array[String]) -> Result[@gh.TraceQueryResult, @gh.ApiError]
+
+pub async fn resolve_current_branch() -> Result[String, @github_cli.Output]
+
+pub async fn resolve_github_auth(@github_auth.Environment) -> Result[@github_auth.Config, @github_cli.Output]
+
+pub async fn resolve_github_auth_file(@github_auth.Environment, String) -> Result[@github_auth.Config, @github_cli.Output]
+
+pub fn resolve_github_auth_source(@github_auth.Environment, String) -> Result[@github_auth.Config, @github_cli.Output]
+
+pub async fn resolve_github_auth_with_backend(@github_auth.Environment, CredentialBackend) -> Result[@github_auth.Config, @github_cli.Output]
+
+pub async fn resolve_repository_context(repo? : String, need_branch? : Bool, respect_resolved? : Bool) -> Result[@github_cli.RepositoryContext, @github_cli.Output]
 
 pub async fn run(Array[String]) -> @cli.Output
 
+pub async fn run_configured_editor(String, host? : String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+
+pub async fn run_editor(String, String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+
+pub async fn run_github(Array[String]) -> @github_cli.Output
+
+pub async fn run_native_process(String, Array[String], input? : Bytes, timeout_ms? : Int, max_output_bytes? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+
+pub async fn run_terminal_process(String, Array[String], timeout_ms? : Int, runner? : async (String, Array[String]) -> Int) -> Result[Int, ProcessAdapterError]
+
+pub fn secret_tool_backend(command? : String) -> CredentialBackend
+
+pub fn split_native_command(String) -> Result[(String, Array[String]), ProcessAdapterError]
+
 // Errors
+pub suberror ProcessAdapterError {
+  InvalidCommand
+  InvalidArgument
+  OutputLimit
+  TimedOut
+  Failed
+} derive(Eq, @debug.Debug)
+pub fn ProcessAdapterError::equal(Self, Self) -> Bool
+pub fn ProcessAdapterError::not_equal(Self, Self) -> Bool
+pub fn ProcessAdapterError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct CredentialBackend {
+  // private fields
+}
+pub fn CredentialBackend::delete(Self, String, String) -> Bool
+pub async fn CredentialBackend::delete_async(Self, String, String) -> Bool
+pub fn CredentialBackend::new(read~ : (String, String) -> String?, write~ : (String, String, String) -> Bool, delete~ : (String, String) -> Bool) -> Self
+pub fn CredentialBackend::new_async(read~ : async (String, String) -> String?, write~ : async (String, String, String) -> Bool, delete~ : async (String, String) -> Bool) -> Self
+pub fn CredentialBackend::read(Self, String, String) -> String?
+pub async fn CredentialBackend::read_async(Self, String, String) -> String?
+pub fn CredentialBackend::write(Self, String, String, String) -> Bool
+pub async fn CredentialBackend::write_async(Self, String, String, String) -> Bool
+
+pub struct NativeProcessResult {
+  exit_code : Int
+  stdout : Bytes
+  stderr : Bytes
+}
+pub fn NativeProcessResult::exit_code(Self) -> Int
+pub fn NativeProcessResult::new(exit_code? : Int, stdout? : Bytes, stderr? : Bytes) -> Self
+pub fn NativeProcessResult::stderr(Self) -> Bytes
+pub fn NativeProcessResult::stdout(Self) -> Bytes
+
+pub struct OAuthAdapter {
+  // private fields
+}
+pub fn OAuthAdapter::authorize(Self, String, String) -> Result[String, OAuthError]
+pub async fn OAuthAdapter::authorize_async(Self, String, String) -> Result[String, OAuthError]
+pub fn OAuthAdapter::new(authorize~ : (String, String) -> Result[String, OAuthError]) -> Self
+pub fn OAuthAdapter::new_async(authorize~ : async (String, String) -> Result[String, OAuthError]) -> Self
+
+pub(all) enum OAuthError {
+  Unavailable
+  Cancelled
+  Failed
+} derive(Eq, @debug.Debug)
+pub fn OAuthError::equal(Self, Self) -> Bool
+pub fn OAuthError::not_equal(Self, Self) -> Bool
+pub fn OAuthError::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

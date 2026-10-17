@@ -4,21 +4,21 @@
 pub(all) struct Output {
   stdout : String
   stderr : String
-  exit_code : Int
+  exit_code : Int32
 }
 
 ///|
 fn nullable_string(value : String?) -> Json {
   match value {
-    Some(value) => value.to_json()
+    Some(value) => Json(value)
     None => Json::null()
   }
 }
 
 ///|
-fn nullable_int(value : Int?) -> Json {
+fn nullable_int(value : Int32?) -> Json {
   match value {
-    Some(value) => value.to_json()
+    Some(value) => Json(value)
     None => Json::null()
   }
 }
@@ -66,7 +66,7 @@ fn failure_message(kind : @gh.ApiError) -> String {
 }
 
 ///|
-fn failure_exit(failure : @gh.ApiFailure) -> Int {
+fn failure_exit(failure : @gh.ApiFailure) -> Int32 {
   match failure.kind {
     @gh.Unauthorized | @gh.Forbidden => 3
     @gh.Conflict(..) => 4
@@ -95,19 +95,19 @@ pub fn failure_output(
       id.length() <= 128 &&
       id
       .iter()
-      .all(ch => ch is ('a'..='z' | 'A'..='Z' | '0'..='9' | '.' | '_' | '-')) =>
+      .all(ch => ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9' | '.' | '_' | '-')) =>
       Some(id)
     _ => None
   }
   let stderr = if json {
     let details : Map[String, Json] = {
-      "code": failure.kind.code().to_json(),
-      "message": message.to_json(),
+      "code": Json(failure.kind.code()),
+      "message": Json(message),
       "status": nullable_int(failure.status),
       "request_id": nullable_string(request_id),
     }
     if outcome is Some(outcome) {
-      details["outcome"] = outcome.as_string().to_json()
+      details["outcome"] = Json(outcome.as_string())
     }
     let envelope : Json = { "version": 1, "error": Json::object(details) }
     envelope.stringify() + "\n"
@@ -125,7 +125,7 @@ pub fn argument_error(message : String, json~ : Bool) -> Output {
       "version": 1,
       "error": {
         "code": "invalid_request",
-        "message": message.to_json(),
+        "message": Json(message),
         "status": Json::null(),
         "request_id": Json::null(),
       },
@@ -172,17 +172,14 @@ fn[T] render_read(
   json : Bool,
   encode : (T) -> Json,
   human : (T) -> String,
-  list? : Bool = false,
+  list~ : Bool = false,
 ) -> Output {
   let output = match result.value {
     Err(failure) => failure_output(failure, json~)
     Ok(data) => {
       let stdout = if json {
         let pagination : Json = if list {
-          {
-            "pages": result.pages.to_json(),
-            "next": nullable_string(result.next),
-          }
+          { "pages": Json(result.pages), "next": nullable_string(result.next) }
         } else {
           Json::null()
         }
@@ -223,7 +220,7 @@ fn[T] render_mutation(
           "data": encode(data),
           "pagination": Json::null(),
           "etag": nullable_string(result.etag.map(tag => tag.value())),
-          "outcome": result.outcome.as_string().to_json(),
+          "outcome": Json(result.outcome.as_string()),
         }
         envelope.stringify() + "\n"
       } else {

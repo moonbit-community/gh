@@ -50,6 +50,48 @@ pub(all) enum HttpMethod {
 }
 pub fn HttpMethod::as_string(Self) -> String
 
+pub struct RawBodyStream {
+  length : Int?
+  // private fields
+}
+pub fn RawBodyStream::length(Self) -> Int?
+pub fn RawBodyStream::new(next~ : async () -> Bytes?, length? : Int) -> Self
+pub async fn RawBodyStream::next(Self) -> Bytes?
+
+pub struct RawHttpResponse {
+  status : Int
+  headers : Array[(String, String)]
+  body : Bytes
+}
+pub fn RawHttpResponse::body(Self) -> Bytes
+pub fn RawHttpResponse::header(Self, String) -> String?
+pub fn RawHttpResponse::headers(Self) -> Array[(String, String)]
+pub fn RawHttpResponse::new(status~ : Int, headers? : Array[(String, String)], body? : Bytes) -> Self
+pub fn RawHttpResponse::status(Self) -> Int
+
+pub struct RawRequest {
+  verb : String
+  path : String
+  headers : Array[(String, String)]
+  body : Bytes?
+  // private fields
+}
+pub fn RawRequest::body(Self) -> Bytes?
+pub fn RawRequest::from_stream(verb~ : String, path~ : String, stream~ : RawBodyStream, headers? : Array[(String, String)]) -> Self
+pub fn RawRequest::headers(Self) -> Array[(String, String)]
+pub fn RawRequest::new(verb~ : String, path~ : String, headers? : Array[(String, String)], body? : Bytes) -> Self
+pub fn RawRequest::path(Self) -> String
+pub fn RawRequest::stream(Self) -> RawBodyStream?
+pub fn RawRequest::verb(Self) -> String
+
+pub struct RawTransport {
+  origin : String
+  // private fields
+}
+pub fn RawTransport::new(origin~ : String, send~ : async (RawRequest) -> RawHttpResponse) -> Self
+pub fn RawTransport::origin(Self) -> String
+pub async fn RawTransport::send(Self, RawRequest) -> RawHttpResponse
+
 pub struct Request {
   verb : HttpMethod
   path : String

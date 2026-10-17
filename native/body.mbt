@@ -47,7 +47,7 @@ async fn load_body(input : @cli.BodyInput?) -> Result[String?, @gh.ApiError] {
         Ok(Some(@async.with_timeout(30000, () => read_body(@stdio.stdin))))
     }
   } catch {
-    err if @async.is_cancellation_error(err) => raise err
+    err if @async.is_being_cancelled() => raise err
     _ =>
       Err(
         @gh.InvalidRequest(

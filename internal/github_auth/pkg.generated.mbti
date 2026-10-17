@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/github_auth"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn hosts_token(String, host~ : String) -> Result[String?, AuthError]
+
+pub fn resolve(Environment, stored_token? : String) -> Result[Config, AuthError]
+
+pub fn resolve_with_hosts(Environment, String) -> Result[Config, AuthError]
+
+// Errors
+
+// Types and methods
+pub(all) enum AuthError {
+  InvalidHost
+  InvalidToken
+  InvalidConfig
+} derive(Eq, @debug.Debug)
+pub fn AuthError::equal(Self, Self) -> Bool
+pub fn AuthError::not_equal(Self, Self) -> Bool
+pub fn AuthError::to_repr(Self) -> @debug.Repr
+
+pub struct Config {
+  host : String
+  rest_base_url : String
+  graphql_url : String
+  token_source : TokenSource
+  // private fields
+}
+pub fn Config::graphql_url(Self) -> String
+pub fn Config::host(Self) -> String
+pub fn Config::rest_base_url(Self) -> String
+pub fn Config::token(Self) -> String?
+pub fn Config::token_source(Self) -> TokenSource
+
+pub struct Environment {
+  gh_host : String?
+  // private fields
+}
+pub fn Environment::from_process() -> Self
+pub fn Environment::new(gh_host? : String, gh_token? : String, github_token? : String, gh_enterprise_token? : String, github_enterprise_token? : String) -> Self
+pub fn Environment::with_host(Self, String) -> Self
+
+pub(all) enum TokenSource {
+  Unspecified
+  GhToken
+  GithubToken
+  GhEnterpriseToken
+  GithubEnterpriseToken
+  Stored
+} derive(Eq, @debug.Debug)
+pub fn TokenSource::equal(Self, Self) -> Bool
+pub fn TokenSource::not_equal(Self, Self) -> Bool
+pub fn TokenSource::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

@@ -4,10 +4,10 @@
 /// `to_json_line` before persisting it. Request bodies and headers are absent.
 pub struct TraceRecord {
   operation_id : String
-  attempt : Int
+  attempt : Int32
   verb : HttpMethod
   path : String
-  status : Int?
+  status : Int32?
   duration_ms : Int64?
   request_id : String?
   error_code : String?
@@ -16,10 +16,10 @@ pub struct TraceRecord {
 ///|
 pub fn TraceRecord::new(
   operation_id~ : String,
-  attempt~ : Int,
+  attempt~ : Int32,
   verb~ : HttpMethod,
   path~ : String,
-  status? : Int,
+  status? : Int32,
   duration_ms? : Int64,
   request_id? : String,
   error_code? : String,
@@ -50,7 +50,7 @@ fn trace_identifier(value : String, secrets : Array[String]) -> String? {
   }
   for character in value {
     match character {
-      'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => ()
+      'a'..<='z' | 'A'..<='Z' | '0'..<='9' | '-' | '_' | '.' => ()
       _ => return None
     }
   }
@@ -111,7 +111,7 @@ fn trace_error_code(value : String) -> String {
 /// Supply every credential known to the caller to hide it in remaining fields.
 pub fn TraceRecord::redacted(
   self : TraceRecord,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> TraceRecord {
   {
     operation_id: trace_identifier(self.operation_id, secrets).unwrap_or(
@@ -147,29 +147,29 @@ pub fn TraceRecord::redacted(
 /// and error messages cannot enter this format.
 pub fn TraceRecord::to_json(
   self : TraceRecord,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> Json {
   let record = self.redacted(secrets~)
   {
     "version": 1,
-    "operation_id": record.operation_id.to_json(),
-    "attempt": record.attempt.to_json(),
-    "method": record.verb.as_string().to_json(),
-    "path": record.path.to_json(),
+    "operation_id": Json(record.operation_id),
+    "attempt": Json(record.attempt),
+    "method": Json(record.verb.as_string()),
+    "path": Json(record.path),
     "status": match record.status {
-      Some(status) => status.to_json()
+      Some(status) => Json(status)
       None => Json::null()
     },
     "duration_ms": match record.duration_ms {
-      Some(duration) => duration.to_double().to_json()
+      Some(duration) => Json(duration.to_double())
       None => Json::null()
     },
     "request_id": match record.request_id {
-      Some(request_id) => request_id.to_json()
+      Some(request_id) => Json(request_id)
       None => Json::null()
     },
     "error_code": match record.error_code {
-      Some(error_code) => error_code.to_json()
+      Some(error_code) => Json(error_code)
       None => Json::null()
     },
   }
@@ -179,7 +179,7 @@ pub fn TraceRecord::to_json(
 /// Serialize exactly one sanitized JSONL record, including its final newline.
 pub fn TraceRecord::to_json_line(
   self : TraceRecord,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> String {
   self.to_json(secrets~).stringify() + "\n"
 }

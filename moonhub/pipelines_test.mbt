@@ -1,18 +1,18 @@
 ///|
 fn pipeline_test_data(
-  number? : String = "42",
-  state? : String = "running",
+  number~ : String = "42",
+  state~ : String = "running",
   conclusion? : String,
 ) -> Json {
   {
-    "number": number.to_json(),
+    "number": Json(number),
     "workflow_path": ".github/workflows/build.yml",
     "workflow_name": "Build",
     "source_branch": "main",
     "commit_sha": "0123456789abcdef0123456789abcdef01234567",
-    "state": state.to_json(),
+    "state": Json(state),
     "conclusion": match conclusion {
-      Some(value) => value.to_json()
+      Some(value) => Json(value)
       None => Json::null()
     },
     "created_at": "2026-10-09 00:00:00",
@@ -21,8 +21,8 @@ fn pipeline_test_data(
 
 ///|
 fn pipeline_test_body(
-  number? : String = "42",
-  state? : String = "running",
+  number~ : String = "42",
+  state~ : String = "running",
   conclusion? : String,
 ) -> String {
   let envelope : Json = {

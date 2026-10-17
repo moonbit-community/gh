@@ -5,7 +5,7 @@
 pub async fn read_trace(
   path : String,
   query? : @gh.TraceQuery,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> Result[@gh.TraceQueryResult, @gh.ApiError] {
   @trace.read(path, query?, secrets~)
 }

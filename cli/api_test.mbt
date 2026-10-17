@@ -1,4 +1,11 @@
 ///|
+test "legacy help retains the method flag after identifier refactoring" {
+  let help = @cli.help_text()
+  assert_true(help.contains("--method GET"))
+  assert_false(help.contains("--verb GET"))
+}
+
+///|
 fn api_options(args : Array[String]) -> @cli.RunOptions raise {
   guard @cli.parse(
       args,

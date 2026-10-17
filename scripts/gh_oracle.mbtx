@@ -1,0 +1,496 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+// This runner deliberately does not download, install, or invoke another
+// `gh`. The first argument must point at a locally supplied gh v2.102.0
+// executable. Every child process receives literal argv elements through
+// async/shell; no shell command string is constructed.
+let pinned_version = "2.102.0"
+
+///|
+fn help_children(help : String) -> Array[String] {
+  let result : Array[String] = []
+  let mut commands = false
+  for raw in help.split("\n") {
+    let line = raw.to_owned()
+    if !line.is_empty() && !line.has_prefix(" ") {
+      commands = line.has_suffix("COMMANDS")
+    } else if commands && line.split_once(":") is Some((name, _)) {
+      let name = name.trim().to_owned()
+      if !name.is_empty() &&
+        name.iter().all(c => c is ('a'..<='z' | '0'..<='9' | '-')) &&
+        !result.contains(name) {
+        result.push(name)
+      }
+    }
+  }
+  result
+}
+
+///|
+fn help_flags(help : String) -> Array[String] {
+  let result : Array[String] = []
+  let mut flags = false
+  for raw in help.split("\n") {
+    let line = raw.to_owned()
+    if !line.is_empty() && !line.has_prefix(" ") {
+      flags = line.has_suffix("FLAGS")
+    } else if flags && line.trim().has_prefix("-") {
+      result.push(line.trim().to_owned())
+    }
+  }
+  result
+}
+
+///|
+fn fixture_environment(
+  config : String,
+  fixture~ : String = "",
+) -> Map[String, String] {
+  let result : Map[String, String] = {
+    // GH_CONFIG_DIR is an empty, private directory created by this runner.
+    // HOME and USERPROFILE keep fallback config lookup inside that directory.
+    "GH_CONFIG_DIR": config,
+    "HOME": config,
+    "USERPROFILE": config,
+    "GH_PROMPT_DISABLED": "1",
+    "GH_NO_UPDATE_NOTIFIER": "1",
+    "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+    "GH_TELEMETRY_DISABLE": "1",
+    "GH_PAGER": "",
+    "PAGER": "",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "NO_COLOR": "1",
+  }
+  if !fixture.is_empty() {
+    // This token is a fixture value, never a user's credential. It is removed
+    // from captured output below in case a fixture echoes Authorization.
+    result["GH_TOKEN"] = "oracle-fixture-token"
+    result["GH_ENTERPRISE_TOKEN"] = "oracle-fixture-token"
+  }
+  // Native Windows processes require a valid system root even when all user
+  // environment is intentionally excluded.
+  if @env.get_env_var("SystemRoot") is Some(root) {
+    result["SystemRoot"] = root
+  }
+  result
+}
+
+///|
+fn redact_fixture_token(text : String) -> String {
+  text.replace_all(old="oracle-fixture-token", new="<redacted>")
+}
+
+///|
+fn snapshot_stem(name : String) -> String {
+  name
+  .replace_all(old="/", new="-")
+  .replace_all(old=" ", new="-")
+  .replace_all(old="--", new="-")
+}
+
+///|
+async fn save_snapshot(
+  output_dir : String,
+  name : String,
+  args : Array[String],
+  result : @shell.Output,
+  config : String,
+) -> Json {
+  let stem = snapshot_stem(name)
+  let stdout_name = stem + ".stdout"
+  let stderr_name = stem + ".stderr"
+  // Upstream Copilot help embeds HOME. Normalize only the isolated directory
+  // created for this run; preserve all command-specific text and whitespace.
+  let stdout = redact_fixture_token(result.stdout()).replace_all(
+    old=config,
+    new="<ORACLE_HOME>",
+  )
+  let stderr = redact_fixture_token(result.stderr()).replace_all(
+    old=config,
+    new="<ORACLE_HOME>",
+  )
+  @fs.write_file(output_dir + "/" + stdout_name, stdout)
+  @fs.write_file(output_dir + "/" + stderr_name, stderr)
+  {
+    "name": name,
+    "args": Json(args),
+    "exit_code": result.exit_code(),
+    "stdout": stdout_name,
+    "stderr": stderr_name,
+    "help_flags": Json(help_flags(stdout)),
+    "stdout_sha256": @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(output_dir + "/" + stdout_name).binary()),
+    ),
+    "stderr_sha256": @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(output_dir + "/" + stderr_name).binary()),
+    ),
+  }
+}
+
+///|
+async fn run_case(
+  binary : String,
+  output_dir : String,
+  config : String,
+  name : String,
+  args : Array[String],
+  fixture~ : String = "",
+  timeout_ms~ : Int32 = 300000,
+) -> Json {
+  let result = @shell.Cmd(
+    binary,
+    args,
+    cwd=config,
+    inherit_env=false,
+    env=fixture_environment(config, fixture~),
+  ).output(timeout_ms~, max_output_bytes=8388608)
+  save_snapshot(output_dir, name, args, result, config)
+}
+
+///|
+async fn main {
+  let argv = @env.args()
+  guard argv.length() >= 2 && argv.length() <= 4 else {
+    fail(
+      "usage: moon run --target native scripts/gh_oracle.mbtx -- GH_V2.102.0_BINARY [OUTPUT_DIR [EXPECTED_BINARY_SHA256]]",
+    )
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let binary = @fs.realpath(argv[1])
+  guard @fs.kind(binary, follow_symlink=false) is @fs.Regular else {
+    fail("gh binary must be a regular file: " + argv[1])
+  }
+  let binary_hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  if argv.length() == 4 {
+    guard binary_hash == argv[3] else { fail("oracle binary SHA-256 mismatch") }
+  }
+  let output_dir = if argv.length() >= 3 {
+    if argv[2].has_prefix("/") ||
+      argv[2].has_prefix("\\") ||
+      (argv[2].length() >= 3 && argv[2][1] == ':') {
+      argv[2]
+    } else {
+      root + "/" + argv[2]
+    }
+  } else {
+    root + "/_build/gh-v2.102.0-oracle"
+  }
+  if @fs.exists(output_dir) {
+    guard @fs.kind(output_dir, follow_symlink=false) is @fs.Directory else {
+      fail("oracle output path is not a directory: " + output_dir)
+    }
+    guard @fs.readdir(output_dir).is_empty() else {
+      fail("oracle output directory must be empty")
+    }
+  } else {
+    @fs.mkdir(output_dir, permission=0o700, recursive=true)
+  }
+  let config = @fs.tmpdir(prefix="gh-v2.102.0-config-")
+  defer @fs.rmdir(config, recursive=true)
+  let fixture = @env.get_env_var("GH_ORACLE_FIXTURE_HOST").unwrap_or("")
+  let environment = fixture_environment(config, fixture~)
+
+  // Refuse a floating or wrong-version binary before writing the corpus.
+  let version = @shell.Cmd(
+    binary,
+    ["--version"],
+    cwd=config,
+    inherit_env=false,
+    env=environment,
+  ).output(timeout_ms=300000, max_output_bytes=1048576)
+  let first_line = version.stdout().split("\n").next().unwrap_or("").to_owned()
+  guard version.exit_code() == 0 &&
+    (
+      first_line == "gh version " + pinned_version ||
+      first_line.has_prefix("gh version " + pinned_version + " (")
+    ) else {
+    fail(
+      "expected gh v" +
+      pinned_version +
+      "; supplied binary reported: " +
+      version.stdout().trim().to_owned(),
+    )
+  }
+
+  let snapshots : Array[Json] = []
+  snapshots.push(
+    save_snapshot(output_dir, "version", ["--version"], version, config),
+  )
+  snapshots.push(run_case(binary, output_dir, config, "root-help", ["--help"]))
+  snapshots.push(run_case(binary, output_dir, config, "empty-argv", []))
+  for
+    topic in [
+      "accessibility", "actions", "environment", "exit-codes", "formatting", "mintty",
+      "reference", "telemetry",
+    ] {
+    snapshots.push(
+      run_case(binary, output_dir, config, "help-" + topic, ["help", topic]),
+    )
+  }
+  let queue : Array[Array[String]] = []
+  for
+    command in help_children(
+      @fs.read_file(output_dir + "/root-help.stdout").text(),
+    ) {
+    queue.push([command])
+  }
+  let seen : Map[String, Bool] = Map([])
+  let mut cursor = 0
+  while cursor < queue.length() {
+    guard queue.length() <= 512 else {
+      fail("unexpected oracle command tree size")
+    }
+    let path = queue[cursor]
+    cursor += 1
+    let key = path.join(" ")
+    if seen.contains(key) {
+      continue
+    }
+    seen[key] = true
+    let name = path.join("-") + "-help"
+    snapshots.push(
+      run_case(binary, output_dir, config, name, path + ["--help"]),
+    )
+    let help = @fs.read_file(output_dir + "/" + name + ".stdout").text()
+    if path.length() < 4 {
+      for child in help_children(help) {
+        queue.push(path + [child])
+      }
+    }
+  }
+  for command in ["skills", "send-telemetry"] {
+    snapshots.push(
+      run_case(binary, output_dir, config, command + "-help", [
+        command, "--help",
+      ]),
+    )
+  }
+
+  // These cases exercise stable local diagnostics and never contact GitHub.
+  let unknown = run_case(binary, output_dir, config, "unknown-command", [
+    "__gh_oracle_unknown_command__",
+  ])
+  let missing_api = run_case(
+    binary,
+    output_dir,
+    config,
+    "api-missing-endpoint",
+    ["api"],
+  )
+  let missing_issue = run_case(
+    binary,
+    output_dir,
+    config,
+    "issue-missing-subcommand",
+    ["issue"],
+  )
+  snapshots.push(unknown)
+  snapshots.push(missing_api)
+  snapshots.push(missing_issue)
+  guard unknown is { "exit_code": code, .. } && code != 0 else {
+    fail("unknown-command case unexpectedly succeeded")
+  }
+  guard missing_api is { "exit_code": code, .. } && code != 0 else {
+    fail("api-missing-endpoint case unexpectedly succeeded")
+  }
+  guard missing_issue is { "exit_code": code, .. } && code == 0 else {
+    fail("issue-missing-subcommand help case failed")
+  }
+  for
+    (name, args) in [
+      ("api-unknown-flag", ["api", "/user", "--not-a-flag"]),
+      ("api-repo-long-flag", ["api", "/user", "--repo", "owner/repo"]),
+      ("api-repo-short-flag", ["api", "/user", "-R", "owner/repo"]),
+      ("api-method-missing-value", ["api", "/user", "--method"]),
+      ("api-no-auth", ["api", "/user"]),
+      ("api-slurp-without-paginate", ["api", "/user", "--slurp"]),
+      (
+        "api-jq-with-template",
+        ["api", "/user", "--jq", ".", "--template", "{{.}}"],
+      ),
+      ("api-unknown-with-help", ["api", "--not-a-flag", "--help"]),
+      ("actions-is-help-topic", ["actions", "--help"]),
+      ("accessibility-is-help-topic", ["accessibility", "--help"]),
+      ("auth-status-empty", ["auth", "status"]),
+      ("config-default-list", ["config", "list"]),
+      ("alias-default-list", ["alias", "list"]),
+    ] {
+    snapshots.push(run_case(binary, output_dir, config, name, args))
+  }
+
+  // Hostname validation is part of the oracle: a port in --hostname is
+  // rejected before these option combinations are considered. Retain this
+  // explicit matrix and repeat it with a valid hostname below.
+  for
+    (name, options) in [
+      ("api-probe-slurp", ["--slurp"]),
+      ("api-probe-slurp-paginate-jq", ["--slurp", "--paginate", "--jq", "."]),
+      ("api-probe-silent-verbose", ["--silent", "--verbose"]),
+      (
+        "api-probe-paginate-input",
+        ["--paginate", "--input", "oracle-input-does-not-exist.json"],
+      ),
+      ("api-probe-post-paginate", ["-X", "POST", "--paginate"]),
+      ("api-probe-jq-template", ["--jq", ".", "--template", "x"]),
+      ("api-probe-input", ["--input", "oracle-input-does-not-exist.json"]),
+    ] {
+    snapshots.push(
+      run_case(
+        binary,
+        output_dir,
+        config,
+        name,
+        ["api", "--hostname", "127.0.0.1:1", "/oracle-fixture"] + options,
+        fixture="127.0.0.1:1",
+        timeout_ms=5000,
+      ),
+    )
+  }
+  // Repeat the same matrix with a syntactically valid loopback hostname.
+  // These inputs fail local option/file validation before any request.
+  for
+    (name, options) in [
+      ("api-loopback-slurp", ["--slurp"]),
+      ("api-loopback-slurp-paginate-jq", ["--slurp", "--paginate", "--jq", "."]),
+      ("api-loopback-silent-verbose", ["--silent", "--verbose"]),
+      (
+        "api-loopback-paginate-input",
+        ["--paginate", "--input", "oracle-input-does-not-exist.json"],
+      ),
+      ("api-loopback-post-paginate", ["-X", "POST", "--paginate"]),
+      ("api-loopback-jq-template", ["--jq", ".", "--template", "x"]),
+      ("api-loopback-input", ["--input", "oracle-input-does-not-exist.json"]),
+    ] {
+    snapshots.push(
+      run_case(
+        binary,
+        output_dir,
+        config,
+        name,
+        ["api", "--hostname", "127.0.0.1", "/oracle-fixture"] + options,
+        fixture="127.0.0.1",
+        timeout_ms=5000,
+      ),
+    )
+  }
+
+  // An absolute endpoint keeps the refused port out of --hostname validation.
+  // A valid synthetic file allows the transport error to expose the chosen
+  // HTTP method and query string without contacting a remote service.
+  @fs.write_file(config + "/oracle-input.json", "{}\n")
+  for
+    (name, options) in [
+      ("api-loopback-input-default-method", ["--input", "oracle-input.json"]),
+      (
+        "api-loopback-input-get-method",
+        ["--input", "oracle-input.json", "--method", "GET"],
+      ),
+      (
+        "api-loopback-input-field-query",
+        ["--input", "oracle-input.json", "--raw-field", "fixture=yes"],
+      ),
+    ] {
+    snapshots.push(
+      run_case(
+        binary,
+        output_dir,
+        config,
+        name,
+        ["api", "--hostname", "127.0.0.1", "http://127.0.0.1:1/oracle-fixture"] +
+        options,
+        fixture="127.0.0.1",
+        timeout_ms=5000,
+      ),
+    )
+  }
+
+  // Optional fixture mode is caller-managed. GH_ORACLE_FIXTURE_HOST must name
+  // a TLS fixture host accepted by gh (for example, a test Enterprise host).
+  // Without it we record an explicit skip; this runner never contacts GitHub.
+  if !fixture.is_empty() {
+    let api = run_case(
+      binary,
+      output_dir,
+      config,
+      "fixture-api",
+      ["api", "--hostname", fixture, "/oracle-fixture"],
+      fixture~,
+    )
+    snapshots.push(api)
+  } else {
+    @fs.write_file(
+      output_dir + "/fixture-api.skipped",
+      "Set GH_ORACLE_FIXTURE_HOST to a caller-managed TLS fixture host to capture gh api output.\n",
+    )
+  }
+
+  let manifest : Json = {
+    "schema": 2,
+    "tool": "gh",
+    "pinned_version": pinned_version,
+    "binary_sha256": binary_hash,
+    "binary_sha256_verified": argv.length() == 4,
+    "version_output": version.stdout(),
+    "normalizations": [
+      "isolated HOME/config directory -> <ORACLE_HOME>", "synthetic fixture token -> <redacted>",
+    ],
+    "command_help_count": seen.length(),
+    "loopback_refusal_probes": true,
+    "network_fixture_executed": !fixture.is_empty(),
+    "fixture_host": if fixture.is_empty() {
+      Json::null()
+    } else {
+      fixture
+    },
+    "snapshots": Json(snapshots),
+  }
+  @fs.write_file(
+    output_dir + "/manifest.json",
+    manifest.stringify(indent=2) + "\n",
+  )
+  let inventory = StringBuilder()
+  inventory.write_string(
+    "# gh v2.102.0 captured command flags\n\nGenerated by `scripts/gh_oracle.mbtx` from the pinned executable's help output. This is reference evidence, not project compatibility acceptance.\n\n| Command or case | Exit code | Captured flags |\n| --- | ---: | --- |\n",
+  )
+  for record in snapshots {
+    if record
+      is {
+        "name": String(name),
+        "exit_code": Number(code, ..),
+        "help_flags": Array(flags),
+        ..
+      } {
+      let text : Array[String] = []
+      for flag in flags {
+        if flag is String(value) {
+          text.push(value.replace_all(old="|", new="\\|"))
+        }
+      }
+      inventory.write_string(
+        "| `" +
+        name +
+        "` | " +
+        code.to_int().to_string() +
+        " | " +
+        text.join("<br>") +
+        " |\n",
+      )
+    }
+  }
+  @fs.write_file(output_dir + "/inventory.md", inventory.to_string())
+  println(
+    "gh v" + pinned_version + " oracle snapshots written to " + output_dir,
+  )
+}

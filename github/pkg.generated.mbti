@@ -1,0 +1,165 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/github"
+
+// Values
+pub fn graphql_next_cursor(Json, page_info_path? : Array[String]) -> Result[String?, GitHubError]
+
+pub fn graphql_query_fingerprint(String) -> String
+
+pub fn next_link(String, current_url~ : String) -> Result[String?, GitHubError]
+
+// Errors
+
+// Types and methods
+pub struct Client {
+  config : ClientConfig
+  transport : Transport
+  retry_policy : RetryPolicy
+  // private fields
+}
+pub async fn Client::graphql(Self, GraphQLRequest, operation_id? : String) -> Result[GraphQLEnvelope, GitHubError]
+pub async fn Client::graphql_raw(Self, Request, operation_id? : String, operation_name? : String) -> Result[RawResponse, GitHubError]
+pub fn Client::new(config~ : ClientConfig, transport~ : Transport, retry_policy? : RetryPolicy, trace_observer? : async (TraceRecord) -> Unit, clock? : () -> Int64) -> Result[Self, GitHubError]
+pub async fn Client::request(Self, Request, operation_id? : String, operation_name? : String) -> Result[RawResponse, GitHubError]
+pub fn Client::trace_failures(Self) -> Int
+
+pub struct ClientConfig {
+  base_url : String
+  graphql_url : String?
+  api_version : String
+  user_agent : String
+  // private fields
+}
+pub fn ClientConfig::api_version(Self) -> String
+pub fn ClientConfig::base_url(Self) -> String
+pub fn ClientConfig::graphql_url(Self) -> String?
+pub fn ClientConfig::has_token(Self) -> Bool
+pub fn ClientConfig::new(base_url~ : String, graphql_url? : String, api_version? : String, user_agent? : String, token? : String, trace_observer? : async (TraceRecord) -> Unit) -> Self
+pub fn ClientConfig::user_agent(Self) -> String
+
+pub enum GitHubError {
+  InvalidConfiguration(message~ : String)
+  InvalidRequest(message~ : String)
+  Transport(message~ : String)
+  Authentication(response~ : RawResponse)
+  Permission(response~ : RawResponse)
+  RateLimited(response~ : RawResponse)
+  Http(status~ : Int, response~ : RawResponse)
+  Decode(message~ : String)
+  GraphQL(response~ : RawResponse, errors~ : Array[Json])
+  Cancelled
+}
+pub fn GitHubError::code(Self) -> String
+pub fn GitHubError::response(Self) -> RawResponse?
+pub fn GitHubError::status(Self) -> Int?
+
+pub struct GraphQLEnvelope {
+  response : RawResponse
+  data : Json?
+  errors : Array[Json]
+}
+pub fn GraphQLEnvelope::data(Self) -> Json?
+pub fn GraphQLEnvelope::errors(Self) -> Array[Json]
+pub fn GraphQLEnvelope::response(Self) -> RawResponse
+
+pub struct GraphQLRequest {
+  query : String
+  operation_name : String?
+  variables : Json?
+  verb : String
+  path : String
+  headers : Array[(String, String)]
+}
+pub fn GraphQLRequest::new(query~ : String, operation_name? : String, variables? : Json, verb? : String, path? : String, headers? : Array[(String, String)]) -> Self
+pub fn GraphQLRequest::operation_name(Self) -> String?
+pub fn GraphQLRequest::query(Self) -> String
+pub fn GraphQLRequest::with_cursor(Self, String, variable? : String) -> Result[Self, GitHubError]
+
+pub struct RateLimit {
+  limit : Int64?
+  remaining : Int64?
+  used : Int64?
+  reset_epoch_seconds : Int64?
+  retry_after_seconds : Int64?
+  retry_after : String?
+  resource : String?
+}
+pub fn RateLimit::limit(Self) -> Int64?
+pub fn RateLimit::remaining(Self) -> Int64?
+pub fn RateLimit::reset_epoch_seconds(Self) -> Int64?
+pub fn RateLimit::resource(Self) -> String?
+pub fn RateLimit::retry_after_seconds(Self) -> Int64?
+pub fn RateLimit::used(Self) -> Int64?
+
+pub struct RawResponse {
+  status : Int
+  headers : Array[(String, String)]
+  body : Bytes
+}
+pub fn RawResponse::body(Self) -> Bytes
+pub fn RawResponse::body_text(Self) -> Result[String, Unit]
+pub fn RawResponse::header(Self, String) -> String?
+pub fn RawResponse::headers(Self) -> Array[(String, String)]
+pub fn RawResponse::new(status~ : Int, headers? : Array[(String, String)], body? : Bytes) -> Self
+pub fn RawResponse::next_url(Self, current_url~ : String) -> Result[String?, GitHubError]
+pub fn RawResponse::rate_limit(Self) -> RateLimit
+pub fn RawResponse::status(Self) -> Int
+
+pub struct Request {
+  verb : String
+  url : String
+  path : String
+  query : Array[(String, String)]
+  headers : Array[(String, String)]
+  body : Bytes?
+}
+pub fn Request::body(Self) -> Bytes?
+pub fn Request::headers(Self) -> Array[(String, String)]
+pub fn Request::new(verb~ : String, path~ : String, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Bytes) -> Self
+pub fn Request::path(Self) -> String
+pub fn Request::query(Self) -> Array[(String, String)]
+pub fn Request::url(Self) -> String
+pub fn Request::verb(Self) -> String
+pub fn Request::with_text_body(verb~ : String, path~ : String, text~ : String, query? : Array[(String, String)], headers? : Array[(String, String)]) -> Self
+
+pub enum RetryPolicy {
+  Disabled
+  Attempts(Int)
+}
+pub fn RetryPolicy::default() -> Self
+pub fn RetryPolicy::limited(max_attempts~ : Int) -> Self
+
+pub struct TraceRecord {
+  provider : String
+  host : String
+  operation_name : String
+  operation_id : String
+  attempt : Int
+  verb : String
+  path : String
+  status : Int?
+  duration_ms : Int64?
+  request_id : String?
+  error_code : String?
+  query_fingerprint : String?
+}
+pub fn TraceRecord::new(host~ : String, operation_name~ : String, operation_id~ : String, attempt~ : Int, verb~ : String, path~ : String, status? : Int, duration_ms? : Int64, request_id? : String, error_code? : String, query_fingerprint? : String) -> Self
+pub fn TraceRecord::redacted(Self, secrets? : Array[String]) -> Self
+pub fn TraceRecord::to_json(Self, secrets? : Array[String]) -> Json
+pub fn TraceRecord::to_json_line(Self, secrets? : Array[String]) -> String
+
+pub struct Transport {
+  // private fields
+}
+pub fn Transport::new(send~ : async (Request) -> Result[RawResponse, TransportError]) -> Self
+
+pub(all) enum TransportError {
+  Failed
+  Message(message~ : String)
+  Cancelled
+}
+pub fn TransportError::message(Self) -> String
+
+// Type aliases
+
+// Traits

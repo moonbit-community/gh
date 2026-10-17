@@ -83,7 +83,7 @@ pub impl @json.FromJson for Pipeline with fn from_json(value, path) {
   }
   let commit_sha : String = required_field(fields, "commit_sha", path)
   guard (commit_sha.length() == 40 || commit_sha.length() == 64) &&
-    commit_sha.iter().all(character => character is ('0'..='9' | 'a'..='f')) else {
+    commit_sha.iter().all(character => character is ('0'..<='9' | 'a'..<='f')) else {
     resource_invalid(path.add_key("commit_sha"))
   }
   {
@@ -111,20 +111,20 @@ pub impl @json.FromJson for PipelineCancelReceipt with fn from_json(value, path)
 ///|
 pub fn Pipeline::to_json(self : Pipeline) -> Json {
   {
-    "number": self.number.to_json(),
-    "workflow_path": self.workflow_path.to_json(),
-    "workflow_name": self.workflow_name.to_json(),
-    "source_branch": self.source_branch.to_json(),
-    "commit_sha": self.commit_sha.to_json(),
-    "state": self.state.to_json(),
+    "number": Json(self.number),
+    "workflow_path": Json(self.workflow_path),
+    "workflow_name": Json(self.workflow_name),
+    "source_branch": Json(self.source_branch),
+    "commit_sha": Json(self.commit_sha),
+    "state": Json(self.state),
     "conclusion": nullable_string(self.conclusion),
-    "created_at": self.created_at.to_json(),
+    "created_at": Json(self.created_at),
   }
 }
 
 ///|
 pub fn PipelineCancelReceipt::to_json(self : PipelineCancelReceipt) -> Json {
-  { "number": self.number.to_json(), "kind": self.kind.to_json() }
+  { "number": Json(self.number), "kind": Json(self.kind) }
 }
 
 ///|
@@ -146,10 +146,10 @@ fn pipeline_path(
 pub async fn Client::pipelines(
   self : Client,
   repo : RepositoryRef,
-  page? : Int = 1,
-  per_page? : Int = 30,
-  paginate? : Bool = false,
-  max_pages? : Int = 20,
+  page~ : Int32 = 1,
+  per_page~ : Int32 = 30,
+  paginate~ : Bool = false,
+  max_pages~ : Int32 = 20,
   operation_id~ : String,
 ) -> ReadResult[Array[Pipeline]] {
   let base = match repo.api_path() {

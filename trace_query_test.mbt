@@ -1,5 +1,5 @@
 ///|
-fn query_record(operation : String, attempt : Int, status : Int) -> String {
+fn query_record(operation : String, attempt : Int32, status : Int32) -> String {
   @gh.TraceRecord::new(
     operation_id=operation,
     attempt~,

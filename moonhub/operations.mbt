@@ -1,7 +1,7 @@
 ///|
 fn[T : @json.FromJson] decode_read(
   result : ReadResult[Json],
-  valid? : (T) -> Bool = _ => true,
+  valid~ : (T) -> Bool = _ => true,
 ) -> ReadResult[T] {
   let value = match result.value {
     Err(error) => Err(error)
@@ -59,8 +59,8 @@ fn[T] invalid_read(error : @gh.ApiError) -> ReadResult[T] {
 ///|
 fn list_path(
   path : String,
-  page : Int,
-  per_page : Int,
+  page : Int32,
+  per_page : Int32,
 ) -> Result[String, @gh.ApiError] {
   if page < 1 || page > 1000000 || per_page < 1 || per_page > 100 {
     Err(
@@ -110,10 +110,10 @@ pub async fn Client::repository(
 /// filtering; the client never supplements these results with local storage.
 pub async fn Client::repositories(
   self : Client,
-  page? : Int = 1,
-  per_page? : Int = 30,
-  paginate? : Bool = false,
-  max_pages? : Int = 20,
+  page~ : Int32 = 1,
+  per_page~ : Int32 = 30,
+  paginate~ : Bool = false,
+  max_pages~ : Int32 = 20,
   operation_id~ : String,
 ) -> ReadResult[Array[Repository]] {
   let path = match list_path("/repos", page, per_page) {
@@ -127,10 +127,10 @@ pub async fn Client::repositories(
 pub async fn Client::issues(
   self : Client,
   repo : RepositoryRef,
-  page? : Int = 1,
-  per_page? : Int = 30,
-  paginate? : Bool = false,
-  max_pages? : Int = 20,
+  page~ : Int32 = 1,
+  per_page~ : Int32 = 30,
+  paginate~ : Bool = false,
+  max_pages~ : Int32 = 20,
   operation_id~ : String,
 ) -> ReadResult[Array[Issue]] {
   let base = match repo.api_path() {
@@ -148,7 +148,7 @@ pub async fn Client::issues(
 pub async fn Client::issue(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   operation_id~ : String,
 ) -> ReadResult[Issue] {
   if number <= 0 {
@@ -169,10 +169,10 @@ pub async fn Client::issue(
 pub async fn Client::merge_requests(
   self : Client,
   repo : RepositoryRef,
-  page? : Int = 1,
-  per_page? : Int = 30,
-  paginate? : Bool = false,
-  max_pages? : Int = 20,
+  page~ : Int32 = 1,
+  per_page~ : Int32 = 30,
+  paginate~ : Bool = false,
+  max_pages~ : Int32 = 20,
   operation_id~ : String,
 ) -> ReadResult[Array[MergeRequest]] {
   let base = match repo.api_path() {
@@ -190,7 +190,7 @@ pub async fn Client::merge_requests(
 pub async fn Client::merge_request(
   self : Client,
   repo : RepositoryRef,
-  number : Int,
+  number : Int32,
   operation_id~ : String,
 ) -> ReadResult[MergeRequest] {
   if number <= 0 {

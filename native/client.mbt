@@ -7,8 +7,8 @@ pub async fn client(
   token? : String,
   config_path? : String,
   trace_path? : String,
-  timeout_ms? : Int = 30000,
-  max_response_bytes? : Int = 8388608,
+  timeout_ms~ : Int32 = 30000,
+  max_response_bytes~ : Int32 = 8388608,
   read_retry? : @moonhub.ReadRetryPolicy,
 ) -> Result[@moonhub.Client, @gh.ApiError] {
   if trace_path is Some(path) && (path.is_empty() || path == "-") {
@@ -26,7 +26,7 @@ pub async fn client(
     timeout_ms~,
     max_response_bytes~,
   ) catch {
-    err if @async.is_cancellation_error(err) => raise err
+    err if @async.is_being_cancelled() => raise err
     _ =>
       return Err(
         @gh.InvalidRequest(message="invalid native transport configuration"),

@@ -13,7 +13,7 @@
 pub async fn append(
   path : String,
   record : @gh.TraceRecord,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> Unit {
   if path.is_empty() || path == "-" {
     fail("Trace output requires an explicit regular file")

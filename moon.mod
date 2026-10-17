@@ -19,15 +19,15 @@ repository = "https://github.com/moonbit-community/gh"
 
 license = "Apache-2.0"
 
-keywords = [ "moonhub", "cli", "api" ]
+keywords = [ "github", "gh", "cli", "api", "moonhub" ]
 
 preferred_target = "native"
 
-description = "A MoonBit port of gh adapted for MoonHub."
+description = "A GitHub-first MoonBit CLI and SDK targeting gh v2.102.0 compatibility."
 
 import {
-  "moonbitlang/async@0.21.3",
+  "moonbitlang/async@0.22.5",
   "moonbitlang/x@0.5.5",
   "moonbitstack/moonjson@0.4.0",
-  "ZSeanYves/MoonbitHTTP@0.6.0",
+  "ZSeanYves/MoonbitHTTP@0.7.0",
 }

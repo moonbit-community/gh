@@ -54,7 +54,7 @@ permit at most 500. Each page's backoff budget is at most
 apply. This is not an overall command deadline; SDK callers can apply an outer
 async timeout, and cancellation during backoff prevents the next HTTP attempt.
 
-The upstream `moonbitlang/async@0.21.3` retry helper retries raised exceptions
+The upstream `moonbitlang/async@0.22.5` retry helper retries raised exceptions
 with a fixed strategy. It does not
 consume typed `ApiFailure` results or per-response `Retry-After` hints. Using it
 here would require artificial exceptions and separate mutable response state.

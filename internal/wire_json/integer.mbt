@@ -29,7 +29,7 @@ pub fn integer(value : Json, minimum~ : Int64, maximum~ : Int64) -> Int64? {
     None => (mantissa, "")
   }
   let digits = whole + fraction
-  guard !whole.is_empty() && digits.iter().all(ch => ch is ('0'..='9')) else {
+  guard !whole.is_empty() && digits.iter().all(ch => ch is ('0'..<='9')) else {
     return None
   }
   let digits = digits.trim_start(chars="0")

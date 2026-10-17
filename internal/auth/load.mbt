@@ -54,7 +54,7 @@ async fn load_from_inputs(
     let bytes = file.read_exactly_at(size.to_int(), position=0L)
     @utf8.decode(bytes)
   } catch {
-    err if @async.is_cancellation_error(err) => raise err
+    err if @async.is_being_cancelled() => raise err
     _ => return Err(@gh.InvalidRequest(message="cannot read MoonHub config"))
   }
   @moonhub.resolve_token(base_url~, config_json=source)

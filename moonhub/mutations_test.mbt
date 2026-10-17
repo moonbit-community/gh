@@ -24,14 +24,14 @@ fn mutation_test_tag() -> @moonhub.EntityTag raise {
 }
 
 ///|
-fn mutation_test_issue(status? : String = "open") -> String {
+fn mutation_test_issue(status~ : String = "open") -> String {
   let envelope : Json = {
     "version": 1,
     "data": {
       "number": 7,
       "title": "An issue",
       "description": "private-description",
-      "status": status.to_json(),
+      "status": Json(status),
       "edit_version": "2",
     },
   }
@@ -632,10 +632,10 @@ async test "creation success must describe the requested initial resource state"
           "number": 3,
           "title": "Title",
           "description": "",
-          "status": status.to_json(),
-          "source": source.to_json(),
-          "target": target.to_json(),
-          "draft": draft.to_json(),
+          "status": Json(status),
+          "source": Json(source),
+          "target": Json(target),
+          "draft": Json(draft),
         },
       }
       @gh.Response::new(status=201, body=envelope.stringify(), headers=[

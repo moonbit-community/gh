@@ -16,7 +16,7 @@ pub fn normalize_origin(base_url : String) -> Result[String, ApiError] {
     authority.length() <= 300 &&
     authority
     .iter()
-    .all(ch => ch is ('a'..='z' | '0'..='9') || ".-:".contains_char(ch)) else {
+    .all(ch => ch is ('a'..<='z' | '0'..<='9') || ".-:".contains_char(ch)) else {
     return Err(invalid)
   }
   // The pinned native HTTP library does not resolve bracketed IPv6 literals;
@@ -31,7 +31,7 @@ pub fn normalize_origin(base_url : String) -> Result[String, ApiError] {
       label.length() <= 63 &&
       !label.has_prefix("-") &&
       !label.has_suffix("-") &&
-      label.iter().all(ch => ch is ('a'..='z' | '0'..='9' | '-')) else {
+      label.iter().all(ch => ch is ('a'..<='z' | '0'..<='9' | '-')) else {
       return Err(invalid)
     }
   }
@@ -94,7 +94,7 @@ pub fn valid_request_path(path : String) -> Bool {
       guard i + 2 < path.length() else { return false }
       for j in (i + 1)..<=(i + 2) {
         let c = path[j]
-        guard c is ('0'..='9' | 'a'..='f' | 'A'..='F') else { return false }
+        guard c is ('0'..<='9' | 'a'..<='f' | 'A'..<='F') else { return false }
       }
       i += 3
     } else {

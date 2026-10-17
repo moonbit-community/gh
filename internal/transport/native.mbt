@@ -15,8 +15,8 @@ priv suberror NativeTransportFailure {
 /// The timeout covers connection establishment, request writing, and body reads.
 pub fn native_transport(
   base_url~ : String,
-  timeout_ms? : Int = 30000,
-  max_response_bytes? : Int = 8388608,
+  timeout_ms~ : Int32 = 30000,
+  max_response_bytes~ : Int32 = 8388608,
 ) -> @gh.Transport raise {
   guard timeout_ms > 0 && max_response_bytes > 0 else {
     raise InvalidConfiguration
@@ -46,15 +46,15 @@ pub fn native_transport(
         }
       }
       let authority = origin.split_once("://").unwrap().1.to_owned()
+      let http_method = native_method(request.verb)
+      let uri = match
+        @http_types.Uri::parse_request_target(request.path, http_method) {
+        Ok(uri) => uri
+        Err(_) => raise InvalidRequest
+      }
       ignore(fields.append_string("Host", authority))
       let head = @http1.encode_request_head(
-        {
-          http_method: native_method(request.verb),
-          uri: { value: request.path },
-          version: Http11,
-          headers: fields,
-          body: (),
-        },
+        { http_method, uri, version: Http11, headers: fields, body: (), },
         ContentLength(body.length()),
       )
       match head {
@@ -87,9 +87,9 @@ fn request_headers(values : Array[(String, String)]) -> @http.Headers raise {
     guard !name.is_empty() else { raise InvalidRequest }
     for char in name {
       guard char
-        is ('a'..='z'
-        | 'A'..='Z'
-        | '0'..='9'
+        is ('a'..<='z'
+        | 'A'..<='Z'
+        | '0'..<='9'
         | '!'
         | '#'
         | '$'

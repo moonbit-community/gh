@@ -4,7 +4,7 @@
 /// codes are intentionally not surfaced because they can echo credentials.
 pub fn decode_response(
   response : @gh.Response,
-  secrets? : Array[String] = [],
+  secrets~ : Array[String] = [],
 ) -> Result[@gh.Response, @gh.ApiFailure] {
   if response.status >= 200 && response.status < 300 {
     return Ok(response)
@@ -62,7 +62,7 @@ fn safe_request_id(value : String) -> String? {
     value
     .iter()
     .all(ch => {
-      ch is ('a'..='z' | 'A'..='Z' | '0'..='9') || "._-".contains_char(ch)
+      ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9') || "._-".contains_char(ch)
     }) {
     Some(value)
   } else {

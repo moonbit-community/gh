@@ -57,11 +57,11 @@ async test "native adapter sends all methods, bearer headers, and UTF-8 bodies" 
 
 ///|
 async fn with_response(
-  status : Int,
+  status : Int32,
   body : String,
   run : async (@gh.Transport) -> Unit,
-  max_response_bytes? : Int = 8388608,
-  headers? : @http.Headers = Map([]),
+  max_response_bytes~ : Int32 = 8388608,
+  headers~ : @http.Headers = Map([]),
 ) -> Unit {
   let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
   defer server.close()
