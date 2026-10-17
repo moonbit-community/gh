@@ -1,13 +1,25 @@
 # GitHub CLI compatibility in MoonBit
 
+> **Preserved adaptation branch:** `codex/moonhub-adapter` retains the complete
+> GitHub-first migration and historical MoonHub implementation from `da3ef15`.
+> Active GitHub compatibility development continues on the pure GitHub
+> `master` branch. MoonHub packages, fixtures, contracts, and old delivery
+> scripts remain here for later adaptation to the real `/-/api/v1` protocol.
+> This branch does not establish complete core parity or live MoonHub acceptance.
+
+The workflow on this preservation branch checks and tests both provider
+packages and builds the current GitHub executable. The old MoonHub candidate
+and smoke runners are historical assets: they expect a MoonHub executable and
+must not be run against the current GitHub `cmd/main` binary.
+
 [![Native CI](https://github.com/moonbit-community/gh/actions/workflows/ci.yml/badge.svg)](https://github.com/moonbit-community/gh/actions/workflows/ci.yml)
 
 A GitHub-first MoonBit CLI and SDK targeting the pinned GitHub CLI
 **v2.102.0** behavior for commands, authentication, raw REST/GraphQL requests,
 output, and exit status.
 
-The core command tier is implemented and validated against loopback fixtures and
-the pinned oracle. This branch claims **v2.102.0 core parity** for the command
+The core command tier has selected loopback fixtures and pinned oracle evidence.
+Complete **v2.102.0 core parity** remains an acceptance target for the command
 families listed in the [compatibility contract](docs/compat/gh-v2.102.0.md).
 The separate [oracle evidence status](docs/compat/oracle-status.md) records the
 captured upstream behavior, fixture evidence and limits. Full built-in command

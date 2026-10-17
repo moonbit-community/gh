@@ -1,5 +1,13 @@
 # Native CI
 
+> Historical MoonHub delivery documentation preserved on
+> `codex/moonhub-adapter`. The current branch workflow directly checks/tests
+> both providers on Native and portable targets, builds the GitHub executable,
+> and runs the live fixture self-test without credentials or network requests.
+> It uploads the executable, not the old candidate reports described below.
+> The legacy smoke/candidate scripts are retained unchanged as historical
+> assets; their MoonHub expectations do not match the GitHub entrypoint.
+
 [The workflow](https://github.com/moonbit-community/gh/actions/workflows/ci.yml)
 runs on pushes, pull requests and manual dispatch. Each matrix job builds and
 executes on its own host:

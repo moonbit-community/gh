@@ -1,4 +1,4 @@
-name: Native CI
+name: Preserved Provider CI
 
 on:
   push:
@@ -9,10 +9,38 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-ci-${{ github.workflow }}-${{ github.ref }}
+  group: preserved-provider-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  quality:
+    name: Formatting and public interfaces
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned MoonBit toolchain and core
+        uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
+        with:
+          version: 0.10.14+7d59c7ec9
+          core-version: 0.10.14+7d59c7ec9
+
+      - name: Update registry
+        run: moon update
+
+      - name: Check formatting including automation
+        run: moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx
+
+      - name: Generate public interfaces
+        run: moon info
+
+      - name: Check generated interfaces are committed
+        run: git diff --exit-code -- '*.mbti'
+
   native:
     name: Native (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
@@ -42,28 +70,55 @@ jobs:
       - name: Update registry
         run: moon update
 
-      - name: Check formatting including automation
-        run: moon fmt --check . scripts/read_smoke.mbtx scripts/mutation_smoke.mbtx scripts/operations_smoke.mbtx scripts/api_smoke.mbtx scripts/release_candidate.mbtx scripts/verify_candidate.mbtx scripts/release_smoke.mbtx
+      - name: Check Native packages without warnings
+        run: moon check --target native --frozen --deny-warn
 
-      - name: Generate public interfaces
-        run: moon info
+      - name: Test both providers and loopback HTTP fixtures
+        run: moon test --target native --frozen
 
-      - name: Check generated interfaces are committed
-        run: git diff --exit-code -- '*.mbti'
+      - name: Build the GitHub CLI
+        run: moon build --target native --frozen --release --deny-warn cmd/main
 
-      - name: Check, test, build and exercise the staged Native binary
-        run: moon run --target native scripts/release_candidate.mbtx -- _build/ci-candidate
+      - name: Check the local fixture runner
+        run: moon check --target native --deny-warn scripts/live_github_fixture.mbtx
 
-      - name: Verify candidate and release tooling, including relocation
-        run: moon run --target native scripts/release_smoke.mbtx -- _build/ci-candidate
+      - name: Validate fixture logic without GitHub credentials or network requests
+        run: moon run --target native scripts/live_github_fixture.mbtx -- --self-test
 
-      - name: Preserve candidate and execution evidence
+      - name: Preserve the built GitHub CLI
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: native-${{ matrix.platform }}-${{ github.sha }}
-          path: |
-            _build/ci-candidate/
-            _build/release-smoke.json
+          name: gh-${{ matrix.platform }}-${{ github.sha }}
+          path: _build/native/release/build/cmd/main/main.exe
           if-no-files-found: warn
           retention-days: 14
+
+  portable:
+    name: Portable (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [wasm, wasm-gc, js]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned MoonBit toolchain and core
+        uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
+        with:
+          version: 0.10.14+7d59c7ec9
+          core-version: 0.10.14+7d59c7ec9
+
+      - name: Update registry
+        run: moon update
+
+      - name: Check portable packages without warnings
+        run: moon check --target ${{ matrix.target }} --frozen --deny-warn
+
+      - name: Test portable packages
+        run: moon test --target ${{ matrix.target }} --frozen
