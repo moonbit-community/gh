@@ -3,7 +3,8 @@
 The [workflow source](../../.github/workflows/ci.yml) validates the GitHub
 mainline on pushes, pull requests, and manual dispatch. Native jobs execute on
 Linux x64, macOS arm64, and Windows x64 with the pinned MoonBit toolchain/core
-`0.10.14+7d59c7ec9`. Action revisions are pinned in the workflow.
+`0.10.15+943464bfa` (MoonBit release `0.1.20261012`). Action revisions are
+pinned in the workflow.
 
 ## Required checks
 

@@ -26,8 +26,8 @@ jobs:
       - name: Install pinned MoonBit toolchain and core
         uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
         with:
-          version: 0.10.14+7d59c7ec9
-          core-version: 0.10.14+7d59c7ec9
+          version: 0.10.15+943464bfa
+          core-version: 0.10.15+943464bfa
 
       - name: Update registry
         run: moon update
@@ -64,8 +64,8 @@ jobs:
       - name: Install pinned MoonBit toolchain and core
         uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
         with:
-          version: 0.10.14+7d59c7ec9
-          core-version: 0.10.14+7d59c7ec9
+          version: 0.10.15+943464bfa
+          core-version: 0.10.15+943464bfa
 
       - name: Update registry
         run: moon update
@@ -111,8 +111,8 @@ jobs:
       - name: Install pinned MoonBit toolchain and core
         uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
         with:
-          version: 0.10.14+7d59c7ec9
-          core-version: 0.10.14+7d59c7ec9
+          version: 0.10.15+943464bfa
+          core-version: 0.10.15+943464bfa
 
       - name: Update registry
         run: moon update

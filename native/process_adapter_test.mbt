@@ -1,6 +1,7 @@
 ///|
+#cfg(not(platform="windows"))
 async test "native process adapter passes argv literally and captures output" {
-  let result = @native.run_native_process("/usr/bin/printf", [
+  let result = @native.run_native_process("printf", [
     "%s", "literal;$(echo should-not-run)",
   ])
   guard result is Ok(value) else { fail("process fixture failed") }
@@ -10,9 +11,10 @@ async test "native process adapter passes argv literally and captures output" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "native process adapter forwards stdin without a shell" {
   let result = @native.run_native_process(
-    "/usr/bin/cat",
+    "cat",
     [],
     input=b"stdin;$(echo should-not-run)",
   )
@@ -22,10 +24,11 @@ async test "native process adapter forwards stdin without a shell" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "native process adapter preserves nonzero status and stderr" {
   // `sh` is only a fixture process here; the adapter still receives the
   // executable and every argument separately and never builds a shell string.
-  let result = @native.run_native_process("/usr/bin/sh", [
+  let result = @native.run_native_process("sh", [
     "-c", "printf fixture-error >&2; exit 23",
   ])
   guard result is Ok(value) else { fail("status fixture failed") }
@@ -35,21 +38,23 @@ async test "native process adapter preserves nonzero status and stderr" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "native process adapter reports a timed out child" {
-  let result = @native.run_native_process("/usr/bin/sleep", ["1"], timeout_ms=1)
+  let result = @native.run_native_process("sleep", ["1"], timeout_ms=1)
   assert_true(result is Err(@native.ProcessAdapterError::TimedOut))
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "native process adapter enforces output and argument bounds" {
   let oversized = @native.run_native_process(
-    "/usr/bin/printf",
+    "printf",
     ["%s", "12345"],
     max_output_bytes=2,
   )
   assert_true(oversized is Err(@native.ProcessAdapterError::OutputLimit))
   assert_true(
-    @native.run_native_process("/usr/bin/printf", ["bad\u{0000}arg"])
+    @native.run_native_process("printf", ["bad\u{0000}arg"])
     is Err(@native.ProcessAdapterError::InvalidArgument),
   )
 }
@@ -65,14 +70,15 @@ test "native command splitting retains quoted argument boundaries" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "editor and browser adapters append one argument without a shell" {
-  let editor = @native.run_editor("/usr/bin/printf %s", "draft;$(echo x)")
+  let editor = @native.run_editor("printf %s", "draft;$(echo x)")
   guard editor is Ok(value) else { fail("editor fixture failed") }
   assert_eq(value.exit_code(), 0)
   assert_eq(value.stdout(), b"draft;$(echo x)")
 
   let browser = @native.open_browser(
-    "/usr/bin/printf %s", "https://example.test/a?x=$(id)",
+    "printf %s", "https://example.test/a?x=$(id)",
   )
   guard browser is Ok(value) else { fail("browser fixture failed") }
   assert_eq(value.exit_code(), 0)
@@ -80,20 +86,18 @@ async test "editor and browser adapters append one argument without a shell" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "terminal adapter runs argv directly" {
-  let status = @native.run_terminal_process("/usr/bin/true", [])
+  let status = @native.run_terminal_process("true", [])
   assert_eq(status, Ok(0))
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "terminal adapter preserves child failure and reports timeout" {
-  let failure = @native.run_terminal_process("/usr/bin/sh", ["-c", "exit 19"])
+  let failure = @native.run_terminal_process("sh", ["-c", "exit 19"])
   assert_eq(failure, Ok(19))
-  let timeout = @native.run_terminal_process(
-    "/usr/bin/sleep",
-    ["1"],
-    timeout_ms=1,
-  )
+  let timeout = @native.run_terminal_process("sleep", ["1"], timeout_ms=1)
   assert_true(timeout is Err(@native.ProcessAdapterError::TimedOut))
 }
 
@@ -117,15 +121,16 @@ async test "terminal adapter exposes a PTY-safe argv fixture seam" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "editor and browser adapters enforce bounded native process time" {
   let editor = @native.run_editor(
-    "/usr/bin/tail -f /dev/null",
+    "tail -f /dev/null",
     "fixture.md",
     timeout_ms=1,
   )
   assert_true(editor is Err(@native.ProcessAdapterError::TimedOut))
   let browser = @native.open_browser(
-    "/usr/bin/tail -f /dev/null",
+    "tail -f /dev/null",
     "https://fixture.test",
     timeout_ms=1,
   )
@@ -133,21 +138,21 @@ async test "editor and browser adapters enforce bounded native process time" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "editor and browser adapters reject control bytes before spawning" {
-  let editor = @native.run_editor("/usr/bin/true", "bad\npath")
+  let editor = @native.run_editor("true", "bad\npath")
   assert_true(editor is Err(@native.ProcessAdapterError::InvalidArgument))
-  let browser = @native.open_browser(
-    "/usr/bin/true", "https://fixture.test\u{0000}",
-  )
+  let browser = @native.open_browser("true", "https://fixture.test\u{0000}")
   assert_true(browser is Err(@native.ProcessAdapterError::InvalidArgument))
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "configured editor honors GH_EDITOR without shell expansion" {
-  @env.set_env_var("GH_EDITOR", "/usr/bin/printf %s")
+  @env.set_env_var("GH_EDITOR", "printf %s")
   defer @env.unset_env_var("GH_EDITOR")
   let command = @native.configured_editor(None)
-  assert_eq(command, "/usr/bin/printf %s")
+  assert_eq(command, "printf %s")
   let result = @native.run_configured_editor(
     "draft;$(echo should-not-run)",
     timeout_ms=1000,
@@ -158,6 +163,7 @@ async test "configured editor honors GH_EDITOR without shell expansion" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "browse uses GH_BROWSER argv and preserves URL punctuation" {
   let directory = @fs.tmpdir(prefix="gh-browser-fixture-")
   defer @fs.rmdir(directory, recursive=true)
@@ -178,4 +184,44 @@ async test "browse uses GH_BROWSER argv and preserves URL punctuation" {
     @fs.read_file(captured).text(),
     "https://github.com/acme/demo/issues%3Fx%3D%24%28id%29",
   )
+}
+
+///|
+#cfg(platform="windows")
+async test "native process adapter uses Windows process fixtures" {
+  let result = @native.run_native_process("cmd.exe", [
+    "/d", "/c", "echo", "literal;$(echo should-not-run)",
+  ])
+  guard result is Ok(value) else { fail("Windows process fixture failed") }
+  assert_eq(value.exit_code(), 0)
+  assert_eq(
+    value.stdout().text().trim_end(chars="\r\n"),
+    "literal;$(echo should-not-run)",
+  )
+  let status = @native.run_terminal_process("cmd.exe", ["/d", "/c", "exit", "0"])
+  assert_eq(status, Ok(0))
+}
+
+///|
+#cfg(platform="windows")
+async test "editor and browser adapters preserve Windows argv boundaries" {
+  let editor = @native.run_editor("cmd.exe /d /c echo", "draft;$(echo x)")
+  guard editor is Ok(value) else { fail("Windows editor fixture failed") }
+  assert_eq(value.exit_code(), 0)
+  let browser = @native.open_browser(
+    "cmd.exe /d /c echo", "https://example.test/a?x=$(id)",
+  )
+  guard browser is Ok(value) else { fail("Windows browser fixture failed") }
+  assert_eq(value.exit_code(), 0)
+}
+
+///|
+#cfg(platform="windows")
+async test "browse uses GH_BROWSER on Windows" {
+  @env.set_env_var("GH_BROWSER", "cmd.exe /d /c echo")
+  defer @env.unset_env_var("GH_BROWSER")
+  let output = @native.run_github([
+    "browse", "-R", "github.com/acme/demo", "issues?x=$(id)",
+  ])
+  assert_eq(output.exit_code(), 0)
 }

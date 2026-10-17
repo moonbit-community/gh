@@ -191,6 +191,7 @@ async test "async credential backend participates in account resolution" {
 }
 
 ///|
+#cfg(not(platform="windows"))
 async test "secret tool backend uses argv and bounded process I/O" {
   let directory = @fs.tmpdir(prefix="gh-secret-tool-fixture-")
   defer @fs.rmdir(directory, recursive=true)
