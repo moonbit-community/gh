@@ -1,6 +1,5 @@
 ///|
-/// Additional v2.102.0 core endpoint mappings that do not fit the original
-/// MoonHub-shaped business switch.  These requests deliberately stay raw:
+/// Additional v2.102.0 core endpoint mappings. Requests stay raw:
 /// response decoding, JSON projection, tracing, and HTTP error handling remain
 /// owned by `execute_github_business`.
 fn extra_body(fields : Map[String, Json]) -> Bytes? {
@@ -24,9 +23,8 @@ fn extra_path_segment(value : String) -> Result[String, @github_cli.Output] {
 }
 
 ///|
-/// Return a request for a command family that was added to gh after the first
-/// MoonHub-focused implementation. `None` lets the established request switch
-/// handle the command and keeps its behavior unchanged.
+/// Return a request for an additional command family. `None` delegates to
+/// the primary request switch.
 fn business_extra_request(
   options : @github_cli.BusinessOptions,
   parsed : ParsedBusiness,

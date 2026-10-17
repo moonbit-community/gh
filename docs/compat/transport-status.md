@@ -21,6 +21,7 @@ moon check --target native internal/transport
 moon test --target native internal/transport --filter 'raw transport*'
 ```
 
-The legacy `native_transport` remains unchanged for the frozen MoonHub
-adapter. A later integration can use an adapter from `RawTransport` to the
-legacy string transport while providers migrate independently.
+`master` retains only the raw transport. The former string-based
+`native_transport`, legacy framing, and MoonHub-specific tests are preserved
+on `codex/moonhub-adapter` at the pre-split snapshot `da3ef15`. New GitHub work
+must use the byte-preserving raw boundary.

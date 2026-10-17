@@ -2,18 +2,13 @@
 package "ZSeanYves/gh/native"
 
 import {
-  "ZSeanYves/gh",
-  "ZSeanYves/gh/cli",
   "ZSeanYves/gh/github",
   "ZSeanYves/gh/github_cli",
   "ZSeanYves/gh/internal/github_auth",
-  "ZSeanYves/gh/moonhub",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub async fn client(base_url~ : String, token? : String, config_path? : String, trace_path? : String, timeout_ms? : Int, max_response_bytes? : Int, read_retry? : @moonhub.ReadRetryPolicy) -> Result[@moonhub.Client, @gh.ApiError]
-
 pub async fn configured_editor(String?) -> String
 
 pub async fn execute_github_api(@github_cli.ApiOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext) -> @github_cli.Output
@@ -32,8 +27,6 @@ pub async fn github_config_command(Array[String], config_dir? : String) -> @gith
 
 pub async fn open_browser(String, String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
 
-pub async fn read_trace(String, query? : @gh.TraceQuery, secrets? : Array[String]) -> Result[@gh.TraceQueryResult, @gh.ApiError]
-
 pub async fn resolve_current_branch() -> Result[String, @github_cli.Output]
 
 pub async fn resolve_github_auth(@github_auth.Environment) -> Result[@github_auth.Config, @github_cli.Output]
@@ -45,8 +38,6 @@ pub fn resolve_github_auth_source(@github_auth.Environment, String) -> Result[@g
 pub async fn resolve_github_auth_with_backend(@github_auth.Environment, CredentialBackend) -> Result[@github_auth.Config, @github_cli.Output]
 
 pub async fn resolve_repository_context(repo? : String, need_branch? : Bool, respect_resolved? : Bool) -> Result[@github_cli.RepositoryContext, @github_cli.Output]
-
-pub async fn run(Array[String]) -> @cli.Output
 
 pub async fn run_configured_editor(String, host? : String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
 

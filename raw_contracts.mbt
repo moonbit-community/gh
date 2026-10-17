@@ -1,7 +1,6 @@
 ///|
-/// Byte preserving request used by providers that need arbitrary HTTP
-/// methods and binary payloads.  The historical `Request` type remains for
-/// the frozen MoonHub adapter; new providers should use this contract.
+/// Byte-preserving request for arbitrary HTTP methods and binary payloads.
+/// Provider policy lives above this transport boundary.
 pub struct RawRequest {
   verb : String
   path : String

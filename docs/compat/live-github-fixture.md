@@ -1,5 +1,9 @@
 # Live GitHub account fixture
 
+`master` 已拆分为纯 GitHub 主线；原 MoonHub 实现保存在
+`codex/moonhub-adapter`。本文的 2026-10-17 真实网络结果属于拆分前已测试的
+binary；分支拆分、本地构建和 runner self-test 不构成新的 live 验证。
+
 真实 GitHub 账户网络测试属于手动或 nightly integration gate，不属于普通单测、golden corpus 或 pull request 的默认 CI。它验证真实网络、权限和 GitHub 服务行为；确定性回归仍由 loopback HTTP fixture 和脱敏 cassette 完成。
 
 这里的凭据主要指 GitHub API token。SSH 私钥用于 SSH 协议的 git clone/fetch/push；Issue、PR、Release、Actions 等 API 请求需要 PAT、OAuth token 或适用的 GitHub App token。建议为专用仓库创建有期限、权限受限的 fine-grained PAT，通过 `GH_TOKEN` 注入。被测程序是本项目编译出的 Native CLI；原版 `gh v2.102.0` 只作为独立对照程序。

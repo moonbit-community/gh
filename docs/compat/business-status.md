@@ -56,10 +56,11 @@ moon check --target native --frozen
 moon test --target native --frozen -p ZSeanYves/gh/native
 ```
 
-The business package test count is 77/77 in the current workspace.  Whole-tree
-tests also run these fixtures; tests that mutate process-wide browser or Git
-environment variables should be isolated when diagnosing parallel-suite
-failures.
+The recorded native package run for this implementation slice passed 77/77
+tests. That historical count is not the GitHub-only branch's current total;
+whole-tree validation after the split reports its own counts. Tests that
+mutate process-wide browser or Git environment variables should be isolated
+when diagnosing parallel-suite failures.
 
 ## Boundaries
 

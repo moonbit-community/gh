@@ -4,7 +4,7 @@ This is a [MoonBit](https://docs.moonbitlang.com) project.
 
 ## Project-specific architecture
 
-This repository is migrating to a GitHub-first command-line client and SDK.
+The `master` branch contains only the GitHub command-line client and SDK.
 The compatibility oracle is pinned to GitHub CLI v2.102.0. Core command parity
 is the first milestone; full built-in command compatibility requires the
 separately tracked integrations to pass their own acceptance cases. Help
@@ -15,17 +15,20 @@ snapshots alone do not establish implementation compatibility.
 - `github/` owns GitHub configuration, raw REST/GraphQL calls, and provider
   behavior; command-specific typed operations belong in `github/operations/`.
 - `github_cli/` owns GitHub parsing, output, and exit-code policy.
-- `moonhub/` and `cli/` retain the frozen MoonHub DTOs, configuration, commands,
-  and test assets. Neither may import MoonHub's server database or Web packages.
+- `codex/moonhub-adapter` preserves the pre-split MoonHub DTOs, configuration,
+  commands, test assets, and historical documentation. These packages are not
+  part of the `master` working tree or dependency graph.
 - `cmd/main/` is the thin native executable entrypoint.
 - `native/` composes upstream HTTP, authentication, process, and JSONL adapters.
   Its public API uses root or deliberately public provider-owned types.
 - Future transport, auth, persistence, and redaction helpers belong in focused
   packages under `internal/`; public concrete types stay in the facade or a
   deliberately public package.
-- The existing MoonHub `/api/v1` proposal is historical. Future MoonHub
-  adaptation must follow its real `/-/api/v1` client protocol, after GitHub core
-  parity. Browser HTML, cookies, and CSRF forms are not a CLI transport.
+- Continue GitHub compatibility work on `master`. Future MoonHub work belongs
+  on `codex/moonhub-adapter`, after GitHub core parity, and must follow the real
+  `/-/api/v1` client protocol rather than the historical `/api/v1` proposal.
+  MoonHub server database/Web packages remain outside client dependencies.
+  Browser HTML, cookies, and CSRF forms are not a CLI transport.
 - Prefer suitable community/upstream MoonBit packages before implementing a
   general capability. Keep project code focused on provider policy; record why
   an existing package is unsuitable before replacing it. Project sources and
@@ -35,10 +38,10 @@ The scope, dependency direction, trace policy, runtime targets, and current
 architecture live in [`docs/architecture.md`](docs/architecture.md).
 The pinned compatibility contract and evidence limits are in
 [`docs/compat/gh-v2.102.0.md`](docs/compat/gh-v2.102.0.md) and
-[`docs/compat/oracle-status.md`](docs/compat/oracle-status.md). Existing
-`docs/guides/` and `docs/contracts/` describe the frozen MoonHub provider unless
-explicitly marked otherwise. Use the [documentation index](docs/README.md);
-`docs/report/` preserves historical evidence rather than current instructions.
+[`docs/compat/oracle-status.md`](docs/compat/oracle-status.md). Use the
+[documentation index](docs/README.md) for current GitHub development. The old
+`docs/guides/`, `docs/contracts/`, and `docs/report/` are preserved only on
+`codex/moonhub-adapter`; they do not define the GitHub contract.
 
 You can browse and install extra skills here:
 <https://github.com/moonbitlang/skills>

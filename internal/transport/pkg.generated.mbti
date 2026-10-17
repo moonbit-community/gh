@@ -9,8 +9,6 @@ import {
 // Values
 pub fn native_raw_transport(base_url~ : String, timeout_ms? : Int, max_response_bytes? : Int) -> @gh.RawTransport raise
 
-pub fn native_transport(base_url~ : String, timeout_ms? : Int, max_response_bytes? : Int) -> @gh.Transport raise
-
 pub fn raw_body_from_reader(&@io.Reader, length? : Int) -> @gh.RawBodyStream
 
 // Errors

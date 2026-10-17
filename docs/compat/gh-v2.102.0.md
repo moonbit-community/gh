@@ -1,6 +1,6 @@
 # GitHub CLI v2.102.0 compatibility oracle
 
-This document fixes the behavior we measure for the GitHub-first branch. The
+This document fixes the behavior we measure for the GitHub `master` branch. The
 oracle is the released [`gh v2.102.0`](https://github.com/cli/cli/releases/tag/v2.102.0)
 binary captured on 2026-10-15. The checked-in [corpus](../../testdata/gh-oracle/v2.102.0/manifest.json)
 fixes its help, flags, and selected local behavior; online manual links are
@@ -70,9 +70,10 @@ The pinned executable accepts `skills --help` and the hidden
 `send-telemetry --help`, both with status 0. `actions` and `accessibility` appear
 as root help topics and also resolve with `--help`; their help behavior is
 captured rather than treated as unknown commands. These observations do not
-establish the behavior of their network or interactive integrations. MoonHub commands are not
-part of this table; they belong to the frozen provider and will use the real
-`/-/api/v1` service in a later adapter.
+establish the behavior of their network or interactive integrations. MoonHub
+commands are not part of this table; their historical implementation is
+preserved only on `codex/moonhub-adapter`. A later adapter must use the real
+`/-/api/v1` service.
 
 The release inventory fixes the subcommand spellings below. Nested commands
 include `codespace ports forward` and `repo deploy-key add`; project item

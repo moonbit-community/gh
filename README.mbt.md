@@ -6,12 +6,14 @@ A GitHub-first MoonBit CLI and SDK targeting the pinned GitHub CLI
 **v2.102.0** behavior for commands, authentication, raw REST/GraphQL requests,
 output, and exit status.
 
-The core command tier is implemented and validated against loopback fixtures and
-the pinned oracle. This branch claims **v2.102.0 core parity** for the command
-families listed in the [compatibility contract](docs/compat/gh-v2.102.0.md).
-The separate [oracle evidence status](docs/compat/oracle-status.md) records the
-captured upstream behavior, fixture evidence and limits. Full built-in command
-parity remains deferred for release-specific integrations.
+**v2.102.0 core parity is the current development target.** Implemented command
+paths have loopback fixtures, selected oracle comparisons, and a recorded
+20-probe live read-only run. These results do not establish complete core
+parity. The [compatibility contract](docs/compat/gh-v2.102.0.md),
+[oracle evidence status](docs/compat/oracle-status.md), and
+[live fixture record](docs/compat/live-github-fixture.md) describe the verified
+behavior and remaining limits. Full built-in command parity also requires the
+separately tracked release-specific integrations.
 
 ## Direction
 
@@ -24,9 +26,23 @@ parity remains deferred for release-specific integrations.
 - MoonBit project sources and automation; upstream Native FFI and controlled
   system git, editor, browser, and credential adapters are allowed.
 
-The existing `moonhub/` and `cli/` packages are frozen migration assets. Their
-old `/api/v1` proposal is not the GitHub protocol. Future MoonHub adaptation
-will use its real `/-/api/v1` service after GitHub core parity.
+## Branches
+
+- `master`: the pure GitHub implementation and the active compatibility mainline.
+- `codex/moonhub-adapter`: the complete pre-split snapshot, including the
+  historical MoonHub implementation, fixtures, and delivery tooling.
+
+The snapshot is commit `da3ef15`; removing those files from `master` does not
+delete them from the preservation branch or Git history. Switch branches with
+a clean working tree:
+
+```text
+git switch master
+git switch codex/moonhub-adapter
+```
+
+Future MoonHub adaptation uses its real `/-/api/v1` service and follows GitHub
+core parity. Its historical `/api/v1` proposal is preserved for reference only.
 
 ## Development
 
@@ -35,8 +51,9 @@ tests do not imply that Native network, files, or process behavior runs on
 Wasm, Wasm GC, or JavaScript.
 
 ```text
-moon check --target native --frozen
+moon check --target native --frozen --deny-warn
 moon test --target native --frozen
+moon run --target native scripts/live_github_fixture.mbtx -- --self-test
 moon run --target native cmd/main -- --help
 ```
 
@@ -49,4 +66,6 @@ moon run --target native scripts/gh_oracle.mbtx -- /absolute/path/to/gh-v2.102.0
 The runner uses isolated credentials and literal process arguments. Capturing
 upstream help and local errors is reference collection, not proof that this
 implementation matches. The [documentation index](docs/README.md) identifies
-current GitHub work and the retained legacy MoonHub guides.
+current GitHub work and the separate MoonHub preservation branch. See
+[development checks](docs/development/release.md) for portable targets and
+release evidence requirements.

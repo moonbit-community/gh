@@ -1,10 +1,14 @@
 ///|
+/// Invalid transport origin. Diagnostics never include the supplied URL.
+pub(all) enum OriginError {
+  InvalidOrigin
+}
+
+///|
 /// Canonical credential scope. Accept HTTPS origins and explicit loopback HTTP
 /// for local development. Paths, userinfo and implicit hosts are not accepted.
-pub fn normalize_origin(base_url : String) -> Result[String, ApiError] {
-  let invalid = InvalidRequest(
-    message="expected an HTTPS origin or loopback HTTP origin",
-  )
+pub fn normalize_origin(base_url : String) -> Result[String, OriginError] {
+  let invalid = OriginError::InvalidOrigin
   let value = base_url.to_lower()
   let (scheme, rest) = match value.split_once("://") {
     Some((scheme, rest)) if scheme == "https" || scheme == "http" =>
@@ -57,49 +61,4 @@ pub fn normalize_origin(base_url : String) -> Result[String, ApiError] {
     }
   }
   Ok(scheme + "://" + host + port_suffix)
-}
-
-///|
-/// Accept a single origin-relative API path and opaque query. Reject path
-/// traversal and encoded separators so adapters cannot reinterpret the origin
-/// or escape the API prefix. Query values do not participate in path routing.
-pub fn valid_request_path(path : String) -> Bool {
-  guard path.has_prefix("/") &&
-    !path.has_prefix("//") &&
-    !path.contains_char('#') &&
-    !path.contains_char('\\') &&
-    path.iter().all(ch => ch.to_int() > 32 && ch.to_int() < 127) else {
-    return false
-  }
-  let route = path.split_once("?").map_or(path, pair => pair.0.to_owned())
-  let lowered = route.to_lower()
-  if lowered.contains("%2f") ||
-    lowered.contains("%5c") ||
-    lowered.contains("%25") ||
-    lowered.contains("%00") ||
-    lowered.contains("%0d") ||
-    lowered.contains("%0a") {
-    return false
-  }
-  let decoded_dots = lowered.replace_all(old="%2e", new=".")
-  for segment in decoded_dots.split("/") {
-    if segment == "." || segment == ".." {
-      return false
-    }
-  }
-  // Ensure every percent escape is complete; raw non-ASCII must be encoded.
-  let mut i = 0
-  while i < path.length() {
-    if path[i] == '%' {
-      guard i + 2 < path.length() else { return false }
-      for j in (i + 1)..<=(i + 2) {
-        let c = path[j]
-        guard c is ('0'..<='9' | 'a'..<='f' | 'A'..<='F') else { return false }
-      }
-      i += 3
-    } else {
-      i += 1
-    }
-  }
-  true
 }

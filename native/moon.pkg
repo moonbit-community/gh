@@ -1,10 +1,6 @@
 import {
   "ZSeanYves/gh",
-  "ZSeanYves/gh/moonhub",
-  "ZSeanYves/gh/cli",
-  "ZSeanYves/gh/internal/auth",
   "ZSeanYves/gh/internal/transport",
-  "ZSeanYves/gh/internal/trace",
   "ZSeanYves/gh/github",
   "ZSeanYves/gh/github_cli",
   "ZSeanYves/gh/internal/github_auth",

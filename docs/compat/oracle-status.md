@@ -1,10 +1,27 @@
 # Oracle evidence status
 
 Recorded on 2026-10-16 for the `codex/github-compat` migration from baseline
-`68b93e4`. This document records upstream reference evidence and its limits.
-The project claims core parity only for the command families whose parser,
-request behavior, output, errors, trace and controlled fixtures have passed;
-the deferred integrations below remain outside that claim.
+`68b93e4`; branch policy updated on 2026-10-17. The complete migration snapshot
+is preserved at `da3ef15` on `codex/moonhub-adapter`, while `master` continues
+with only the GitHub implementation. This document records upstream reference
+evidence and its limits. Complete core parity is still an acceptance target:
+parser, requests, output, errors, tracing, controlled fixtures, and applicable
+interactive behavior must pass for each claimed command.
+
+## GitHub-only branch validation (2026-10-17)
+
+After preserving the complete provider snapshot at `da3ef15`, the GitHub-only
+tree passed all four target checks with `--frozen --deny-warn` and all retained
+tests: Native 155, Wasm 51, Wasm-GC 46, and JavaScript 51. The reduced counts
+exclude the MoonHub packages and their tests, now preserved on the adapter
+branch. The Native debug/release executable builds, root help/version smoke,
+live-fixture runner self-test (no network), interface generation, formatting,
+and diff whitespace checks also passed. The release C build emitted the
+existing upstream async `thread_pool.c` unused-result warning.
+
+This branch split does not rerun real-account tests; the earlier 20-probe
+result remains tied to its recorded binary and does not establish acceptance
+for the newly built executable.
 
 ## Executable provenance
 
@@ -160,9 +177,15 @@ OS-specific refusal diagnostics are not cross-platform golden text.
   executable. Browser/editor command selection and OAuth device/web flows
   still require host acceptance and are intentionally not exercised against a
   real account.
-- Cross-target test results and the retained 139-test Native migration baseline
-  must be reported by implementation validation; they are not implied by the
-  successful oracle capture.
+- Cross-target test results must be reported by implementation validation;
+  they are not implied by successful oracle capture. The original 139-test
+  MoonHub migration baseline is preserved on `codex/moonhub-adapter`. The
+  GitHub-only mainline no longer counts removed provider tests as its own
+  acceptance evidence.
+
+The separate [live fixture record](live-github-fixture.md) documents the
+2026-10-17 20-probe read-only differential run. It applies to that tested
+binary; splitting branches and rebuilding does not rerun live acceptance.
 
 Commands enter the core parity count only after parser, SDK calls, output,
 errors, trace, fixtures and applicable interactive/cross-target tests pass.

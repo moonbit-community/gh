@@ -1,183 +1,143 @@
 # Architecture
 
-This branch is a GitHub-first MoonBit client and SDK. Its compatibility oracle is
-the pinned GitHub CLI `gh v2.102.0`; command parsing, output, exit status,
-authentication and raw REST/GraphQL behavior are measured against that release.
-The core command tier described below is the current implementation milestone.
-The [oracle status](compat/oracle-status.md) distinguishes captured upstream
-evidence from fixture and acceptance limits.
+`master` contains the GitHub CLI and SDK. Its compatibility oracle is pinned to
+GitHub CLI `gh v2.102.0`; parsing, output, exit status, authentication, and raw
+REST/GraphQL behavior are measured against that release. Core parity is the
+current acceptance target. The [oracle status](compat/oracle-status.md) and
+[live fixture record](compat/live-github-fixture.md) distinguish verified cases
+from outstanding acceptance work.
 
-The earlier MoonHub implementation is retained as a frozen provider alongside
-the GitHub compatibility surface. `moonhub/` and its `/api/v1`
-proposal contracts remain historical provider assets; they are not the GitHub
-wire protocol and must not constrain the new `github/` client. MoonHub will be
-reconnected later through the real `/-/api/v1` service contract without importing
-the MoonHub server database, Web packages, or runner protocol.
+## Branch policy
+
+The pre-split implementation is preserved at commit `da3ef15` on
+`codex/moonhub-adapter`. That branch retains the MoonHub packages, native
+adapters, fixtures, old contract documentation, and delivery scripts. The
+GitHub mainline removes those provider-specific assets and dependencies while
+retaining the shared raw transport and redaction infrastructure.
+
+Continue GitHub work with `git switch master`. Use
+`git switch codex/moonhub-adapter` to work on the preserved provider after
+committing or otherwise saving local changes. Any later shared improvements
+must be reviewed for each branch rather than restoring legacy provider code
+to `master`. Future MoonHub integration follows its real `/-/api/v1` service,
+after GitHub core parity; its former `/api/v1` proposal remains historical.
+The client must never depend on MoonHub server database or Web packages.
 
 ## Scope
 
-The first compatibility tier targets the `gh` root/help/version contract,
-authentication and configuration, `gh api`, repository/status commands, Issue,
-PR and discussion flows, releases, Actions runs/workflows, search, org/project
-and credential-management commands, plus deterministic output filters. It also
-requires a raw GitHub REST/GraphQL SDK, Enterprise URL handling, pagination,
-redacted tracing, and Native process adapters for git, editors and browsers.
+The first compatibility tier targets root/help/version, authentication and
+configuration, `gh api`, repository/status, Issue/PR/discussion, releases,
+Actions runs/workflows, search, org/project, credentials, and output filters.
+It also requires Enterprise URL handling, pagination, redacted tracing, and
+controlled Native adapters for git, editors, browsers, and credential storage.
 
-Codespaces, Copilot, agent tasks, attestations, extensions, skills, telemetry
-and other release-specific integrations are tracked as deferred commands in the
-[compatibility inventory](compat/gh-v2.102.0.md). They are outside core parity
-and prevent a full built-in command parity claim until their own cases pass.
-MoonHub behavior is outside this tier and is implemented later as a separate
-provider.
+Codespaces, Copilot, agent tasks, attestations, extensions, skills, telemetry,
+and other release-specific integrations are separately deferred in the
+[compatibility inventory](compat/gh-v2.102.0.md). An implemented request path
+or matching help snapshot does not establish complete command compatibility.
 
 ## Request flow
 
 ```text
-CLI arguments -> GitHub command parser and policy -> raw/typed GitHub client
+CLI arguments -> GitHub parser and policy -> raw/typed GitHub client
              -> origin-bound credentials and redacted transport
-             -> REST or GraphQL API -> typed result or raw response/error
-             -> deterministic stdout, stderr, and exit code
+             -> REST or GraphQL API -> result or raw response/error
+             -> stdout, stderr, and exit code
 ```
 
-The intended SDK supports raw calls, command-specific typed operations, and
-transport injection. Concrete Native adapters compose upstream HTTP, files,
-and async primitives.
-Project sources and automation remain MoonBit; upstream FFI is allowed.
+Project sources and automation remain MoonBit. Upstream Native FFI and
+controlled system processes are allowed; the application never delegates its
+implementation to an installed upstream `gh` executable. The pinned upstream
+binary is used only by explicit oracle tooling.
 
 ## Package responsibilities
 
 | Package | Responsibility |
 | --- | --- |
-| root | Provider-neutral byte requests, responses, errors, transport and trace contracts |
-| `github/` | GitHub configuration, raw REST/GraphQL calls and pagination |
-| `github/operations/` | Planned command-specific typed operations |
-| `github_cli/` | GitHub command parsing, dispatch, deterministic output and GitHub exit policy |
-| `moonhub/` | Frozen MoonHub configuration, DTOs and legacy contract adapter; no GitHub types |
-| `cli/` | Frozen MoonHub command assets retained during the provider migration |
-| `native/` | HTTP, environment/configuration, body input and trace-file composition |
-| `cmd/main/` | Thin Native process entrypoint |
-| `internal/github_auth/` | GitHub host, environment and configuration credential policy |
-| `internal/auth/` | Frozen MoonHub token resolution and validation |
-| `internal/transport/` | Upstream Native HTTP adapter |
-| `internal/trace/` | Native JSONL persistence and offline trace reads |
-| other `internal/` packages | Focused parsing, pagination, retries and redaction helpers |
-| `scripts/` | MoonBit executable fixtures and candidate verification |
-| `testdata/` | GitHub oracle fixtures plus frozen MoonHub contract responses |
+| root | Provider-neutral byte requests, responses, errors, transport, and redaction contracts |
+| `github/` | GitHub configuration, raw REST/GraphQL, pagination, rate-limit metadata, and tracing |
+| `github_cli/` | GitHub parsing, repository identities, output filters, and exit-code policy |
+| `native/` | Command execution, HTTP composition, credentials, local configuration, process adapters, and trace files |
+| `cmd/main/` | Thin Native executable entrypoint |
+| `internal/github_auth/` | Host normalization, credential precedence, and hosts configuration parsing |
+| `internal/transport/` | Bounded Native HTTP/1 framing and raw transport |
+| `scripts/` | Pinned upstream oracle capture and explicit live GitHub fixtures |
+| `testdata/` | GitHub oracle reference corpus |
 
-Dependencies point inward from `cmd/main` to `native`, `github_cli`, `github`,
-and root contracts. The frozen MoonHub path remains an isolated adapter until it
-is rebuilt against the real service API. Shared helpers stay in focused
-internal packages; public signatures use types owned by the root, `github`, or
-another deliberately public facade. Business/DTO code does not read the
-environment, open files, or depend on Web handlers. The concrete HTTP adapter
-is replaceable without rewriting commands.
+Command request mappings currently live in `native/github_business*.mbt`.
+Reusable typed operations should move into a focused `github/operations/`
+package as they are extracted; its absence is not hidden by this architecture.
+Dependencies point inward from the entrypoint through native composition,
+GitHub policy, and root contracts. Public signatures use facade-owned types.
+Pure policy/DTO code does not read files, environment variables, or Web handlers.
 
-Prefer suitable upstream/community libraries for general capabilities. Current
-dependencies provide async HTTP/TLS, filesystem/process operations, JSON parsing
-and cryptography. Project code owns GitHub command and provider policy; MoonHub
-policy remains isolated in the frozen adapter. Its legacy bounded retry loop
-exists because the pinned upstream exception retry helper does not consume typed HTTP
-failures and `Retry-After`; see the frozen [MoonHub retry policy](guides/retries.md).
-GitHub CLI retry remains disabled by default. `gaato/github@0.10.0` is a
-design reference, not a first-version direct dependency; the current toolchain
-and generated API boundaries must be assessed before any later adoption.
-
-## Provider boundaries
-
-GitHub requests use the public REST and GraphQL endpoints selected from the
-configured host. The client does not use GitHub browser HTML, cookies or CSRF
-forms as a transport. GitHub Enterprise uses its REST `/api/v3` and GraphQL
-`/api/graphql` paths; `github.com` uses the public API origins. The generic
-`gh api` command preserves response status, headers and raw bytes before output
-filters or typed decoding.
-
-The frozen MoonHub provider keeps its historical contract fixtures in the
-[contract documents](contracts/read-api.md). Those documents describe a client
-proposal, not GitHub behavior or a claim that a live MoonHub server has accepted
-the routes. A later adapter must use the real `/-/api/v1` service API and must
-not import MoonHub database/Web code.
+Prefer suitable upstream/community libraries for general capabilities. The
+current dependencies supply async I/O, TLS, filesystem/process operations,
+cryptography, core JSON parsing, and bounded HTTP/1 codecs.
+`gaato/github@0.10.0` remains a design reference, not a direct dependency.
+The [dependency decision](development/dependencies.md) explains why the HTTP
+codec remains necessary.
 
 ## Authentication and request policy
 
-GitHub credential precedence must follow the v2.102.0 oracle: `GH_TOKEN` then
-`GITHUB_TOKEN` on GitHub.com; `GH_ENTERPRISE_TOKEN` then
-`GITHUB_ENTERPRISE_TOKEN` on Enterprise; then the selected hosts configuration
-and Native credential backend. `GH_HOST` selects the default host. An invalid
-selected source fails without silently switching users. Tokens are bound to the
-canonical complete origin, including non-default ports, and never enter argv,
-trace, Debug output or ordinary diagnostics. Explicit token-output commands
-are separately tested with synthetic credentials only.
+Credential precedence follows the fixed release: `GH_TOKEN`, then
+`GITHUB_TOKEN` on GitHub.com; `GH_ENTERPRISE_TOKEN`, then
+`GITHUB_ENTERPRISE_TOKEN` on Enterprise; then hosts configuration and the
+Native credential backend. `GH_HOST` selects the default host. Tokens are
+bound to the complete origin and excluded from argv, traces, Debug output,
+ordinary logs, and errors. Explicit token-output commands have separate
+synthetic-credential tests.
 
-HTTPS is required for credential-bearing remote origins; HTTP is reserved for
-an explicitly configured loopback fixture. Transport must not silently follow
-redirects or retry requests. Header validation and origin credential handling
-must preserve pinned command behavior without allowing framing injection.
-Retry is disabled by default so `gh api` remains predictable; callers may opt
-into a bounded policy for typed
-read operations. Pagination and retries should share one operation ID and a
-continuous attempt sequence. A trace failure must not cause a network retry,
-and cancellation must remain distinguishable from an ordinary failure.
+GitHub.com uses public REST/GraphQL origins; Enterprise uses REST `/api/v3`
+and GraphQL `/api/graphql`. Browser HTML, cookies, and CSRF forms are not API
+transports. Credential-bearing remote origins require HTTPS; HTTP is reserved
+for explicitly configured loopback fixtures. Raw responses preserve status,
+repeated headers, and bytes before output filtering or typed decoding.
 
-## Writes and concurrency
+Transport must not silently redirect or retry. CLI retries are disabled by
+default; explicit SDK retry policy is bounded and read-only. Pagination and
+retry attempts share operation identity. Observer failure does not change the
+request result or trigger a retry. Cancellation stays distinguishable from an
+ordinary failure.
 
-Provider operations preserve conditional request headers and response receipts.
-GitHub commands do not invent ETags, silently refresh credentials, or retry
-mutations. MoonHub's stronger ETag and mutation-outcome rules remain local to
-the frozen provider contracts and are not imposed on GitHub's API semantics.
+## Writes and tracing
 
-Request outcomes distinguish local validation failure, rejected response,
-accepted response, and unknown transport completion. A successful mutation
-response does not claim that a later GitHub workflow or merge has completed.
-Transport loss or malformed success data can follow a committed write; callers
-inspect provider state before deciding to submit again. MoonHub's more specific
-outcome names remain documented only in its frozen contract package.
+Commands preserve conditional headers and response receipts without inventing
+ETags or retrying mutations. A success response is evidence for that operation,
+not proof that a later merge or workflow completed. Lost transport or malformed
+success data may follow a committed write; inspect state before submitting
+again.
 
-## Observability
-
-Each actual HTTP attempt must have one redacted trace record: provider, host,
-operation name and ID, attempt number, method, path without query, HTTP status,
-duration, safe server request ID and error category. GraphQL requires a
-sanitized operation name and query fingerprint without storing the query.
-Headers, bodies and credentials must not be persisted. Later DTO decoding
-failure must not rewrite an HTTP trace.
-
-Trace callbacks and serialization must both sanitize metadata. Observer failure
-must be reported separately from the request result. The frozen MoonHub
-persistence implementation uses bounded JSONL readers and cooperative locking;
-its existing tests do not establish GitHub trace acceptance. Parent directories
-must be private; the current upstream file APIs do not guarantee protection from hostile
-concurrent path replacement. See the frozen [MoonHub tracing guide](guides/tracing.md).
+Each actual HTTP attempt records only sanitized provider, host, operation
+name/ID, attempt, method, path without query, status, duration, request ID, and
+error category. GraphQL adds a sanitized operation name and query fingerprint.
+Headers, bodies, tokens, and raw query text are not persisted. Both callback
+and serialization boundaries sanitize metadata; later decoding failures do
+not rewrite HTTP attempt history. Keep trace parent directories private.
 
 ## Runtime and output
 
-Native is the executable target for HTTP/TLS, environment, files and process
-exit. Linux x64, macOS arm64 and Windows x64 each need GitHub fixture acceptance;
-historical MoonHub CI does not provide that evidence. Portable packages must
-also pass Wasm, Wasm GC and JavaScript tests. Native-only packages are excluded
-on those targets, so passing portable tests is not a runnable cross-backend
-CLI claim. A different host needs concrete adapters and its own acceptance.
+Native is the executable target for HTTP/TLS, files, processes, and exit codes.
+Portable packages also run on Wasm, Wasm GC, and JavaScript. Passing portable
+tests does not make native-only I/O packages or the executable portable. Each
+supported host requires its own Native fixture and runtime acceptance.
 
-GitHub-compatible output must follow v2.102.0: standard output carries results;
-standard error carries diagnostics and trace warnings; exit code 0 means
+Stdout carries results and stderr carries diagnostics. Exit code 0 means
 success, 1 ordinary failure, 2 cancellation, and 4 authentication required.
-Other non-zero statuses remain command failures and are recorded by the oracle.
-The frozen MoonHub adapter may retain its historical five-category policy while
-it remains isolated. See the [compatibility inventory](compat/gh-v2.102.0.md)
-for the exact oracle and links.
+Other nonzero statuses remain command-specific and must match the oracle.
+See the [compatibility inventory](compat/gh-v2.102.0.md) for detailed behavior.
 
 ## Validation and delivery
 
-Acceptance requires pure policy and injected transport tests, then executable
-fixtures exercise real Native processes against loopback HTTP servers and pinned `gh` oracle
-snapshots. Candidate tooling must test the staged binary and record hashes, source/
-toolchain identity and execution evidence. The legacy [CI workflow](development/ci.md)
-must be extended with GitHub acceptance on each supported platform.
+[CI](development/ci.md) runs warning-denied checks, Native and portable tests,
+Native builds, interface/format checks, and the live runner's offline self-test.
+The self-test makes no real account request. Pinned help/error snapshots and
+loopback fixtures are evidence for their exact cases. The separate live runner
+requires explicit opt-in, a scoped token, and a dedicated test repository.
 
-Legacy MoonHub release candidates are unsigned, unpublished directories. Their
-manifests record `published: false` and `live_server_verified: false`. Live MoonHub behavior, HTTPS
-trust/invalid-certificate rejection, deployment permissions and formal distribution
-remain separate [release acceptance requirements](development/release.md).
-
-Historical implementation and review records are in [report/](report/README.md).
-They preserve evidence for their recorded revisions and do not override current
-contracts or establish acceptance for another build.
+The recorded 20-probe read-only run predates the branch split. It does not
+verify write lifecycles, nonempty resource behavior in every family, OAuth,
+keyring, multiple accounts, full pagination, or complete interactive output.
+A changed binary requires new evidence for its acceptance claim. Signing,
+packaging, publication, and host-specific release requirements are tracked in
+[release validation](development/release.md).

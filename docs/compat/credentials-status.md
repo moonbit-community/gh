@@ -1,7 +1,7 @@
 # Credentials and local commands implementation status
 
 As of 2026-10-16. This records the authentication and local-command evidence
-for the GitHub CLI v2.102.0 core-parity milestone. It does not claim that the
+for the GitHub CLI v2.102.0 core-parity target. It does not claim that the
 deferred integrations listed in the compatibility inventory are implemented.
 
 ## Implemented boundaries
@@ -115,6 +115,6 @@ integration pass owns whole-tree interface/format and cross-target verification.
   writes preserve values rather than byte-identical source presentation.
 - No `gaato/github` dependency or new process/library import was introduced.
 
-The core claim therefore covers the implemented GitHub command tier and its
-controlled fixtures. Deferred release integrations and host-specific keyring
-or OAuth implementations remain outside that claim.
+This evidence covers the listed request paths and controlled fixtures.
+Complete core parity, host-specific keyring/OAuth acceptance, and deferred
+release integrations remain separate requirements.

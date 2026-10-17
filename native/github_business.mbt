@@ -1479,9 +1479,7 @@ fn business_request(
     Some(context) => "/repos/" + context.owner() + "/" + context.name()
     None => ""
   }
-  // Keep newer v2.102.0 command families in a focused mapping table.  This
-  // is evaluated before the historical switch so their REST paths cannot be
-  // mistaken for the older MoonHub command defaults.
+  // Resolve additional v2.102.0 endpoint mappings before the primary switch.
   match business_extra_request(options, parsed, repo_path) {
     Ok(Some(request)) => return Ok(request)
     Err(error) => return Err(error)

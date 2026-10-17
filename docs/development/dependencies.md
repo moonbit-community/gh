@@ -1,9 +1,8 @@
 # Third-party code and runtime requirements
 
-The candidate keeps project code and automation in MoonBit. It reuses the
+The GitHub mainline keeps project code and automation in MoonBit. It reuses the
 toolchain core library and the pinned `moonbitlang/async@0.22.5` and
 `moonbitlang/x@0.5.5` dependencies; their native FFI remains upstream code.
-Strict JSON parsing reuses the pure MoonBit `moonbitstack/moonjson@0.4.0`.
 Bounded HTTP/1 encoding and decoding reuse the pure MoonBit
 `ZSeanYves/MoonbitHTTP@0.7.0` `protocol/http1`/`core/types` packages. Only these codec packages
 are imported; DNS and TLS remain on async 0.22.5. The HTTP codec is retained
@@ -11,10 +10,16 @@ because the CLI transport requires raw bytes, duplicate headers, arbitrary
 methods, bounded framing, and explicit retry/redirect policy that the high-level
 `async/http` client does not expose.
 
+The pre-split MoonHub implementation used `moonbitstack/moonjson@0.4.0`
+through `internal/wire_json` and its old smoke/candidate runners. Those are
+preserved on `codex/moonhub-adapter`; the GitHub mainline has no remaining
+consumer and removes that dependency. GitHub JSON handling uses the toolchain
+core JSON package.
+
 ## MoonbitHTTP removal evaluation
 
 The request-stream length check is only one part of the dependency's current
-role. `internal/transport/{framing,raw_framing}.mbt` also depends on its
+role. `internal/transport/raw_framing.mbt` also depends on its
 incremental HTTP/1 response events for status-line parsing, repeated headers,
 chunked bodies and trailers, 204/304/HEAD body rules, close-delimited bodies,
 informational responses, and bounded header/body buffering. The `async/http`
@@ -33,20 +38,17 @@ Wasm, Wasm-GC and JS where supported. That work should run as a dual-adapter
 migration, compare byte-level behavior, then delete the MoonbitHTTP import and
 license entry in one change.
 
-## Candidate attribution
+## Distribution attribution
 
-The source repository does not keep duplicate license files. The candidate
-builder reads attribution from the actual installed toolchain and resolved
-dependency sources and copies the complete texts into the candidate's
-`licenses/` directory:
+The source repository does not keep duplicate upstream license files. A future
+GitHub distribution must obtain attribution from the actual installed
+toolchain and resolved dependency sources, including:
 
 - `moonbit-core-LICENSE.txt`: Apache-2.0 text from the core library shipped with
-  the toolchain used to build the candidate.
+  the toolchain used to build the executable.
 - `moonbit-core-NOTICE.txt`: the core library's complete NOTICE, including its
   retained third-party notices.
 - `moonbit-async-LICENSE.txt`: Apache-2.0 text from async 0.22.5.
-- `moonjson-LICENSE.txt`: Apache-2.0 text from moonjson 0.4.0. Its source headers
-  attribute the parser to Copyright 2026 Leo Cheng.
 - `MoonbitHTTP-LICENSE.txt`: Apache-2.0 text from MoonbitHTTP 0.7.0.
 
 Core, async and x sources attribute their code to International Digital Economy
@@ -54,15 +56,16 @@ Academy. The x 0.5.5 module declares Apache-2.0 and its used crypto/sys source
 headers carry that license. The installed MoonBit native runtime C sources
 also carry Apache-2.0 headers (Copyright 2026 International Digital Economy
 Academy); the included Apache-2.0 text applies to those sources too. The
-candidate does not bundle an SSL implementation or a C compiler.
+project does not bundle an SSL implementation or a C compiler.
 
-All five files remain required candidate contents and are covered by the
-manifest's inventory and hashes. Missing upstream attribution fails candidate
-creation; deleting repository copies does not remove attribution from delivery.
-When upgrading dependencies or the toolchain, review the source locations and
-notice requirements before creating a distributable release. The recorded
-inventory does not establish attribution requirements for every future compiler,
-platform or linking configuration.
+The legacy MoonHub builder and its five-file attribution inventory remain on
+`codex/moonhub-adapter`; that builder is removed from `master`. The current
+mainline has no replacement packaging or manifest automation. Removing the
+old tooling does not remove distribution notice obligations. Before any
+release, review complete licenses and notices for the resolved dependencies,
+compiler, platform, and linking configuration, and include them with the
+artifact. Recheck those requirements whenever dependencies or the toolchain
+change.
 
 ## HTTPS runtime dependency
 
@@ -85,5 +88,5 @@ will fix an incompatible system without verifying the actual adapter behavior.
 
 Before advertising a platform, run a controlled HTTPS request with system trust
 and verify rejection of an invalid certificate. Record the actual OS, library
-availability and trust configuration. Such runtime tests and real MoonHub
-acceptance remain the independent gates in [release.md](release.md).
+availability and trust configuration. Such runtime tests and live GitHub
+acceptance remain independent gates in [release validation](release.md).

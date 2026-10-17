@@ -1,5 +1,5 @@
 ///|
-/// GitHub executable dispatcher. Historical MoonHub `run` remains isolated.
+/// GitHub executable dispatcher.
 pub async fn run_github(args : Array[String]) -> @github_cli.Output {
   let invocation = @github_cli.parse(args) catch {
     @github_cli.MissingValue(option) =>
