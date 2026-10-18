@@ -33,7 +33,7 @@ jobs:
         run: moon update
 
       - name: Check formatting including automation
-        run: moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx
+        run: moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx scripts/live_github_write_fixture.mbtx
 
       - name: Generate public interfaces
         run: moon info

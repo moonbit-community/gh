@@ -1,6 +1,6 @@
 # Business command compatibility status
 
-As of 2026-10-16, the native GitHub command layer has fixture-backed request
+As of 2026-10-18, the native GitHub command layer has fixture-backed request
 coverage for the core repository, status, issue, pull request, release, run,
 search, workflow/actions, discussion, and ruleset families.  These commands
 share `native/github_business.mbt`: parsing, repository resolution, raw REST
@@ -17,15 +17,17 @@ run through the same provider-neutral client used by `gh api`.
   and `--before` query parameters.
 - `issue`: list, status, view, create, edit, close, reopen, delete, lock,
   unlock, transfer and comments.  Close/reopen supply the operation's
-  `state` explicitly, and lock carries the requested lock reason.
+  `state` explicitly, lock carries the requested lock reason, and delete
+  resolves the node id before sending GitHub's GraphQL `deleteIssue` mutation.
 - `pr`: list, view/edit/close/reopen, ready, merge, lock/unlock, create,
   checks, review, comments and diff.  `ready` sends `draft=false`; diff uses
   the GitHub diff media type; checkout is a separate argv-only Git workflow.
 - `release`: list, view latest/tag, create, edit, delete and delete-asset.
   Download resolves release metadata, filters assets by a bounded glob,
   fetches binary asset bytes, and writes them to a validated directory.
-  Upload resolves the release id, reads bounded local files, and sends each
-  asset as an octet-stream request with its `name` query parameter.
+  Upload resolves the release id and metadata `upload_url`, reads bounded local
+  files, and sends each asset to the validated uploads origin as an
+  octet-stream request with its `name` query parameter.
 - `run`: list, view, cancel, rerun, rerun-failed, delete, logs and artifacts.
   `run watch` polls the run endpoint with configurable `--interval` and
   `--timeout`; terminal conclusions stop polling and `--exit-status` maps a
@@ -33,6 +35,21 @@ run through the same provider-neutral client used by `gh api`.
 - `search`: issues/PRs, repositories, code and commits.  Search qualifiers
   are folded into GitHub's `q` expression, with sort/order/limit remaining
   ordinary query parameters.  `search prs` adds `is:pr`.
+- `project` and `discussion`: read-only list/view requests use the GraphQL
+  endpoint and unwrap the `data` envelope before field projection.  The
+  historical REST `/projects` and `/discussions` paths are rejected instead
+  of being sent to GitHub.
+- `secret` and `variable`: repository, organization, and environment routes
+  are mapped to their Actions endpoints. Secret writes fetch the published
+  public key and use a libsodium-compatible sealed box; variable values are
+  sent as strings and write permission failures remain explicit.
+
+REST collection commands with `--limit` above 100 follow the response `Link`
+header, preserve the configured Enterprise API prefix, reject cross-origin
+links, and fail on a repeated link.  Project and discussion GraphQL lists use
+the selected connection's `pageInfo.endCursor`, reject a repeated cursor, and
+keep the first response headers available to `--include`; merged output only
+changes the collection array.
 
 Business long flags are checked against the registered value/boolean option
 set before any transport call.  Misspellings such as `--sttae` return an
@@ -62,20 +79,29 @@ whole-tree validation after the split reports its own counts. Tests that
 mutate process-wide browser or Git environment variables should be isolated
 when diagnosing parallel-suite failures.
 
+The 2026-10-18 write lifecycle against `ZSeanYves/gh_test` passed issue,
+branch/PR, release create/edit/upload/delete-asset/delete, and secret
+set/list/delete checks. Cleanup passed with no residual resources. The
+dedicated token advertises `actions_variables=read`; GitHub answers the
+repository variable PUT with 404 when write permission is absent, so the
+fixture records variable set/list/delete as permission-gated and keeps
+`write_operations_verified` false until a token with Actions variable write
+permission is supplied.
+
 ## Boundaries
 
 Release download/upload are intentionally byte-safe but remain a bounded
-client implementation: upload currently uses the configured REST origin for
-the asset endpoint and does not implement every release asset archive or
+client implementation and do not implement every release asset archive or
 checksum option.  Download supports a local directory, clobber policy and a
 simple `*` glob; shell expansion is never used.
 
 `run watch` uses a bounded polling loop and fixture-friendly integer timeout;
 full terminal UI rendering, log streaming, and every interactive watch flag
-remain outside this slice.  Projects v2, gist file mutation, complete release
-asset archive extraction, PR checkout/review interaction, and special
-integrations (`codespace`, `copilot`, `agent-task`, `attestation`, extension,
-skills, telemetry, preview and accessibility) are tracked separately.
+remain outside this slice.  Project and discussion mutations still require
+their GraphQL mutation cases; gist file mutation, complete release asset
+archive extraction, PR checkout/review interaction, and special integrations
+(`codespace`, `copilot`, `agent-task`, `attestation`, extension, skills,
+telemetry, preview and accessibility) are tracked separately.
 
 These fixtures establish core request and output behavior without invoking the
 upstream `gh` binary, contacting GitHub, or storing real credentials.

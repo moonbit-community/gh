@@ -373,11 +373,69 @@ fn Client::prepare(
       Some(url) => url
       None => default_graphql_url(self.config.base_url)
     }
+  } else if request.origin is Some(origin) {
+    guard alternate_origin_allowed(self.config.base_url, origin) else {
+      return Err(
+        InvalidConfiguration(message="invalid GitHub alternate origin"),
+      )
+    }
+    let normalized = match normalized_endpoint(origin) {
+      Some(value) => value
+      None =>
+        return Err(
+          InvalidConfiguration(message="invalid GitHub alternate origin"),
+        )
+    }
+    join_url(normalized, request.path)
   } else {
     join_url(self.config.base_url, request.path)
   }
   let url = append_query(base, request.query)
   Ok({ ..request, url, headers, })
+}
+
+///|
+/// GitHub serves release asset uploads from `uploads.github.com` while the
+/// REST API uses `api.github.com`. Enterprise installations keep both
+/// endpoints on the configured host. Requests may select this alternate
+/// origin only through the trusted relationship below; arbitrary hosts never
+/// become reachable through the SDK request seam.
+fn alternate_origin_allowed(base_url : String, alternate : String) -> Bool {
+  let base = match parse_endpoint(base_url) {
+    Some(value) => value
+    None => return false
+  }
+  let target = match parse_endpoint(alternate) {
+    Some(value) => value
+    None => return false
+  }
+  guard target.path == "/" else { return false }
+  let base_scheme = base.origin
+    .split_once("://")
+    .map_or("", pair => pair.0.to_owned())
+  let target_scheme = target.origin
+    .split_once("://")
+    .map_or("", pair => pair.0.to_owned())
+  guard base_scheme == target_scheme else { return false }
+  let base_host = base.authority
+    .split_once(":")
+    .map_or(base.authority, pair => pair.0.to_owned())
+  let target_host = target.authority
+    .split_once(":")
+    .map_or(target.authority, pair => pair.0.to_owned())
+  let expected_host = if base_host == "api.github.com" ||
+    base_host.has_prefix("api.") {
+    "uploads." + base_host[4:].to_owned()
+  } else {
+    base_host
+  }
+  let base_port = base.authority
+    .split_once(":")
+    .map_or("", pair => pair.1.to_owned())
+  let target_port = target.authority
+    .split_once(":")
+    .map_or("", pair => pair.1.to_owned())
+  target_host == expected_host && base_port == target_port
 }
 
 ///|
@@ -457,11 +515,37 @@ fn request_copy(request : Request) -> Request {
 fn http_error(response : RawResponse) -> GitHubError {
   match response.status {
     401 => Authentication(response~)
-    403 if response.rate_limit().remaining == Some(0L) ||
-      response.header("retry-after") is Some(_) => RateLimited(response~)
+    403 if is_rate_limit_response(response) => RateLimited(response~)
     403 => Permission(response~)
     429 => RateLimited(response~)
+    409 => Conflict(response~)
+    422 => Validation(response~)
+    status if status >= 500 => Server(status~, response~)
     status => Http(status~, response~)
+  }
+}
+
+///|
+/// GitHub uses 403 for secondary limits as well as the primary limit. The
+/// former may omit rate-limit headers, so inspect only the documented JSON
+/// message (never arbitrary response text) as a fallback classifier.
+fn is_rate_limit_response(response : RawResponse) -> Bool {
+  if response.rate_limit().remaining == Some(0L) ||
+    response.header("retry-after") is Some(_) {
+    return true
+  }
+  let text = response.body_text().unwrap_or("").to_lower()
+  let value : Json = @json.parse(text) catch { _ => Json::null() }
+  match value {
+    Object(fields) =>
+      match fields.get("message") {
+        Some(String(message)) => {
+          let message = message.to_lower()
+          message.contains("rate limit") || message.contains("rate-limit")
+        }
+        _ => false
+      }
+    _ => false
   }
 }
 

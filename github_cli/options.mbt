@@ -442,11 +442,14 @@ fn parse_api(args : Array[String]) -> Invocation raise ParseError {
   guard !(slurp && !paginate) else {
     raise InvalidValue("--slurp requires --paginate")
   }
-  guard !(silent && verbose) else {
-    raise InvalidValue("--silent conflicts with --verbose")
-  }
-  guard !(jq is Some(_) && template is Some(_)) else {
-    raise InvalidValue("--jq conflicts with --template")
+  let output_modes = (if jq is Some(_) { 1 } else { 0 }) +
+    (if template is Some(_) { 1 } else { 0 }) +
+    (if silent { 1 } else { 0 }) +
+    (if verbose { 1 } else { 0 })
+  guard output_modes <= 1 else {
+    raise InvalidValue(
+      "only one of --template, --jq, --silent, or --verbose may be used",
+    )
   }
   guard !(slurp && (jq is Some(_) || template is Some(_))) else {
     raise InvalidValue("--slurp conflicts with --jq/--template")
@@ -456,7 +459,7 @@ fn parse_api(args : Array[String]) -> Invocation raise ParseError {
   }
   guard !(paginate && verb != "GET" && path != "graphql") else {
     raise InvalidValue(
-      "--paginate is only supported for GET and GraphQL requests",
+      "the --paginate option is not supported for non-GET requests",
     )
   }
   Api({
@@ -655,10 +658,28 @@ test "api parser rejects invalid pagination combinations" {
     _ => fail("expected parse error")
   }
   try parse(["api", "repos/a/b", "-X", "POST", "--paginate"]) catch {
-    InvalidValue(message) => assert_true(message.contains("only supported"))
+    InvalidValue(message) => assert_true(message.contains("non-GET"))
     _ => fail("unexpected parse error")
   } noraise {
     _ => fail("expected parse error")
+  }
+}
+
+///|
+test "api parser makes all four output modes mutually exclusive" {
+  for
+    args in [
+      ["api", "repos/a/b", "--silent", "--jq", "."],
+      ["api", "repos/a/b", "--verbose", "--jq", "."],
+      ["api", "repos/a/b", "--silent", "--template", "x"],
+      ["api", "repos/a/b", "--verbose", "--template", "x"],
+    ] {
+    try parse(args) catch {
+      InvalidValue(message) => assert_true(message.contains("only one"))
+      _ => fail("unexpected parse error")
+    } noraise {
+      _ => fail("expected output mode parse error")
+    }
   }
 }
 

@@ -27,6 +27,30 @@ pub fn github_client(
         @github_cli.failure(message="invalid HTTP transport configuration"),
       )
   }
+  // Release metadata is served by the API origin, while asset uploads on
+  // github.com use uploads.github.com. Keep a second transport scoped to
+  // that derived origin; the SDK request seam validates the same relationship
+  // before a URL can select it.
+  let upload_origin : String? = if authority == "api.github.com" {
+    Some("https://uploads.github.com")
+  } else if authority.has_prefix("api.") {
+    Some(scheme.to_owned() + "://uploads." + authority[4:].to_owned())
+  } else {
+    Some(origin)
+  }
+  let upload_transport : @gh.RawTransport? = match upload_origin {
+    Some(value) if value != origin =>
+      Some(
+        @transport.native_raw_transport(
+          base_url=value,
+          timeout_ms~,
+          max_response_bytes~,
+        ),
+      ) catch {
+        _ => None
+      }
+    _ => None
+  }
   let observer : (async (@github.TraceRecord) -> Unit)? = match trace_path {
     None => None
     Some(path) => {
@@ -50,10 +74,21 @@ pub fn github_client(
   @github.Client::new(
     config=@github.ClientConfig::new(base_url~, graphql_url?, token?),
     transport=@github.Transport::new(send=request => {
-      guard request.url().strip_prefix(origin + "/") is Some(suffix) else {
-        return Err(@github.TransportError::Failed)
+      let selected = match upload_origin {
+        Some(value) if value != origin &&
+          request.url().strip_prefix(value + "/") is Some(_) =>
+          match upload_transport {
+            Some(value_transport) => (value_transport, value)
+            None => return Err(@github.TransportError::Failed)
+          }
+        _ => (transport, origin)
       }
-      let response = transport.send(
+      let (selected_transport, selected_origin) = selected
+      let suffix = match request.url().strip_prefix(selected_origin + "/") {
+        Some(value) => value
+        None => return Err(@github.TransportError::Failed)
+      }
+      let response = selected_transport.send(
         @gh.RawRequest::new(
           verb=request.verb(),
           path="/" + suffix.to_owned(),

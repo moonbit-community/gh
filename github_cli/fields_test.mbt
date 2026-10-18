@@ -76,3 +76,10 @@ test "typed fields preserve Int64 boundaries through @github_cli.build_fields" {
   assert_eq(values.unwrap()["min"].stringify(), "-9223372036854775808")
   assert_eq(values.unwrap()["too_big"].stringify(), "\"9223372036854775808\"")
 }
+
+///|
+test "typed fields serialize integer spellings as valid JSON numbers" {
+  assert_eq(@github_cli.typed_field("001").stringify(), "1")
+  assert_eq(@github_cli.typed_field("+1").stringify(), "1")
+  assert_eq(@github_cli.typed_field("-0").stringify(), "0")
+}

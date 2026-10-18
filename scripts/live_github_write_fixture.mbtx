@@ -1,0 +1,1687 @@
+///|
+// Destructive live fixture for the disposable repository used by the GitHub
+// compatibility tests.  This runner intentionally has a much narrower scope
+// than the read-only runner: it accepts one repository, creates only resources
+// carrying this run's marker, and always attempts cleanup before reporting.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+let allowed_repo = "ZSeanYves/gh_test"
+
+///|
+struct CommandResult {
+  exit_code : Int32
+  stdout : String
+  stderr : String
+}
+
+///|
+struct Step {
+  name : String
+  args : Array[String]
+}
+
+///|
+fn isolated_environment(config : String, token : String) -> Map[String, String] {
+  let result : Map[String, String] = {
+    "GH_TOKEN": token,
+    "GH_HOST": "github.com",
+    "GH_CONFIG_DIR": config,
+    "HOME": config,
+    "USERPROFILE": config,
+    "XDG_CONFIG_HOME": config,
+    "XDG_CACHE_HOME": config,
+    "PATH": "/usr/bin:/bin",
+    "GH_PROMPT_DISABLED": "1",
+    "GIT_TERMINAL_PROMPT": "0",
+    "GH_NO_UPDATE_NOTIFIER": "1",
+    "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+    "GH_TELEMETRY": "0",
+    "DO_NOT_TRACK": "1",
+    "GH_PAGER": "cat",
+    "PAGER": "cat",
+    "LC_ALL": "C",
+    "LANG": "C",
+    "NO_COLOR": "1",
+  }
+  if @env.get_env_var("SystemRoot") is Some(root) {
+    result["SystemRoot"] = root
+  }
+  result
+}
+
+///|
+fn redact(text : String, token : String) -> String {
+  if token.is_empty() {
+    text
+  } else {
+    text.replace_all(old=token, new="<redacted>")
+  }
+}
+
+///|
+/// `GH_TOKEN` is never written to a report, including on an error path.
+fn sanitized_diagnostic(result : CommandResult, token : String) -> String {
+  let stderr = redact(result.stderr.trim().to_owned(), token)
+  if result.exit_code == 0 && stderr.is_empty() {
+    ""
+  } else if !stderr.is_empty() {
+    if stderr.length() > 240 {
+      stderr[:240].to_owned() + "..."
+    } else {
+      stderr
+    }
+  } else {
+    "exit_code_" + result.exit_code.to_string()
+  }
+}
+
+///|
+/// Files are local fixture state.  Convert an I/O failure into a failed step
+/// so remote resources still reach the cleanup section below.
+async fn write_fixture_file(
+  path : String,
+  contents : String,
+  permission~ : Int32,
+) -> Bool {
+  try {
+    @fs.write_file(path, contents, permission~)
+    true
+  } catch {
+    _ => false
+  }
+}
+
+///|
+async fn run_command(
+  binary : String,
+  config : String,
+  token : String,
+  args : Array[String],
+) -> CommandResult {
+  let result = @shell.Cmd(
+    binary,
+    args,
+    cwd=config,
+    inherit_env=false,
+    env=isolated_environment(config, token),
+  ).output(timeout_ms=120000, max_output_bytes=4194304) catch {
+    _ =>
+      return { exit_code: 124, stdout: "", stderr: "process_timeout_or_spawn", }
+  }
+  {
+    exit_code: result.exit_code(),
+    stdout: result.stdout(),
+    stderr: result.stderr(),
+  }
+}
+
+///|
+fn step_record(
+  name : String,
+  result : CommandResult,
+  token : String,
+  expect_success~ : Bool = true,
+) -> (Json, Bool) {
+  let leaked = result.stdout.contains(token) || result.stderr.contains(token)
+  let passed = expect_success == (result.exit_code == 0) && !leaked
+  let record : Map[String, Json] = {
+    "name": Json(name),
+    "exit_code": Json(result.exit_code),
+    "passed": Json(passed),
+    "stdout_characters": Json(redact(result.stdout, token).length()),
+    "stderr_characters": Json(redact(result.stderr, token).length()),
+  }
+  if leaked {
+    record["diagnostic"] = Json("secret_in_output")
+  } else if !passed {
+    record["diagnostic"] = Json(sanitized_diagnostic(result, token))
+  }
+  (Json(record), passed)
+}
+
+///|
+/// Record a secret/variable operation while redacting both the token and the
+/// fixture value from diagnostics.  The value is never persisted in reports,
+/// even when an adapter echoes an argv argument on stderr.
+fn step_record_sensitive(
+  name : String,
+  result : CommandResult,
+  token : String,
+  sensitive : String,
+) -> (Json, Bool) {
+  let leaked = result.stdout.contains(token) ||
+    result.stderr.contains(token) ||
+    (
+      !sensitive.is_empty() &&
+      (result.stdout.contains(sensitive) || result.stderr.contains(sensitive))
+    )
+  let passed = result.exit_code == 0 && !leaked
+  let record : Map[String, Json] = {
+    "name": Json(name),
+    "exit_code": Json(result.exit_code),
+    "passed": Json(passed),
+    "stdout_characters": Json(redact(result.stdout, token).length()),
+    "stderr_characters": Json(redact(result.stderr, token).length()),
+  }
+  if leaked {
+    record["diagnostic"] = Json("secret_in_output")
+  } else if !passed {
+    record["diagnostic"] = Json(
+      sanitized_diagnostic(result, token).replace_all(
+        old=sensitive,
+        new="<redacted>",
+      ),
+    )
+  }
+  (Json(record), passed)
+}
+
+///|
+fn state_step(
+  name : String,
+  result : CommandResult,
+  token : String,
+  expected : String,
+  title : String,
+) -> (Json, Bool) {
+  let (base, command_ok) = step_record(name, result, token)
+  let ok = command_ok && json_state(result.stdout, expected, title~)
+  if ok {
+    (base, true)
+  } else {
+    let record : Map[String, Json] = {
+      "name": Json(name),
+      "exit_code": Json(result.exit_code),
+      "passed": Json(false),
+      "diagnostic": Json(
+        if command_ok {
+          "state_or_title_mismatch"
+        } else {
+          sanitized_diagnostic(result, token)
+        },
+      ),
+    }
+    (Json(record), false)
+  }
+}
+
+///|
+fn json_number(value : String) -> String? {
+  let parsed : Json = @json.parse(value) catch { _ => return None }
+  match parsed {
+    Object(fields) =>
+      match fields.get("number") {
+        Some(Number(number, ..)) => Some(number.to_int().to_string())
+        Some(String(number)) if !number.is_empty() => Some(number)
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Release cleanup needs the numeric REST id.  The tag endpoint returns an
+/// object whose `id` is numeric, while a few GitHub-compatible servers expose
+/// it as a JSON string; accept both forms without persisting the response.
+fn json_id(value : String) -> String? {
+  let parsed : Json = @json.parse(value) catch { _ => return None }
+  match parsed {
+    Object(fields) =>
+      match fields.get("id") {
+        Some(Number(number, ..)) => Some(number.to_int().to_string())
+        Some(String(id)) if !id.is_empty() => Some(id)
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn trailing_number(text : String) -> String? {
+  for part in text.replace_all(old="\r", new="").split("\n") {
+    let trimmed = part.trim()
+    let pieces = trimmed.split("/").collect()
+    let last = pieces.last().unwrap_or("").trim()
+    if !last.is_empty() &&
+      last.iter().all(c => c.to_int() >= 48 && c.to_int() <= 57) {
+      return Some(last.to_owned())
+    }
+  }
+  None
+}
+
+///|
+fn resource_number(result : CommandResult) -> String? {
+  match json_number(result.stdout) {
+    Some(value) => Some(value)
+    None => trailing_number(result.stdout)
+  }
+}
+
+///|
+fn json_string(value : String, key : String) -> String? {
+  let parsed : Json = @json.parse(value) catch { _ => return None }
+  match parsed {
+    Object(fields) =>
+      match fields.get(key) {
+        Some(String(value)) => Some(value)
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn json_array_contains_string(
+  value : String,
+  key : String,
+  expected : String,
+) -> Bool {
+  let parsed : Json = @json.parse(value) catch { _ => return false }
+  match parsed {
+    Array(items) =>
+      items.any(item => {
+        match item {
+          Object(fields) =>
+            fields.get(key) is Some(String(value)) && value == expected
+          _ => false
+        }
+      })
+    Object(fields) =>
+      match fields.get(key) {
+        Some(Array(items)) =>
+          items.any(item => {
+            match item {
+              String(value) => value == expected
+              _ => false
+            }
+          })
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
+fn fixture_resource_name(marker : String, suffix : String) -> String {
+  // Secret and variable names follow GitHub's uppercase identifier convention.
+  (marker + "_" + suffix).to_upper().replace_all(old="-", new="_")
+}
+
+///|
+fn safe_skip(name : String, reason : String) -> Json {
+  {
+    "name": Json(name),
+    "exit_code": Json(0),
+    "passed": Json(true),
+    "skipped": Json(true),
+    "diagnostic": Json("safe_skip:" + reason),
+  }
+}
+
+///|
+/// GitHub deliberately answers a repository variable write with 404 when the
+/// token can read Actions variables but cannot write them.  Keep the
+/// permission result explicit in the report so a restricted fixture token is
+/// never mistaken for a missing endpoint or a successful write.
+fn actions_variables_write_allowed(value : String) -> Bool {
+  for line in value.split("\n") {
+    let lower = line.trim().to_lower()
+    guard lower.has_prefix("x-accepted-github-permissions:") else { continue }
+    let permissions = lower
+      .split_once(":")
+      .map_or("", pair => pair.1.trim().to_owned())
+    for entry in permissions.split(",") {
+      match entry.trim().split_once("=") {
+        Some((name, level)) if name.trim() == "actions_variables" => {
+          let level = level.trim()
+          if level == "write" || level == "admin" {
+            return true
+          }
+        }
+        _ => ()
+      }
+    }
+  }
+  false
+}
+
+///|
+fn permission_gated_record(
+  name : String,
+  result : CommandResult,
+  token : String,
+  scope : String,
+  sensitive : String,
+) -> Json {
+  let leaked = result.stdout.contains(token) ||
+    result.stderr.contains(token) ||
+    (
+      !sensitive.is_empty() &&
+      (result.stdout.contains(sensitive) || result.stderr.contains(sensitive))
+    )
+  let stdout = redact(result.stdout, token).replace_all(
+    old=sensitive,
+    new="<redacted>",
+  )
+  let stderr = redact(result.stderr, token).replace_all(
+    old=sensitive,
+    new="<redacted>",
+  )
+  {
+    "name": Json(name),
+    "exit_code": Json(result.exit_code),
+    "passed": Json(!leaked),
+    "skipped": Json(true),
+    "stdout_characters": Json(stdout.length()),
+    "stderr_characters": Json(stderr.length()),
+    "diagnostic": Json(
+      if leaked {
+        "secret_in_output"
+      } else {
+        "permission_gated:" + scope
+      },
+    ),
+  }
+}
+
+///|
+fn json_state(value : String, expected : String, title? : String) -> Bool {
+  let parsed : Json = @json.parse(value) catch { _ => return false }
+  match parsed {
+    Object(fields) => {
+      let state_ok = match fields.get("state") {
+        Some(String(state)) => state.to_lower() == expected.to_lower()
+        _ => false
+      }
+      let title_ok = match title {
+        None => true
+        Some(wanted) =>
+          match fields.get("title") {
+            Some(String(value)) => value == wanted
+            _ => false
+          }
+      }
+      state_ok && title_ok
+    }
+    _ => false
+  }
+}
+
+///|
+fn unique_marker() -> String {
+  let entropy = match @env.rand(8) {
+    Some(value) => @crypto.bytes_to_hex_string(value)
+    None => "fallback"
+  }
+  "codex-write-" + @env.now().to_string() + "-" + entropy
+}
+
+///|
+fn step_plan(marker : String) -> Array[Step] {
+  [
+    {
+      name: "issue-create",
+      args: [
+        "issue",
+        "create",
+        "-R",
+        allowed_repo,
+        "--title",
+        marker,
+        "--body",
+        marker + " issue body",
+      ],
+    },
+    { name: "issue-view-created", args: [], },
+    { name: "issue-comment", args: [], },
+    { name: "issue-edit", args: [], },
+    { name: "issue-close", args: [], },
+    { name: "issue-view-closed", args: [], },
+    { name: "issue-reopen", args: [], },
+    { name: "issue-view-reopened", args: [], },
+    { name: "issue-lock", args: [], },
+    { name: "issue-unlock", args: [], },
+    { name: "issue-delete", args: [], },
+    { name: "branch-create", args: [], },
+    { name: "contents-create", args: [], },
+    { name: "pr-create", args: [], },
+    { name: "pr-view", args: [], },
+    { name: "pr-comment", args: [], },
+    { name: "pr-edit", args: [], },
+    { name: "pr-close", args: [], },
+    { name: "pr-reopen", args: [], },
+    { name: "pr-close-final", args: [], },
+    { name: "release-create", args: [], },
+    { name: "release-view", args: [], },
+    { name: "release-edit", args: [], },
+    { name: "release-upload", args: [], },
+    { name: "release-delete-asset", args: [], },
+    { name: "release-delete", args: [], },
+    { name: "release-delete-tag", args: [], },
+    { name: "repo-description-read", args: [], },
+    { name: "repo-description-edit", args: [], },
+    { name: "repo-description-restore", args: [], },
+    { name: "secret-set", args: [], },
+    { name: "secret-list", args: [], },
+    { name: "secret-delete", args: [], },
+    { name: "variable-set", args: [], },
+    { name: "variable-list", args: [], },
+    { name: "variable-delete", args: [], },
+    { name: "actions-workflow-list", args: [], },
+    { name: "actions-run-list", args: [], },
+    { name: "actions-cache-list", args: [], },
+    { name: "actions-workflow-dispatch", args: [], },
+    { name: "actions-run-view", args: [], },
+    { name: "actions-run-logs", args: [], },
+    { name: "actions-run-artifacts", args: [], },
+    { name: "actions-run-cancel", args: [], },
+    { name: "actions-run-rerun", args: [], },
+    { name: "actions-run-watch", args: [], },
+    { name: "actions-run-exit-status", args: [], },
+    { name: "cache-safe-skip", args: [], },
+  ]
+}
+
+///|
+fn self_test() -> Unit raise {
+  let first = unique_marker()
+  let second = unique_marker()
+  assert_true(first != second)
+  assert_true(first.has_prefix("codex-write-"))
+  assert_true(
+    sanitized_diagnostic(
+      { exit_code: 1, stdout: "", stderr: "token-xyz", },
+      "token-xyz",
+    ) ==
+    "<redacted>",
+  )
+  assert_true(
+    !sanitized_diagnostic({ exit_code: 0, stdout: "", stderr: "", }, "token").contains(
+      "token",
+    ),
+  )
+  let names = step_plan(first).map(step => step.name)
+  for
+    name in [
+      "issue-create", "issue-delete", "branch-create", "pr-create", "release-create",
+      "release-delete", "repo-description-read", "repo-description-edit", "secret-set",
+      "variable-set", "actions-workflow-list", "actions-run-list", "actions-cache-list",
+      "actions-workflow-dispatch", "actions-run-view", "actions-run-exit-status",
+      "cache-safe-skip",
+    ] {
+    assert_true(names.contains(name))
+  }
+  assert_true(step_plan(first).length() >= 20)
+  let secret = fixture_resource_name(first, "SECRET")
+  assert_true(secret.has_prefix("CODEX_WRITE_"))
+  assert_true(!secret.contains("-"))
+  assert_true(
+    safe_skip("cache-safe-skip", "fixture")
+    .stringify()
+    .contains("safe_skip:fixture"),
+  )
+  assert_true(
+    json_array_contains_string(
+      "[{\"name\":\"CODEX_WRITE_SECRET\"}]", "name", "CODEX_WRITE_SECRET",
+    ),
+  )
+  let (sensitive_record, sensitive_ok) = step_record_sensitive(
+    "secret-fixture",
+    { exit_code: 1, stdout: "", stderr: "fixture-secret", },
+    "fixture-token",
+    "fixture-secret",
+  )
+  assert_false(sensitive_ok)
+  let sensitive_text = sensitive_record.stringify()
+  assert_true(sensitive_text.contains("secret_in_output"))
+  assert_false(sensitive_text.contains("fixture-secret"))
+  println("live write fixture self-test passed (no network)")
+}
+
+///|
+fn api_path(path : String) -> Array[String] {
+  ["api", path, "--hostname", "github.com"]
+}
+
+///|
+async fn verify_oracle(
+  path : String,
+  binary : String,
+  config : String,
+  token : String,
+) -> Unit {
+  let oracle = @fs.realpath(path)
+  guard oracle != binary &&
+    @fs.kind(oracle) is @fs.Regular &&
+    @fs.can_execute(oracle) else {
+    fail("oracle must be a separate executable regular file")
+  }
+  guard @env.get_env_var("GH_ORACLE_SHA256") is Some(expected) &&
+    @crypto.bytes_to_hex_string(@crypto.sha256(@fs.read_file(oracle).binary())) ==
+    expected else {
+    fail("GH_ORACLE_SHA256 is missing or mismatched")
+  }
+  let version = @shell.Cmd(
+    oracle,
+    ["--version"],
+    cwd=config,
+    inherit_env=false,
+    env=isolated_environment(config, token),
+  ).output(timeout_ms=10000, max_output_bytes=65536)
+  guard version.exit_code() == 0 &&
+    (
+      version.stdout().has_prefix("gh version 2.102.0\n") ||
+      version.stdout().has_prefix("gh version 2.102.0 (")
+    ) else {
+    fail("oracle must be gh v2.102.0")
+  }
+}
+
+///|
+fn base64_encode(value : String) -> String {
+  let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  let bytes = value.to_array()
+  let output = StringBuilder()
+  let mut index = 0
+  while index < bytes.length() {
+    let a = bytes[index].to_int()
+    let b = if index + 1 < bytes.length() {
+      bytes[index + 1].to_int()
+    } else {
+      0
+    }
+    let c = if index + 2 < bytes.length() {
+      bytes[index + 2].to_int()
+    } else {
+      0
+    }
+    output.write_char(alphabet.get_char(a >> 2).unwrap())
+    output.write_char(alphabet.get_char(((a & 3) << 4) | (b >> 4)).unwrap())
+    if index + 1 < bytes.length() {
+      output.write_char(alphabet.get_char(((b & 15) << 2) | (c >> 6)).unwrap())
+    } else {
+      output.write_char('=')
+    }
+    if index + 2 < bytes.length() {
+      output.write_char(alphabet.get_char(c & 63).unwrap())
+    } else {
+      output.write_char('=')
+    }
+    index += 3
+  }
+  output.to_string()
+}
+
+///|
+fn nested_string(value : String, parent : String, key : String) -> String? {
+  let parsed : Json = @json.parse(value) catch { _ => return None }
+  match parsed {
+    Object(fields) =>
+      match fields.get(parent) {
+        Some(Object(child)) =>
+          match child.get(key) {
+            Some(String(text)) => Some(text)
+            _ => None
+          }
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn first_asset_id(value : String) -> String? {
+  let parsed : Json = @json.parse(value) catch { _ => return None }
+  match parsed {
+    Object(fields) =>
+      match fields.get("assets") {
+        Some(Array(items)) =>
+          match items.get(0) {
+            Some(Object(asset)) =>
+              match asset.get("id") {
+                Some(Number(id, ..)) => Some(id.to_int().to_string())
+                Some(String(id)) => Some(id)
+                _ => None
+              }
+            _ => None
+          }
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+async fn main {
+  let argv = @env.args()
+  if argv.length() == 2 && argv[1] == "--self-test" {
+    self_test()
+    return
+  }
+  guard argv.length() <= 3 else {
+    fail(
+      "usage: live_github_write_fixture.mbtx [PROJECT_BINARY [REPORT_PATH]] | --self-test",
+    )
+  }
+  guard @env.get_env_var("LIVE_GITHUB") == Some("1") else {
+    fail("live writes require LIVE_GITHUB=1")
+  }
+  guard @env.get_env_var("GH_LIVE_REPO") == Some(allowed_repo) else {
+    fail("GH_LIVE_REPO must be ZSeanYves/gh_test")
+  }
+  let token = match @env.get_env_var("GH_TOKEN") {
+    Some(value) if !value.is_empty() => value
+    _ => fail("set GH_TOKEN locally; do not put it in arguments")
+  }
+  guard @env.get_env_var("GH_HOST").unwrap_or("github.com") == "github.com" else {
+    fail("this runner permits github.com only")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let binary = @fs.realpath(
+    argv.get(1).unwrap_or(root + "/_build/native/debug/build/cmd/main/main.exe"),
+  )
+  guard @fs.kind(binary) is @fs.Regular && @fs.can_execute(binary) else {
+    fail("project binary must be an executable regular file")
+  }
+  let marker = unique_marker()
+  let report_path = argv
+    .get(2)
+    .unwrap_or(root + "/_build/live-github-write-" + marker + ".json")
+  guard !@fs.exists(report_path) else {
+    fail("report already exists; supply a new report path")
+  }
+  let config = @fs.tmpdir(prefix="gh-live-write-")
+  defer @fs.rmdir(config, recursive=true)
+  @fs.chmod(config, 0o700)
+  if @env.get_env_var("GH_ORACLE_BINARY") is Some(path) {
+    verify_oracle(path, binary, config, token)
+  }
+  let reports : Array[Json] = []
+  let mut all_passed = true
+  let residual : Array[String] = []
+  let mut issue_number : String? = None
+  let mut branch : String? = None
+  let mut pr_number : String? = None
+  let mut release_tag : String? = None
+  let mut release_deleted = false
+  let mut asset_id : String? = None
+  let mut file_path : String? = None
+  let mut file_sha : String? = None
+  let secret_name = fixture_resource_name(marker, "SECRET")
+  let variable_name = fixture_resource_name(marker, "VARIABLE")
+  let mut secret_created = false
+  let mut variable_created = false
+  let mut variable_permission_gated = false
+
+  // Issue create and its state lifecycle.
+  let create = run_command(binary, config, token, step_plan(marker)[0].args)
+  let (entry, passed) = step_record("issue-create", create, token)
+  reports.push(entry)
+  all_passed = all_passed && passed
+  if passed {
+    issue_number = resource_number(create)
+  }
+  if issue_number is None {
+    all_passed = false
+  }
+  match issue_number {
+    Some(number) => {
+      let view = run_command(binary, config, token, [
+        "issue", "view", number, "-R", allowed_repo, "--json", "number,title,state",
+      ])
+      let (e, ok) = state_step(
+        "issue-view-created", view, token, "open", marker,
+      )
+      reports.push(e)
+      all_passed = all_passed && ok
+      let comment = run_command(binary, config, token, [
+        "issue",
+        "comment",
+        number,
+        "-R",
+        allowed_repo,
+        "--body",
+        marker + " comment",
+      ])
+      let (e, ok) = step_record("issue-comment", comment, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let edit = run_command(binary, config, token, [
+        "issue",
+        "edit",
+        number,
+        "-R",
+        allowed_repo,
+        "--title",
+        marker + " edited",
+        "--body",
+        marker + " edited body",
+      ])
+      let (e, ok) = step_record("issue-edit", edit, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let close = run_command(binary, config, token, [
+        "issue", "close", number, "-R", allowed_repo, "--reason", "completed",
+      ])
+      let (e, ok) = step_record("issue-close", close, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let closed = run_command(binary, config, token, [
+        "issue", "view", number, "-R", allowed_repo, "--json", "number,title,state",
+      ])
+      let (e, ok) = state_step(
+        "issue-view-closed",
+        closed,
+        token,
+        "closed",
+        marker + " edited",
+      )
+      reports.push(e)
+      all_passed = all_passed && ok
+      let reopen = run_command(binary, config, token, [
+        "issue", "reopen", number, "-R", allowed_repo,
+      ])
+      let (e, ok) = step_record("issue-reopen", reopen, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let opened = run_command(binary, config, token, [
+        "issue", "view", number, "-R", allowed_repo, "--json", "number,title,state",
+      ])
+      let (e, ok) = state_step(
+        "issue-view-reopened",
+        opened,
+        token,
+        "open",
+        marker + " edited",
+      )
+      reports.push(e)
+      all_passed = all_passed && ok
+      let lock = run_command(binary, config, token, [
+        "issue", "lock", number, "-R", allowed_repo, "--reason", "resolved",
+      ])
+      let (e, ok) = step_record("issue-lock", lock, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let unlock = run_command(binary, config, token, [
+        "issue", "unlock", number, "-R", allowed_repo,
+      ])
+      let (e, ok) = step_record("issue-unlock", unlock, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let delete = run_command(binary, config, token, [
+        "issue", "delete", number, "-R", allowed_repo, "--yes",
+      ])
+      let (e, ok) = step_record("issue-delete", delete, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      if ok {
+        issue_number = None
+      }
+    }
+    None => ()
+  }
+
+  // The remaining resources use raw API calls where the command can expose
+  // generated IDs. They are best-effort so a private repository without a
+  // default branch, Actions, or release permission still gets clean rollback.
+  let repo = run_command(
+    binary,
+    config,
+    token,
+    api_path("/repos/" + allowed_repo),
+  )
+  let base = json_string(repo.stdout, "default_branch").unwrap_or("main")
+
+  // Repository edit is reversible only when the original description was
+  // read successfully.  Refuse to guess an absent/null value: a read-only
+  // token or an unexpected response becomes a visible safe skip rather than
+  // risking an overwrite of existing repository metadata.
+  let repo_view = run_command(binary, config, token, [
+    "repo", "view", "-R", allowed_repo, "--json", "description",
+  ])
+  let (repo_read_entry, repo_read_ok) = step_record(
+    "repo-description-read", repo_view, token,
+  )
+  reports.push(repo_read_entry)
+  all_passed = all_passed && repo_read_ok
+  match (repo_read_ok, json_string(repo_view.stdout, "description")) {
+    (true, Some(original_description)) => {
+      let edit = run_command(binary, config, token, [
+        "repo",
+        "edit",
+        "-R",
+        allowed_repo,
+        "--description",
+        marker + " repository description",
+      ])
+      let (e, ok) = step_record("repo-description-edit", edit, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+
+      let edited_view = run_command(binary, config, token, [
+        "repo", "view", "-R", allowed_repo, "--json", "description",
+      ])
+      let (view_entry, view_ok) = step_record(
+        "repo-description-view-edited", edited_view, token,
+      )
+      let view_ok = view_ok &&
+        json_string(edited_view.stdout, "description") ==
+        Some(marker + " repository description")
+      reports.push(
+        if view_ok {
+          view_entry
+        } else {
+          {
+            "name": Json("repo-description-view-edited"),
+            "exit_code": Json(edited_view.exit_code),
+            "passed": Json(false),
+            "diagnostic": Json("description_mismatch_after_edit"),
+          }
+        },
+      )
+      all_passed = all_passed && view_ok
+
+      // Restore even if verification failed, because the edit command may
+      // have succeeded while returning an unexpected representation.
+      let restore = run_command(binary, config, token, [
+        "repo", "edit", "-R", allowed_repo, "--description", original_description,
+      ])
+      let (restore_entry, restore_ok) = step_record(
+        "repo-description-restore", restore, token,
+      )
+      reports.push(restore_entry)
+      all_passed = all_passed && restore_ok
+      if !restore_ok {
+        residual.push("repository:description")
+      }
+      let restored_view = run_command(binary, config, token, [
+        "repo", "view", "-R", allowed_repo, "--json", "description",
+      ])
+      let (restored_entry, restored_command_ok) = step_record(
+        "repo-description-view-restored", restored_view, token,
+      )
+      let restored_ok = restored_command_ok &&
+        json_string(restored_view.stdout, "description") ==
+        Some(original_description)
+      reports.push(
+        if restored_ok {
+          restored_entry
+        } else {
+          {
+            "name": Json("repo-description-view-restored"),
+            "exit_code": Json(restored_view.exit_code),
+            "passed": Json(false),
+            "diagnostic": Json("description_mismatch_after_restore"),
+          }
+        },
+      )
+      all_passed = all_passed && restored_ok
+      if !restored_ok && !residual.contains("repository:description") {
+        residual.push("repository:description")
+      }
+    }
+    (true, None) =>
+      reports.push(
+        safe_skip("repo-description-edit", "description_is_null_or_missing"),
+      )
+    (false, _) => {
+      reports.push(
+        safe_skip("repo-description-edit", "description_read_failed"),
+      )
+      reports.push(
+        safe_skip("repo-description-restore", "description_read_failed"),
+      )
+    }
+  }
+
+  // Secret values are marker-scoped and are never requested back from the
+  // API.  Listing checks only the name, and deletion is attempted whenever a
+  // set operation succeeded so a later assertion cannot strand the secret.
+  let secret_set = run_command(binary, config, token, [
+    "secret",
+    "set",
+    secret_name,
+    "-R",
+    allowed_repo,
+    "--body",
+    marker + " secret value",
+  ])
+  let (e, ok) = step_record_sensitive(
+    "secret-set",
+    secret_set,
+    token,
+    marker + " secret value",
+  )
+  reports.push(e)
+  all_passed = all_passed && ok
+  if ok {
+    secret_created = true
+  }
+  if secret_created {
+    let secret_list = run_command(binary, config, token, [
+      "secret", "list", "-R", allowed_repo, "--json", "name",
+    ])
+    let (base_entry, command_ok) = step_record_sensitive(
+      "secret-list",
+      secret_list,
+      token,
+      marker + " secret value",
+    )
+    let list_ok = command_ok &&
+      json_array_contains_string(secret_list.stdout, "name", secret_name)
+    reports.push(
+      if list_ok {
+        base_entry
+      } else {
+        {
+          "name": Json("secret-list"),
+          "exit_code": Json(secret_list.exit_code),
+          "passed": Json(false),
+          "diagnostic": Json("secret_name_missing_from_list"),
+        }
+      },
+    )
+    all_passed = all_passed && list_ok
+    let secret_delete = run_command(binary, config, token, [
+      "secret", "delete", secret_name, "-R", allowed_repo, "--yes",
+    ])
+    let (delete_entry, delete_ok) = step_record_sensitive(
+      "secret-delete",
+      secret_delete,
+      token,
+      marker + " secret value",
+    )
+    reports.push(delete_entry)
+    all_passed = all_passed && delete_ok
+    if delete_ok {
+      secret_created = false
+    }
+  } else {
+    reports.push(safe_skip("secret-list", "secret_set_failed"))
+    reports.push(safe_skip("secret-delete", "secret_set_failed"))
+  }
+
+  // Repository variables are readable by name, but the value is deliberately
+  // excluded from `--json` and from every report path.  A fine-grained token
+  // with actions_variables=read receives 404 for PUT; probe the response
+  // headers first so that this documented permission gate is reported rather
+  // than counted as an implementation failure.
+  let variable_permission = run_command(binary, config, token, [
+    "api",
+    "/repos/" + allowed_repo + "/actions/variables",
+    "--hostname",
+    "github.com",
+    "--include",
+  ])
+  let permission_probe_ok = variable_permission.exit_code == 0 &&
+    !variable_permission.stdout.contains(token) &&
+    !variable_permission.stderr.contains(token)
+  reports.push(
+    if permission_probe_ok {
+      let can_write = actions_variables_write_allowed(
+        variable_permission.stdout,
+      )
+      if !can_write {
+        variable_permission_gated = true
+      }
+      let (entry, _) = step_record(
+        "variable-permission-probe", variable_permission, token,
+      )
+      entry
+    } else {
+      let (entry, _) = step_record(
+        "variable-permission-probe", variable_permission, token,
+      )
+      entry
+    },
+  )
+  all_passed = all_passed && permission_probe_ok
+  let variable_set = run_command(binary, config, token, [
+    "variable",
+    "set",
+    variable_name,
+    "-R",
+    allowed_repo,
+    "--body",
+    marker + " variable value",
+  ])
+  if variable_permission_gated {
+    reports.push(
+      permission_gated_record(
+        "variable-set",
+        variable_set,
+        token,
+        "actions_variables=write",
+        marker + " variable value",
+      ),
+    )
+  } else {
+    let (e, ok) = step_record_sensitive(
+      "variable-set",
+      variable_set,
+      token,
+      marker + " variable value",
+    )
+    reports.push(e)
+    all_passed = all_passed && ok
+    if ok {
+      variable_created = true
+    }
+  }
+  if variable_created {
+    let variable_list = run_command(binary, config, token, [
+      "variable", "list", "-R", allowed_repo, "--json", "name",
+    ])
+    let (base_entry, command_ok) = step_record_sensitive(
+      "variable-list",
+      variable_list,
+      token,
+      marker + " variable value",
+    )
+    let list_ok = command_ok &&
+      json_array_contains_string(variable_list.stdout, "name", variable_name)
+    reports.push(
+      if list_ok {
+        base_entry
+      } else {
+        {
+          "name": Json("variable-list"),
+          "exit_code": Json(variable_list.exit_code),
+          "passed": Json(false),
+          "diagnostic": Json("variable_name_missing_from_list"),
+        }
+      },
+    )
+    all_passed = all_passed && list_ok
+    let variable_delete = run_command(binary, config, token, [
+      "variable", "delete", variable_name, "-R", allowed_repo, "--yes",
+    ])
+    let (delete_entry, delete_ok) = step_record_sensitive(
+      "variable-delete",
+      variable_delete,
+      token,
+      marker + " variable value",
+    )
+    reports.push(delete_entry)
+    all_passed = all_passed && delete_ok
+    if delete_ok {
+      variable_created = false
+    }
+  } else if variable_permission_gated {
+    reports.push(
+      safe_skip("variable-list", "permission_gated:actions_variables=write"),
+    )
+    reports.push(
+      safe_skip("variable-delete", "permission_gated:actions_variables=write"),
+    )
+  } else {
+    reports.push(safe_skip("variable-list", "variable_set_failed"))
+    reports.push(safe_skip("variable-delete", "variable_set_failed"))
+  }
+
+  // Actions reads are safe and establish the request/output boundary without
+  // creating a workflow run.  Keep the output in memory only: step_record
+  // records sizes and sanitized diagnostics, never response bodies.
+  let workflow_list = run_command(binary, config, token, [
+    "workflow", "list", "-R", allowed_repo, "--json", "id,name,state",
+  ])
+  let (workflow_entry, workflow_ok) = step_record(
+    "actions-workflow-list", workflow_list, token,
+  )
+  reports.push(workflow_entry)
+  all_passed = all_passed && workflow_ok
+  let run_list = run_command(binary, config, token, [
+    "run", "list", "-R", allowed_repo, "--json", "databaseId,status,conclusion,name",
+  ])
+  let (run_entry, run_ok) = step_record("actions-run-list", run_list, token)
+  reports.push(run_entry)
+  all_passed = all_passed && run_ok
+  let cache_list = run_command(binary, config, token, [
+    "cache", "list", "-R", allowed_repo, "--json", "id,key,ref,sizeInBytes",
+  ])
+  let (cache_entry, cache_ok) = step_record(
+    "actions-cache-list", cache_list, token,
+  )
+  reports.push(cache_entry)
+  all_passed = all_passed && cache_ok
+
+  // Dispatch/cancel/rerun/watch and log/artifact retrieval need a marker
+  // workflow file and run.  Do not guess an existing workflow ID or mutate a
+  // run that this fixture did not create; make the deferred coverage explicit
+  // in the report instead.
+  for
+    (name, reason) in [
+      ("actions-workflow-dispatch", "marker_workflow_not_created"),
+      ("actions-run-view", "marker_run_not_created"),
+      ("actions-run-logs", "marker_run_not_created"),
+      ("actions-run-artifacts", "marker_run_not_created"),
+      ("actions-run-cancel", "marker_run_not_created"),
+      ("actions-run-rerun", "marker_run_not_created"),
+      ("actions-run-watch", "marker_run_not_created"),
+      ("actions-run-exit-status", "marker_run_not_created"),
+    ] {
+    reports.push(safe_skip(name, reason))
+  }
+
+  // Creating an Actions cache requires a workflow run and can race with
+  // eviction.  Never issue a broad `cache delete`; this explicit record keeps
+  // the safety decision visible in the sanitized report.
+  reports.push(
+    safe_skip("cache-safe-skip", "cache_creation_requires_marker_workflow_run"),
+  )
+
+  let branch_name = marker + "-branch"
+  let ref_result = run_command(
+    binary,
+    config,
+    token,
+    api_path("/repos/" + allowed_repo + "/git/ref/heads/" + base),
+  )
+  let head_sha = match nested_string(ref_result.stdout, "object", "sha") {
+    Some(value) => value
+    None => ""
+  }
+  if !head_sha.is_empty() {
+    let created = run_command(binary, config, token, [
+      "api",
+      "/repos/" + allowed_repo + "/git/refs",
+      "--hostname",
+      "github.com",
+      "--method",
+      "POST",
+      "-f",
+      "ref=refs/heads/" + branch_name,
+      "-f",
+      "sha=" + head_sha,
+    ])
+    let (e, ok) = step_record("branch-create", created, token)
+    reports.push(e)
+    all_passed = all_passed && ok
+    if ok {
+      branch = Some(branch_name)
+    }
+  } else {
+    reports.push({
+      "name": Json("branch-create"),
+      "exit_code": Json(1),
+      "passed": Json(false),
+      "diagnostic": Json("default_branch_sha_unavailable"),
+    })
+    all_passed = false
+  }
+
+  match branch {
+    Some(branch_name) => {
+      let content_path = marker + ".md"
+      let content = run_command(binary, config, token, [
+        "api",
+        "/repos/" + allowed_repo + "/contents/" + content_path,
+        "--hostname",
+        "github.com",
+        "--method",
+        "PUT",
+        "-f",
+        "message=" + marker + " fixture",
+        "-f",
+        "content=" + base64_encode(marker + " fixture content\n"),
+        "-f",
+        "branch=" + branch_name,
+      ])
+      let (e, ok) = step_record("contents-create", content, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      if ok {
+        file_path = Some(content_path)
+        file_sha = nested_string(content.stdout, "content", "sha")
+      }
+      let pr = run_command(binary, config, token, [
+        "pr",
+        "create",
+        "-R",
+        allowed_repo,
+        "--head",
+        branch_name,
+        "--base",
+        base,
+        "--title",
+        marker + " pull request",
+        "--body",
+        marker + " pull request body",
+      ])
+      let (e, ok) = step_record("pr-create", pr, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      if ok {
+        pr_number = resource_number(pr)
+      }
+      match pr_number {
+        Some(number) => {
+          let view = run_command(binary, config, token, [
+            "pr", "view", number, "-R", allowed_repo, "--json", "number,title,state",
+          ])
+          let (e, ok) = state_step(
+            "pr-view",
+            view,
+            token,
+            "open",
+            marker + " pull request",
+          )
+          reports.push(e)
+          all_passed = all_passed && ok
+          let comment = run_command(binary, config, token, [
+            "api",
+            "/repos/" + allowed_repo + "/issues/" + number + "/comments",
+            "--hostname",
+            "github.com",
+            "--method",
+            "POST",
+            "-f",
+            "body=" + marker + " pull request comment",
+          ])
+          let (e, ok) = step_record("pr-comment", comment, token)
+          reports.push(e)
+          all_passed = all_passed && ok
+          let edit = run_command(binary, config, token, [
+            "pr",
+            "edit",
+            number,
+            "-R",
+            allowed_repo,
+            "--title",
+            marker + " pull request edited",
+            "--body",
+            marker + " pull request edited body",
+          ])
+          let (e, ok) = step_record("pr-edit", edit, token)
+          reports.push(e)
+          all_passed = all_passed && ok
+          for
+            (name, action) in [
+              ("pr-close", "close"),
+              ("pr-reopen", "reopen"),
+              ("pr-close-final", "close"),
+            ] {
+            let command = run_command(binary, config, token, [
+              "pr", action, number, "-R", allowed_repo,
+            ])
+            let (e, ok) = step_record(name, command, token)
+            reports.push(e)
+            all_passed = all_passed && ok
+          }
+        }
+        None => ()
+      }
+    }
+    None => ()
+  }
+
+  let tag = marker + "-release"
+  let release = run_command(binary, config, token, [
+    "release",
+    "create",
+    tag,
+    "-R",
+    allowed_repo,
+    "--title",
+    marker + " release",
+    "--body",
+    marker + " release body",
+    "--target-commitish",
+    base,
+  ])
+  let (e, ok) = step_record("release-create", release, token)
+  reports.push(e)
+  all_passed = all_passed && ok
+  if ok {
+    release_tag = Some(tag)
+  }
+  match release_tag {
+    Some(tag) => {
+      let view = run_command(binary, config, token, [
+        "release", "view", tag, "-R", allowed_repo, "--json", "tagName,name",
+      ])
+      let (e, ok) = step_record("release-view", view, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let edit = run_command(binary, config, token, [
+        "release",
+        "edit",
+        tag,
+        "-R",
+        allowed_repo,
+        "--title",
+        marker + " release edited",
+        "--body",
+        marker + " release edited body",
+      ])
+      let (e, ok) = step_record("release-edit", edit, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let asset_path = config + "/" + marker + ".asset"
+      let asset_written = write_fixture_file(
+        asset_path,
+        marker + " asset\n",
+        permission=0o600,
+      )
+      if !asset_written {
+        reports.push({
+          "name": Json("release-asset-fixture"),
+          "exit_code": Json(1),
+          "passed": Json(false),
+          "diagnostic": Json("cannot_write_local_asset_fixture"),
+        })
+        all_passed = false
+      }
+      let upload = run_command(binary, config, token, [
+        "release", "upload", tag, asset_path, "-R", allowed_repo, "--clobber",
+      ])
+      let (e, ok) = step_record("release-upload", upload, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      let assets = run_command(binary, config, token, [
+        "release", "view", tag, "-R", allowed_repo, "--json", "assets",
+      ])
+      if ok {
+        asset_id = first_asset_id(assets.stdout)
+      }
+      match asset_id {
+        Some(id) => {
+          let deleted = run_command(binary, config, token, [
+            "release", "delete-asset", id, "-R", allowed_repo, "--yes",
+          ])
+          let (e, ok) = step_record("release-delete-asset", deleted, token)
+          reports.push(e)
+          all_passed = all_passed && ok
+          if ok {
+            asset_id = None
+          }
+        }
+        None => {
+          reports.push({
+            "name": Json("release-delete-asset"),
+            "exit_code": Json(1),
+            "passed": Json(false),
+            "diagnostic": Json("asset_id_unavailable"),
+          })
+          all_passed = false
+        }
+      }
+      let deleted = run_command(binary, config, token, [
+        "release", "delete", tag, "-R", allowed_repo, "--yes",
+      ])
+      let (e, ok) = step_record("release-delete", deleted, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      if ok {
+        release_deleted = true
+      }
+      let tag_deleted = run_command(binary, config, token, [
+        "api",
+        "/repos/" + allowed_repo + "/git/refs/tags/" + tag,
+        "--hostname",
+        "github.com",
+        "--method",
+        "DELETE",
+      ])
+      let (e, ok) = step_record("release-delete-tag", tag_deleted, token)
+      reports.push(e)
+      all_passed = all_passed && ok
+      if ok {
+        release_tag = None
+      } else {
+        residual.push("tag:" + tag)
+      }
+    }
+    None => ()
+  }
+
+  // Cleanup is deliberately unconditional. The report contains only names,
+  // status codes, and bounded diagnostics; response bodies are never saved.
+  match secret_created {
+    true => {
+      let deleted = run_command(binary, config, token, [
+        "secret", "delete", secret_name, "-R", allowed_repo, "--yes",
+      ])
+      let (e, ok) = step_record_sensitive(
+        "cleanup-secret",
+        deleted,
+        token,
+        marker + " secret value",
+      )
+      reports.push(e)
+      if !ok {
+        residual.push("secret:" + secret_name)
+      } else {
+        secret_created = false
+      }
+    }
+    false => ()
+  }
+  match variable_created {
+    true => {
+      let deleted = run_command(binary, config, token, [
+        "variable", "delete", variable_name, "-R", allowed_repo, "--yes",
+      ])
+      let (e, ok) = step_record_sensitive(
+        "cleanup-variable",
+        deleted,
+        token,
+        marker + " variable value",
+      )
+      reports.push(e)
+      if !ok {
+        residual.push("variable:" + variable_name)
+      } else {
+        variable_created = false
+      }
+    }
+    false => ()
+  }
+  match (file_path, file_sha) {
+    (Some(path), Some(sha)) =>
+      match branch {
+        Some(branch_name) => {
+          let deleted = run_command(binary, config, token, [
+            "api",
+            "/repos/" + allowed_repo + "/contents/" + path,
+            "--hostname",
+            "github.com",
+            "--method",
+            "DELETE",
+            "-f",
+            "message=" + marker + " cleanup",
+            "-f",
+            "sha=" + sha,
+            "-f",
+            "branch=" + branch_name,
+          ])
+          let (e, ok) = step_record("cleanup-contents", deleted, token)
+          reports.push(e)
+          if !ok {
+            residual.push("contents:" + path)
+          }
+        }
+        None => residual.push("contents:" + path)
+      }
+    (Some(path), None) => residual.push("contents:" + path)
+    _ => ()
+  }
+  match asset_id {
+    Some(id) => {
+      let deleted = run_command(binary, config, token, [
+        "api",
+        "/repos/" + allowed_repo + "/releases/assets/" + id,
+        "--hostname",
+        "github.com",
+        "--method",
+        "DELETE",
+      ])
+      let (e, ok) = step_record("cleanup-asset", deleted, token)
+      reports.push(e)
+      if !ok {
+        residual.push("asset:" + id)
+      }
+    }
+    None => ()
+  }
+  match release_tag {
+    Some(tag) => {
+      // DELETE /releases/tags/{tag} is not a GitHub REST operation. Resolve
+      // the tag metadata first, then delete by its numeric release id. If the
+      // main lifecycle already deleted the release, retry only the git ref.
+      if !release_deleted {
+        let metadata = run_command(binary, config, token, [
+          "api",
+          "/repos/" + allowed_repo + "/releases/tags/" + tag,
+          "--hostname",
+          "github.com",
+        ])
+        let release_id = if metadata.exit_code == 0 {
+          json_id(metadata.stdout)
+        } else {
+          None
+        }
+        let deleted = match release_id {
+          Some(id) =>
+            run_command(binary, config, token, [
+              "api",
+              "/repos/" + allowed_repo + "/releases/" + id,
+              "--hostname",
+              "github.com",
+              "--method",
+              "DELETE",
+            ])
+          None => metadata
+        }
+        let (e, ok) = step_record("cleanup-release", deleted, token)
+        reports.push(e)
+        if ok {
+          release_deleted = true
+        } else {
+          residual.push("release:" + tag)
+        }
+      }
+      if release_deleted {
+        let tag_deleted = run_command(binary, config, token, [
+          "api",
+          "/repos/" + allowed_repo + "/git/refs/tags/" + tag,
+          "--hostname",
+          "github.com",
+          "--method",
+          "DELETE",
+        ])
+        let (e, ok) = step_record("cleanup-release-tag", tag_deleted, token)
+        reports.push(e)
+        if ok {
+          release_tag = None
+        } else {
+          residual.push("tag:" + tag)
+        }
+      }
+    }
+    None => ()
+  }
+  match branch {
+    Some(value) => {
+      let deleted = run_command(binary, config, token, [
+        "api",
+        "/repos/" + allowed_repo + "/git/refs/heads/" + value,
+        "--hostname",
+        "github.com",
+        "--method",
+        "DELETE",
+      ])
+      let (e, ok) = step_record("cleanup-branch", deleted, token)
+      reports.push(e)
+      if !ok {
+        residual.push("branch:" + value)
+      } else {
+        branch = None
+      }
+    }
+    None => ()
+  }
+  match pr_number {
+    Some(value) => {
+      // GitHub does not expose a destructive PR delete operation.  Close it
+      // again during rollback and retain its marker in the residual report so
+      // the caller can remove the disposable repository or review manually.
+      let closed = run_command(binary, config, token, [
+        "pr", "close", value, "-R", allowed_repo,
+      ])
+      let (e, ok) = step_record("cleanup-pull-request", closed, token)
+      reports.push(e)
+      if !ok {
+        residual.push("pull_request:" + value)
+      }
+    }
+    None => ()
+  }
+  match issue_number {
+    Some(value) => {
+      let deleted = run_command(binary, config, token, [
+        "api",
+        "/repos/" + allowed_repo + "/issues/" + value,
+        "--hostname",
+        "github.com",
+        "--method",
+        "DELETE",
+      ])
+      let (e, ok) = step_record("cleanup-issue", deleted, token)
+      reports.push(e)
+      if !ok {
+        residual.push("issue:" + value)
+      } else {
+        issue_number = None
+      }
+    }
+    None => ()
+  }
+  let cleanup_ok = residual.is_empty()
+  let report : Json = {
+    "schema": 3,
+    "mode": "write-lifecycle",
+    "repository": allowed_repo,
+    "marker": marker,
+    "write_operations_verified": all_passed &&
+    cleanup_ok &&
+    !variable_permission_gated,
+    "permission_gated": Json(
+      if variable_permission_gated {
+        ["actions_variables=write"]
+      } else {
+        []
+      },
+    ),
+    "core_parity_verified": false,
+    "cleanup_passed": cleanup_ok,
+    "residual_resources": Json(residual),
+    "cases": Json(reports),
+  }
+  let report_written = try {
+    @fs.write_file(
+      report_path,
+      report.stringify(indent=2) + "\n",
+      permission=0o600,
+      create_mode=@fs.CreateNew,
+    )
+    true
+  } catch {
+    _ => false
+  }
+  guard report_written else { fail("cannot write sanitized live write report") }
+  println("Report: " + report_path)
+  if !all_passed || !cleanup_ok {
+    fail("live write fixture failed; inspect sanitized report")
+  }
+}

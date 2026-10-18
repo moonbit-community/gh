@@ -11,6 +11,10 @@ pub struct Request {
   query : Array[(String, String)]
   headers : Array[(String, String)]
   body : Bytes?
+  // An optional trusted alternate origin (currently used by GitHub's release
+  // asset upload host).  The client validates it against its configured API
+  // origin before constructing the URL.
+  origin : String?
 }
 
 ///|
@@ -50,8 +54,17 @@ pub fn Request::new(
   query~ : Array[(String, String)] = [],
   headers~ : Array[(String, String)] = [],
   body? : Bytes,
+  origin? : String,
 ) -> Request {
-  { verb, url: path, path, query: query.copy(), headers: headers.copy(), body, }
+  {
+    verb,
+    url: path,
+    path,
+    query: query.copy(),
+    headers: headers.copy(),
+    body,
+    origin,
+  }
 }
 
 ///|
@@ -194,6 +207,9 @@ pub enum GitHubError {
   Authentication(response~ : RawResponse)
   Permission(response~ : RawResponse)
   RateLimited(response~ : RawResponse)
+  Conflict(response~ : RawResponse)
+  Validation(response~ : RawResponse)
+  Server(status~ : Int32, response~ : RawResponse)
   Http(status~ : Int32, response~ : RawResponse)
   Decode(message~ : String)
   GraphQL(response~ : RawResponse, errors~ : Array[Json])
@@ -206,6 +222,9 @@ pub fn GitHubError::status(self : GitHubError) -> Int32? {
     Authentication(response~) => Some(response.status)
     Permission(response~) => Some(response.status)
     RateLimited(response~) => Some(response.status)
+    Conflict(response~) => Some(response.status)
+    Validation(response~) => Some(response.status)
+    Server(status~, ..) => Some(status)
     Http(status~, ..) => Some(status)
     GraphQL(response~, ..) => Some(response.status)
     _ => None
@@ -218,6 +237,9 @@ pub fn GitHubError::response(self : GitHubError) -> RawResponse? {
     Authentication(response~) => Some(response)
     Permission(response~) => Some(response)
     RateLimited(response~) => Some(response)
+    Conflict(response~) => Some(response)
+    Validation(response~) => Some(response)
+    Server(status=_, response~) => Some(response)
     Http(response~, ..) => Some(response)
     GraphQL(response~, ..) => Some(response)
     _ => None
@@ -233,6 +255,9 @@ pub fn GitHubError::code(self : GitHubError) -> String {
     Authentication(..) => "authentication"
     Permission(..) => "permission"
     RateLimited(..) => "rate_limited"
+    Conflict(..) => "conflict"
+    Validation(..) => "validation"
+    Server(..) => "server"
     Http(..) => "http"
     Decode(..) => "decode"
     GraphQL(..) => "graphql"

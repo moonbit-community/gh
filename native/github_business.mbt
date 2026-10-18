@@ -18,6 +18,7 @@ priv struct BusinessRequest {
 
 ///|
 priv struct ParsedBusiness {
+  command : String
   subcommand : String
   positionals : Array[String]
   values : Map[String, String]
@@ -39,6 +40,7 @@ fn business_value_option(name : String) -> Bool {
   | "limit"
   | "q"
   | "org"
+  | "env"
   | "state"
   | "label"
   | "labels"
@@ -364,6 +366,7 @@ fn parse_business(options : @github_cli.BusinessOptions) -> ParsedBusiness {
     index += 1
   }
   {
+    command: options.command(),
     subcommand,
     positionals,
     values,
@@ -522,10 +525,13 @@ fn business_needs_repository(options : @github_cli.BusinessOptions) -> Bool {
     | "workflow"
     | "actions"
     | "label"
-    | "secret"
-    | "variable"
     | "cache"
     | "ruleset" => true
+    "secret" =>
+      // Organization-scoped Actions resources use /orgs/{org} and do not
+      // require -R. Repository and environment scopes still need a repo.
+      parsed.values.get("org") is None
+    "variable" => parsed.values.get("org") is None
     _ => false
   }
 }
@@ -579,6 +585,9 @@ fn business_json_body(parsed : ParsedBusiness, names : Array[String]) -> Bytes? 
   let body : Map[String, Json] = Map([])
   for name in names {
     let value = match parsed.values.get(name) {
+      None if name == "tag_name" &&
+        parsed.command == "release" &&
+        parsed.subcommand == "create" => parsed.positionals.get(0)
       None if name == "labels" => parsed.values.get("label")
       None if name == "lock_reason" => parsed.values.get("reason")
       None if name == "name" => parsed.values.get("new_name")
@@ -596,6 +605,26 @@ fn business_json_body(parsed : ParsedBusiness, names : Array[String]) -> Bytes? 
     None
   } else {
     Some(@utf8.encode(Json::object(body).stringify()))
+  }
+}
+
+///|
+/// Actions variable values are always strings, even when they look like JSON
+/// booleans or numbers.  `--body` is gh's spelling for the value in the
+/// resource command; accept `--value` as the API-oriented alias as well.
+fn business_string_body(parsed : ParsedBusiness, field : String) -> Bytes? {
+  let value = match parsed.values.get(field) {
+    Some(value) => Some(value)
+    None if field == "value" => parsed.values.get("body")
+    None => None
+  }
+  match value {
+    Some(value) => {
+      let body : Map[String, Json] = Map([])
+      body[field] = Json::string(value)
+      Some(@utf8.encode(Json::object(body).stringify()))
+    }
+    None => None
   }
 }
 
@@ -692,6 +721,335 @@ fn business_query(
     }
   }
   query
+}
+
+///|
+/// Validate the syntactic field surface before resolving credentials or
+/// issuing a request.  Command schemas intentionally share the broad set of
+/// stable fields used by gh's core JSON exporters; nested paths are checked by
+/// their root so `labels[].name` remains valid.
+fn business_validate_json_fields(
+  parsed : ParsedBusiness,
+) -> Result[Unit, String] {
+  guard parsed.json_fields is Some(fields) else { return Ok(()) }
+  let known = [
+    "id", "nodeId", "number", "name", "title", "body", "state", "url", "htmlUrl",
+    "fullName", "nameWithOwner", "visibility", "description", "owner", "login", "author",
+    "user", "labels", "comments", "assignees", "assignee", "milestone", "createdAt",
+    "updatedAt", "closedAt", "mergedAt", "merged", "draft", "isDraft", "isPrerelease",
+    "headRefName", "baseRefName", "headRepository", "baseRepository", "reviewDecision",
+    "reviews", "checks", "statusCheckRollup", "workflowRuns", "workflow_runs", "workflows",
+    "status", "conclusion", "nameWithOwner", "tagName", "name", "assets", "authorLogin",
+    "databaseId", "workflowDatabaseId", "runNumber", "event", "path", "state", "category",
+    "isAnswered", "locked", "totalCount", "incompleteResults", "items", "repositories",
+    "issues", "pulls", "releases", "organizations", "secrets", "variables", "caches",
+    "actions_caches", "key", "ref", "sizeInBytes", "startedAt", "completedAt", "attempt",
+    "headSha", "workflowName", "environment", "public", "closed", "shortDescription",
+    "number", "project", "projects", "viewer", "repository",
+  ]
+  for raw in fields.split(",") {
+    let parts = raw.trim().split(".").map(x => x.to_owned()).collect()
+    let name = parts.get(0).unwrap_or("")
+    guard !name.is_empty() else { return Err("JSON field cannot be empty") }
+    if !known.contains(name) {
+      return Err("unknown JSON field: " + name)
+    }
+  }
+  Ok(())
+}
+
+///|
+fn business_collection_command(parsed : ParsedBusiness) -> Bool {
+  match (parsed.command, parsed.subcommand) {
+    ("repo", "list")
+    | ("issue", "list" | "status" | "comments")
+    | ("pr", "list")
+    | ("release", "list")
+    | ("run", "list")
+    | ("workflow", "list")
+    | ("actions", "list")
+    | ("search", "issues" | "prs" | "repos" | "code" | "commits")
+    | ("org", "list")
+    | ("label", "list")
+    | ("secret", "list")
+    | ("variable", "list")
+    | ("cache", "list") => true
+    _ => false
+  }
+}
+
+///|
+fn business_requested_limit(parsed : ParsedBusiness) -> Int32? {
+  match parsed.values.get("limit") {
+    Some(value) => Some(@string.parse_int(value) catch { _ => return None })
+    None => None
+  }
+}
+
+///|
+fn business_page_query(
+  query : Array[(String, String)],
+  page : Int32,
+) -> Array[(String, String)] {
+  let output : Array[(String, String)] = []
+  let mut has_page = false
+  let mut has_per_page = false
+  for (name, value) in query {
+    if name == "page" {
+      if !has_page {
+        output.push(("page", page.to_string()))
+        has_page = true
+      }
+    } else if name == "per_page" {
+      if !has_per_page {
+        output.push(("per_page", "100"))
+        has_per_page = true
+      }
+    } else {
+      output.push((name, value))
+    }
+  }
+  if !has_page {
+    output.push(("page", page.to_string()))
+  }
+  if !has_per_page {
+    output.push(("per_page", "100"))
+  }
+  output
+}
+
+///|
+/// Convert a validated pagination URL back into a request path.  The GitHub
+/// client rejects cross-origin links; keeping the configured base prefix here
+/// also prevents an Enterprise `/api/v3` prefix from being duplicated.
+fn business_next_path(
+  next_url : String,
+  base_url : String,
+) -> Result[String, String] {
+  guard next_url.has_prefix(base_url) else {
+    return Err("pagination link changed host")
+  }
+  let suffix = next_url[base_url.length():].to_owned()
+  guard suffix.is_empty() || suffix.has_prefix("/") else {
+    return Err("invalid pagination link")
+  }
+  if suffix.is_empty() {
+    Ok("/")
+  } else {
+    Ok(suffix)
+  }
+}
+
+///|
+fn business_collection_field(
+  parsed : ParsedBusiness,
+  value : Json,
+) -> (String?, Array[Json]) {
+  match value {
+    Array(items) => (None, items)
+    Object(fields) => {
+      let candidates = match (parsed.command, parsed.subcommand) {
+        ("run", "list") => ["workflow_runs"]
+        ("workflow" | "actions", "list") => ["workflows"]
+        ("search", _) => ["items"]
+        _ =>
+          [
+            "issues", "pulls", "releases", "repositories", "organizations", "labels",
+            "secrets", "variables", "artifacts", "caches", "actions_caches", "items",
+          ]
+      }
+      for name in candidates {
+        match fields.get(name) {
+          Some(Array(items)) => return (Some(name), items)
+          _ => ()
+        }
+      }
+      (None, [])
+    }
+    _ => (None, [])
+  }
+}
+
+///|
+fn business_append_collection(
+  value : Json,
+  field : String?,
+  items : Array[Json],
+) -> Json {
+  match field {
+    None => Json::array(items)
+    Some(name) =>
+      match value {
+        Object(fields) => {
+          fields[name] = Json::array(items)
+          Json::object(fields)
+        }
+        _ => value
+      }
+  }
+}
+
+///|
+/// Send a collection request and fetch additional pages when gh's `--limit`
+/// exceeds GitHub's 100-item page size.  The first response headers are kept
+/// for `--include`; only the JSON collection body is merged.
+async fn execute_business_collection(
+  parsed : ParsedBusiness,
+  request : BusinessRequest,
+  client : @github.Client,
+  base_url : String,
+) -> Result[(@github.RawResponse, Bytes?), @github_cli.Output] {
+  let limit = business_requested_limit(parsed)
+  let should_page = request.verb == "GET" &&
+    business_collection_command(parsed) &&
+    limit is Some(value) &&
+    value > 100
+  let first_query = if should_page {
+    business_page_query(request.query, 1)
+  } else {
+    request.query
+  }
+  let first = match
+    (if request.path == "/graphql" &&
+      (parsed.command == "project" || parsed.command == "discussion") {
+      client.graphql_raw(
+        @github.Request::new(
+          verb=request.verb,
+          path=request.path,
+          query=first_query,
+          headers=request.headers,
+          body?=request.body,
+        ),
+        operation_id="business",
+        operation_name=parsed.command,
+      )
+    } else {
+      client.request(
+        @github.Request::new(
+          verb=request.verb,
+          path=request.path,
+          query=first_query,
+          headers=request.headers,
+          body?=request.body,
+        ),
+        operation_id="business",
+        operation_name=parsed.command,
+      )
+    }) {
+    Ok(value) => value
+    Err(error) =>
+      match error.response() {
+        Some(value) => value
+        None => return Err(@github_cli.failure(message=error.code()))
+      }
+  }
+  if !should_page || first.status() < 200 || first.status() >= 300 {
+    return Ok((first, None))
+  }
+  let first_json : Json = @json.parse(@utf8.decode(first.body())) catch {
+    _ => return Ok((first, None))
+  }
+  let (field, first_items) = business_collection_field(parsed, first_json)
+  if field is None && first_items.is_empty() {
+    return Ok((first, None))
+  }
+  let target = limit.unwrap()
+  let merged : Array[Json] = first_items.copy()
+  let mut page = 2
+  let mut current_path = request.path
+  let mut current_query = first_query
+  let mut last_response = first
+  let visited : Map[String, Bool] = Map([])
+  while merged.length() < target && page <= 10000 {
+    let current_url = base_url +
+      current_path +
+      (if current_query.is_empty() {
+        ""
+      } else {
+        "?" + current_query.map(pair => pair.0 + "=" + pair.1).join("&")
+      })
+    let next_path = match last_response.next_url(current_url~) {
+      Ok(Some(url)) =>
+        match business_next_path(url, base_url) {
+          Ok(value) => value
+          Err(message) => return Err(@github_cli.failure(message~))
+        }
+      Ok(None) => break
+      Err(_) =>
+        return Err(@github_cli.failure(message="invalid pagination link"))
+    }
+    guard !visited.contains(next_path) else {
+      return Err(@github_cli.failure(message="pagination repeated link"))
+    }
+    visited[next_path] = true
+    let next_parts = match next_path.split_once("?") {
+      Some((path, query_string)) => {
+        let query : Array[(String, String)] = []
+        for part in query_string.split("&") {
+          match part.split_once("=") {
+            Some((name, value)) =>
+              query.push((name.to_owned(), value.to_owned()))
+            None if !part.is_empty() => query.push((part.to_owned(), ""))
+            None => ()
+          }
+        }
+        (path.to_owned(), query)
+      }
+      None => (next_path, [])
+    }
+    current_path = next_parts.0
+    current_query = next_parts.1
+    let response = match
+      client.request(
+        @github.Request::new(
+          verb=request.verb,
+          path=current_path,
+          query=current_query,
+          headers=request.headers,
+          body?=request.body,
+        ),
+        operation_id="business-pagination",
+        operation_name=parsed.command,
+      ) {
+      Ok(value) => value
+      Err(error) =>
+        match error.response() {
+          Some(value) => value
+          None => return Err(@github_cli.failure(message=error.code()))
+        }
+    }
+    if response.status() < 200 || response.status() >= 300 {
+      return Ok((response, None))
+    }
+    last_response = response
+    let page_json : Json = @json.parse(@utf8.decode(response.body())) catch {
+      _ => break
+    }
+    let (_, page_items) = business_collection_field(parsed, page_json)
+    if page_items.is_empty() {
+      break
+    }
+    for item in page_items {
+      if merged.length() >= target {
+        break
+      }
+      merged.push(item)
+    }
+    if page_items.length() < 100 {
+      break
+    }
+    page += 1
+  }
+  Ok(
+    (
+      first,
+      Some(
+        @utf8.encode(
+          business_append_collection(first_json, field, merged).stringify(),
+        ),
+      ),
+    ),
+  )
 }
 
 ///|
@@ -1084,6 +1442,45 @@ fn business_release_id(value : Json) -> String? {
 }
 
 ///|
+/// GitHub release metadata carries an absolute upload URL.  The API origin
+/// serves metadata, while github.com serves asset bytes from
+/// `uploads.github.com`; keep both the origin and route so the transport can
+/// enforce its cross-origin allow-list without exposing the URL template's
+/// `{?name,label}` suffix as a literal path segment.
+fn business_release_upload_target(value : Json) -> (String, String)? {
+  match value {
+    Object(fields) =>
+      match fields.get("upload_url") {
+        Some(String(url)) => {
+          let (scheme, rest) = match url.split_once("://") {
+            Some(value) => value
+            None => return None
+          }
+          guard scheme == "https" else { return None }
+          let (authority, suffix) = match rest.split_once("/") {
+            Some(value) => value
+            None => return None
+          }
+          guard !authority.is_empty() else { return None }
+          let raw_path = "/" + suffix.to_owned()
+          let path = match raw_path.split_once("{?") {
+            Some((prefix, _)) => prefix.to_owned()
+            None => raw_path
+          }
+          let path = match path.split_once("?") {
+            Some((prefix, _)) => prefix.to_owned()
+            None => path
+          }
+          guard path.has_prefix("/") && path.length() > 1 else { return None }
+          Some((scheme.to_owned() + "://" + authority.to_owned(), path))
+        }
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
 fn business_release_assets(value : Json) -> Array[BusinessReleaseAsset] {
   match value {
     Object(fields) =>
@@ -1278,6 +1675,11 @@ async fn execute_release_upload(
     Some(value) => value
     None => return @github_cli.failure(message="release response has no id")
   }
+  let (upload_origin, upload_path) = match
+    business_release_upload_target(metadata) {
+    Some((origin, path)) => (Some(origin), path)
+    None => (None, repo_api_path(repo) + "/releases/" + release_id + "/assets")
+  }
   for index = 1; index < parsed.positionals.length(); index = index + 1 {
     let source = parsed.positionals[index]
     guard valid_local_git_value(source) else {
@@ -1300,10 +1702,11 @@ async fn execute_release_upload(
       client.request(
         @github.Request::new(
           verb="POST",
-          path=repo_api_path(repo) + "/releases/" + release_id + "/assets",
+          path=upload_path,
           query=[("name", name)],
           headers=[("Content-Type", "application/octet-stream")],
           body~,
+          origin?=upload_origin,
         ),
         operation_id="release-upload-" + release_id,
         operation_name="release.upload",
@@ -1324,6 +1727,77 @@ async fn execute_release_upload(
   ignore(options)
   ignore(request)
   @github_cli.success(stdout="")
+}
+
+///|
+/// Release edit/delete accept a tag in gh's CLI, while GitHub's REST write
+/// endpoints require the numeric release id.  The request builder performs
+/// the tag lookup; this boundary resolves the id and sends the write request
+/// only after the metadata lookup succeeded.
+async fn execute_release_edit_delete(
+  options : @github_cli.BusinessOptions,
+  parsed : ParsedBusiness,
+  request : BusinessRequest,
+  metadata_response : @github.RawResponse,
+  client : @github.Client,
+  repository : @github_cli.RepositoryContext?,
+) -> @github_cli.Output {
+  let metadata = match business_release_metadata(metadata_response) {
+    Ok(value) => value
+    Err(error) => return error
+  }
+  let release_id = match business_release_id(metadata) {
+    Some(value) => value
+    None => return @github_cli.failure(message="release response has no id")
+  }
+  let repo = match repository {
+    Some(value) => value
+    None => return @github_cli.failure(message="a repository is required")
+  }
+  let release_verb = if parsed.subcommand == "delete" {
+    "DELETE"
+  } else {
+    "PATCH"
+  }
+  let response = match
+    client.request(
+      @github.Request::new(
+        verb=release_verb,
+        path=repo_api_path(repo) + "/releases/" + release_id,
+        headers=request.headers,
+        body?=if release_verb == "PATCH" { request.body } else { None },
+      ),
+      operation_id="release-" + parsed.subcommand + "-" + release_id,
+      operation_name="release." + parsed.subcommand,
+    ) {
+    Ok(value) => value
+    Err(error) =>
+      match error.response() {
+        Some(value) => value
+        None => return @github_cli.failure(message=error.code())
+      }
+  }
+  if parsed.subcommand == "delete" {
+    if response.status() >= 200 && response.status() < 300 {
+      return @github_cli.success(stdout="")
+    }
+    return @github_cli.render_response(
+      response.status(),
+      response.headers(),
+      response.body(),
+    )
+  }
+  ignore(options)
+  @github_cli.render_response(
+    response.status(),
+    response.headers(),
+    response.body(),
+    jq?=request.jq,
+    template?=request.template,
+    include_headers=request.include_headers,
+    silent=request.silent,
+    verbose=request.verbose,
+  )
 }
 
 ///|
@@ -1456,6 +1930,10 @@ fn business_request(
     None => ()
   }
   let parsed = parse_business(options)
+  match business_validate_json_fields(parsed) {
+    Ok(_) => ()
+    Err(message) => return Err(@github_cli.failure(message~))
+  }
   let command = options.command()
   let sub = parsed.subcommand
   let mut verb = "GET"
@@ -1478,6 +1956,12 @@ fn business_request(
   let repo_path = match repo {
     Some(context) => "/repos/" + context.owner() + "/" + context.name()
     None => ""
+  }
+  // Projects V2 and Discussions do not have the REST endpoints used by the
+  // historical command implementation. Build their read requests through
+  // the GraphQL adapter before the generic REST switch selects a path.
+  if command == "project" || command == "discussion" {
+    return business_graphql_request(parsed, repo)
   }
   // Resolve additional v2.102.0 endpoint mappings before the primary switch.
   match business_extra_request(options, parsed, repo_path) {
@@ -1667,9 +2151,48 @@ fn business_request(
     }
   } else if command == "secret" || command == "variable" {
     let resource = if command == "secret" { "secrets" } else { "variables" }
+    let scoped_path = match parsed.values.get("org") {
+      Some(org) => {
+        let org = match business_segment(org) {
+          Ok(value) => value
+          Err(error) => return Err(error)
+        }
+        guard parsed.values.get("env") is None else {
+          return Err(
+            @github_cli.failure(message="--org cannot be combined with --env"),
+          )
+        }
+        "/orgs/" + org + "/actions/" + resource
+      }
+      None =>
+        match parsed.values.get("env") {
+          Some(environment) => {
+            guard !repo_path.is_empty() else {
+              return Err(
+                @github_cli.failure(
+                  message="a repository is required for --env",
+                ),
+              )
+            }
+            let environment = match business_segment(environment) {
+              Ok(value) => value
+              Err(error) => return Err(error)
+            }
+            repo_path + "/environments/" + environment + "/" + resource
+          }
+          None => {
+            guard !repo_path.is_empty() else {
+              return Err(
+                @github_cli.failure(message="a repository is required"),
+              )
+            }
+            repo_path + "/actions/" + resource
+          }
+        }
+    }
     match sub {
       "list" => {
-        path = Some(repo_path + "/actions/" + resource)
+        path = Some(scoped_path)
         query = business_query(parsed, ["limit", "per_page"])
       }
       "set" => {
@@ -1680,9 +2203,19 @@ fn business_request(
           Ok(value) => value
           Err(error) => return Err(error)
         }
-        path = Some(repo_path + "/actions/" + resource + "/" + name)
+        path = Some(scoped_path + "/" + name)
         verb = "PUT"
-        body = business_json_body(parsed, ["body", "value"])
+        body = if command == "variable" {
+          match business_string_body(parsed, "value") {
+            Some(value) => Some(value)
+            None =>
+              return Err(
+                @github_cli.failure(message="variable value is required"),
+              )
+          }
+        } else {
+          business_json_body(parsed, ["body", "value"])
+        }
       }
       "delete" => {
         guard parsed.positionals.get(0) is Some(name) else {
@@ -1692,7 +2225,7 @@ fn business_request(
           Ok(value) => value
           Err(error) => return Err(error)
         }
-        path = Some(repo_path + "/actions/" + resource + "/" + name)
+        path = Some(scoped_path + "/" + name)
         verb = "DELETE"
       }
       _ =>
@@ -2226,14 +2759,12 @@ fn business_request(
           },
         )
         if sub == "edit" {
-          verb = "PATCH"
+          // Resolve the tag first; the write endpoint requires the numeric
+          // release id and is issued by execute_release_edit_delete.
           body = business_json_body(parsed, [
             "tag_name", "target_commitish", "name", "body", "draft", "prerelease",
             "make_latest",
           ])
-        }
-        if sub == "delete" {
-          verb = "DELETE"
         }
       }
       "delete-asset" => {
@@ -2366,27 +2897,38 @@ pub async fn execute_github_business(
     Err(error) => return error
   }
   let parsed = parse_business(options)
+  if options.command() == "secret" && parsed.subcommand == "set" {
+    return execute_secret_set(parsed, request, client, repository?)
+  }
+  if options.command() == "issue" && parsed.subcommand == "delete" {
+    return execute_issue_delete(parsed, repository, client)
+  }
   if options.command() == "run" && parsed.subcommand == "watch" {
     return execute_run_watch(parsed, request, client)
   }
-  let response = match
-    client.request(
-      @github.Request::new(
-        verb=request.verb,
-        path=request.path,
-        query=request.query,
-        headers=request.headers,
-        body?=request.body,
-      ),
-      operation_id="business",
-      operation_name=options.command(),
-    ) {
+  let graphql_limit = business_requested_limit(parsed)
+  let (response, paged_body) = match
+    (if request.path == "/graphql" &&
+      (parsed.command == "project" || parsed.command == "discussion") &&
+      parsed.subcommand == "list" &&
+      graphql_limit is Some(limit) &&
+      limit > 100 {
+      execute_business_graphql_collection(
+        parsed,
+        request,
+        client,
+        graphql_limit.unwrap(),
+      )
+    } else {
+      execute_business_collection(parsed, request, client, base_url)
+    }) {
     Ok(value) => value
-    Err(error) =>
-      match error.response() {
-        Some(value) => value
-        None => return @github_cli.failure(message=error.code())
-      }
+    Err(error) => return error
+  }
+  if options.command() == "release" && parsed.subcommand is ("edit" | "delete") {
+    return execute_release_edit_delete(
+      options, parsed, request, response, client, repository,
+    )
   }
   if options.command() == "release" && parsed.subcommand == "download" {
     return execute_release_download(
@@ -2398,22 +2940,31 @@ pub async fn execute_github_business(
       options, parsed, request, response, client, repository,
     )
   }
-  let response_body = if response.status() >= 200 &&
-    response.status() < 300 &&
-    (options.command() == "workflow" || options.command() == "actions") &&
-    parsed.subcommand == "list" {
-    let include_disabled = match parsed.values.get("all") {
-      Some("true") => true
-      Some("false") => false
-      _ => parsed_flag(parsed, "all") || parsed_flag(parsed, "a")
+  let response_body = match paged_body {
+    Some(body) => body
+    None if response.status() >= 200 &&
+      response.status() < 300 &&
+      (options.command() == "workflow" || options.command() == "actions") &&
+      parsed.subcommand == "list" => {
+      let include_disabled = match parsed.values.get("all") {
+        Some("true") => true
+        Some("false") => false
+        _ => parsed_flag(parsed, "all") || parsed_flag(parsed, "a")
+      }
+      match business_workflow_list_body(response.body(), include_disabled) {
+        Ok(Some(body)) => body
+        Ok(None) => return @github_cli.Output::new()
+        Err(_) =>
+          return @github_cli.failure(message="response is not valid JSON")
+      }
     }
-    match business_workflow_list_body(response.body(), include_disabled) {
-      Ok(Some(body)) => body
-      Ok(None) => return @github_cli.Output::new()
-      Err(_) => return @github_cli.failure(message="response is not valid JSON")
-    }
-  } else {
-    response.body()
+    None if request.path == "/graphql" &&
+      (parsed.command == "project" || parsed.command == "discussion") =>
+      match business_graphql_data(parsed, response.body()) {
+        Ok(value) => value
+        Err(error) => return error
+      }
+    None => response.body()
   }
   let body = match request.json_fields {
     Some(fields) =>
@@ -2436,6 +2987,35 @@ pub async fn execute_github_business(
               ) &&
               parsed.subcommand == "list" {
               Some("workflows")
+            } else if options.command() == "issue" &&
+              parsed.subcommand == "list" {
+              Some("issues")
+            } else if options.command() == "pr" && parsed.subcommand == "list" {
+              Some("pulls")
+            } else if options.command() == "release" &&
+              parsed.subcommand == "list" {
+              Some("releases")
+            } else if options.command() == "repo" && parsed.subcommand == "list" {
+              Some("repositories")
+            } else if options.command() == "org" && parsed.subcommand == "list" {
+              Some("organizations")
+            } else if options.command() == "label" &&
+              parsed.subcommand == "list" {
+              Some("labels")
+            } else if (
+                options.command() == "secret" || options.command() == "variable"
+              ) &&
+              parsed.subcommand == "list" {
+              Some(
+                if options.command() == "secret" {
+                  "secrets"
+                } else {
+                  "variables"
+                },
+              )
+            } else if options.command() == "cache" &&
+              parsed.subcommand == "list" {
+              Some("actions_caches")
             } else if options.command() == "search" {
               Some("items")
             } else {

@@ -684,6 +684,305 @@ async test "business command loopback fixture serves repo status and release" {
 }
 
 ///|
+/// Projects V2 and Discussions are served by GitHub's GraphQL endpoint.  The
+/// fixture checks the wire request and returns a small GraphQL envelope so the
+/// business renderer also proves that `data.*.nodes` is exposed as a CLI
+/// collection.
+async test "projects and discussions business commands use GraphQL" {
+  let seen : Array[(String, String, String)] = []
+  let transport = @github.Transport::new(send=request => {
+    let body = match request.body() {
+      Some(value) =>
+        @utf8.decode(value) catch {
+          _ => fail("GraphQL body was not UTF-8")
+        }
+      None => fail("GraphQL request body was absent")
+    }
+    seen.push((request.verb(), request.path(), body))
+    if body.contains("ProjectList") {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"data\":{\"user\":{\"projectsV2\":{\"nodes\":[{\"number\":7,\"title\":\"Roadmap\"}]}}}}",
+        ),
+      )
+    } else {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"data\":{\"repository\":{\"discussion\":{\"number\":3,\"title\":\"Welcome\"}}}}",
+        ),
+      )
+    }
+  })
+  let client = match
+    @github.Client::new(
+      config=@github.ClientConfig::new(base_url="https://api.github.example"),
+      transport~,
+    ) {
+    Ok(value) => value
+    Err(_) => fail("fixture client setup failed")
+  }
+  let project_options = match
+    @github_cli.parse([
+      "project", "list", "--owner", "octocat", "--json", "number,title",
+    ]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected project invocation")
+  }
+  let project_output = @native.execute_github_business(
+    project_options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(project_output.exit_code(), 0)
+  assert_eq(@json.parse(project_output.stdout()), [
+    { "number": 7, "title": "Roadmap" },
+  ])
+  let discussion_options = match
+    @github_cli.parse([
+      "discussion", "view", "3", "-R", "acme/widgets", "--json", "number,title",
+    ]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected discussion invocation")
+  }
+  let discussion_output = @native.execute_github_business(
+    discussion_options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(discussion_output.exit_code(), 0)
+  assert_eq(@json.parse(discussion_output.stdout()), {
+    "number": 3,
+    "title": "Welcome",
+  })
+  assert_eq(seen.length(), 2)
+  assert_eq(seen[0].0, "POST")
+  assert_eq(seen[0].1, "/graphql")
+  assert_true(seen[0].2.contains("\"operationName\":\"ProjectList\""))
+  assert_true(seen[0].2.contains("\"login\":\"octocat\""))
+  assert_eq(seen[1].0, "POST")
+  assert_eq(seen[1].1, "/graphql")
+  assert_true(seen[1].2.contains("\"operationName\":\"DiscussionView\""))
+  assert_true(seen[1].2.contains("\"owner\":\"acme\""))
+  assert_true(seen[1].2.contains("\"name\":\"widgets\""))
+}
+
+///|
+/// GraphQL business collections use cursor pagination when a requested limit
+/// exceeds GitHub's 100-node connection page.  The query contains several
+/// Project owner fallbacks, so the fixture also proves that the selected
+/// viewer connection's cursor is used instead of guessing across pageInfo
+/// objects.
+async test "project GraphQL list follows cursor pagination" {
+  let seen : Array[String] = []
+  let transport = @github.Transport::new(send=request => {
+    let body = match request.body() {
+      Some(value) =>
+        @utf8.decode(value) catch {
+          _ => fail("body was not UTF-8")
+        }
+      None => fail("GraphQL body was absent")
+    }
+    seen.push(body)
+    if body.contains("\"after\":\"cursor-1\"") {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"data\":{\"viewer\":{\"projectsV2\":{\"nodes\":[{\"number\":2,\"title\":\"Second\"}],\"pageInfo\":{\"hasNextPage\":false,\"endCursor\":\"cursor-2\"}},\"user\":null,\"organization\":null}}}",
+        ),
+      )
+    } else {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"data\":{\"viewer\":{\"projectsV2\":{\"nodes\":[{\"number\":1,\"title\":\"First\"}],\"pageInfo\":{\"hasNextPage\":true,\"endCursor\":\"cursor-1\"}},\"user\":null,\"organization\":null}}}",
+        ),
+      )
+    }
+  })
+  let client = match
+    @github.Client::new(
+      config=@github.ClientConfig::new(base_url="https://api.github.example"),
+      transport~,
+    ) {
+    Ok(value) => value
+    Err(_) => fail("fixture client setup failed")
+  }
+  let options = match
+    @github_cli.parse([
+      "project", "list", "--limit", "101", "--json", "number,title",
+    ]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected project invocation")
+  }
+  let output = @native.execute_github_business(
+    options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(output.exit_code(), 0)
+  assert_eq(@json.parse(output.stdout()), [
+    { "number": 1, "title": "First" },
+    { "number": 2, "title": "Second" },
+  ])
+  assert_eq(seen.length(), 2)
+  assert_true(seen[0].contains("\"after\":null"))
+  assert_true(seen[1].contains("\"after\":\"cursor-1\""))
+}
+
+///|
+/// Issue deletion uses the GraphQL node id mutation because GitHub's REST API
+/// intentionally returns 404 for DELETE /issues/{number}.
+async test "issue delete resolves node id and sends GraphQL mutation" {
+  let seen : Array[String] = []
+  let transport = @github.Transport::new(send=request => {
+    let body = match request.body() {
+      Some(value) =>
+        @utf8.decode(value) catch {
+          _ => fail("body was not UTF-8")
+        }
+      None => fail("GraphQL body was absent")
+    }
+    seen.push(body)
+    if body.contains("IssueDeleteLookup") {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"data\":{\"repository\":{\"issue\":{\"id\":\"I_kwDOfixture\"}}}}",
+        ),
+      )
+    } else {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"data\":{\"deleteIssue\":{\"clientMutationId\":null}}}",
+        ),
+      )
+    }
+  })
+  let client = match
+    @github.Client::new(
+      config=@github.ClientConfig::new(base_url="https://api.github.example"),
+      transport~,
+    ) {
+    Ok(value) => value
+    Err(_) => fail("fixture client setup failed")
+  }
+  let options = match
+    @github_cli.parse(["issue", "delete", "4", "-R", "acme/widgets", "--yes"]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected issue invocation")
+  }
+  let output = @native.execute_github_business(
+    options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(output.exit_code(), 0)
+  assert_true(output.stdout().is_empty())
+  assert_eq(seen.length(), 2)
+  assert_true(seen[0].contains("\"operationName\":\"IssueDeleteLookup\""))
+  assert_true(seen[0].contains("\"number\":4"))
+  assert_true(seen[1].contains("\"operationName\":\"IssueDelete\""))
+  assert_true(seen[1].contains("\"issueId\":\"I_kwDOfixture\""))
+}
+
+///|
+/// A successful HTTP response can still carry GraphQL errors.  Surface the
+/// provider message on stderr while keeping the command failure exit code.
+async test "business GraphQL errors preserve the first provider message" {
+  let transport = @github.Transport::new(send=_request => {
+    Ok(
+      @github.RawResponse::new(
+        status=200,
+        body=b"{\"errors\":[{\"message\":\"Field 'projectV2' requires owner access\"}],\"data\":null}",
+      ),
+    )
+  })
+  let client = match
+    @github.Client::new(
+      config=@github.ClientConfig::new(base_url="https://api.github.example"),
+      transport~,
+    ) {
+    Ok(value) => value
+    Err(_) => fail("fixture client setup failed")
+  }
+  let options = match
+    @github_cli.parse([
+      "project", "list", "--owner", "octocat", "--json", "number,title",
+    ]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected project invocation")
+  }
+  let output = @native.execute_github_business(
+    options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(output.exit_code(), 1)
+  assert_true(output.stdout().is_empty())
+  assert_true(
+    output.stderr().contains("Field 'projectV2' requires owner access"),
+  )
+}
+
+///|
+/// The native HTTP adapter must select the GraphQL URL as well.  This
+/// loopback fixture catches accidental fallback to `/repos/.../discussions`.
+async test "discussion list loopback fixture posts GraphQL envelope" {
+  let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+  defer server.close()
+  @async.with_task_group() <| group => {
+    group.spawn_bg() <| () => {
+      let accepted = server.accept()
+      let (conn, _) = accepted
+      defer conn.close()
+      let request = conn.read_request()
+      assert_eq(request.meth, @http.Post)
+      assert_eq(request.path, "/graphql")
+      let body = conn.read_all().text()
+      assert_true(body.contains("\"operationName\":\"DiscussionList\""))
+      assert_true(body.contains("\"owner\":\"acme\""))
+      assert_true(body.contains("\"name\":\"widgets\""))
+      conn.send_response(200, "OK", extra_headers={
+        "Content-Type": "application/json",
+      })
+      conn
+      ..write(
+        "{\"data\":{\"repository\":{\"discussions\":{\"nodes\":[{\"number\":1,\"title\":\"Hello\"}]}}}}",
+      )
+      .end_response()
+    }
+    let base_url = "http://127.0.0.1:\{server.addr.port()}"
+    let client = match @native.github_client(base_url~) {
+      Ok(value) => value
+      Err(_) => fail("loopback GitHub client setup failed")
+    }
+    let repository = match
+      @github_cli.RepositoryContext::parse("acme/widgets") {
+      Ok(value) => value
+      Err(_) => fail("repository parse failed")
+    }
+    let options = match
+      @github_cli.parse([
+        "discussion", "list", "-R", "acme/widgets", "--json", "number,title",
+      ]) {
+      @github_cli.Business(value) => value
+      _ => fail("expected discussion invocation")
+    }
+    let output = @native.execute_github_business(
+      options,
+      client~,
+      base_url~,
+      repository~,
+    )
+    assert_eq(output.exit_code(), 0)
+    assert_eq(@json.parse(output.stdout()), [{ "number": 1, "title": "Hello" }])
+  }
+}
+
+///|
 async test "business path arguments are encoded as one REST segment" {
   let mut seen_path = ""
   let transport = @github.Transport::new(send=request => {
@@ -771,6 +1070,35 @@ async test "business parser rejects unknown long flags" {
   )
   assert_eq(output.exit_code(), 1)
   assert_true(output.stderr().contains("unknown flag: --sttae"))
+}
+
+///|
+async test "business JSON rejects an unknown field before transport" {
+  let transport = @github.Transport::new(send=_ => {
+    fail("unknown JSON field must not reach transport")
+  })
+  let client = match
+    @github.Client::new(
+      config=@github.ClientConfig::new(base_url="https://api.github.example"),
+      transport~,
+    ) {
+    Ok(value) => value
+    Err(_) => fail("fixture client setup failed")
+  }
+  let options = match
+    @github_cli.parse([
+      "issue", "list", "-R", "acme/widgets", "--json", "definitelyUnknownField",
+    ]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected business invocation")
+  }
+  let output = @native.execute_github_business(
+    options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(output.exit_code(), 1)
+  assert_true(output.stderr().contains("unknown JSON field"))
 }
 
 ///|
@@ -1036,11 +1364,24 @@ async test "release upload fixture sends binary assets to release id" {
   defer @fs.rmdir(directory, recursive=true)
   let source = directory + "/tool.bin"
   @fs.write_file(source, b"upload\x00bytes")
-  let seen : Array[(String, String, Array[(String, String)], Bytes?)] = []
+  let seen : Array[(String, String, Array[(String, String)], Bytes?, String)] = []
   let transport = @github.Transport::new(send=request => {
-    seen.push((request.verb(), request.path(), request.query(), request.body()))
+    seen.push(
+      (
+        request.verb(),
+        request.path(),
+        request.query(),
+        request.body(),
+        request.url(),
+      ),
+    )
     if request.verb() == "GET" {
-      Ok(@github.RawResponse::new(status=200, body=b"{\"id\":42}"))
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"id\":42,\"upload_url\":\"https://uploads.github.example/repos/acme/widgets/releases/42/assets{?name,label}\"}",
+        ),
+      )
     } else {
       Ok(@github.RawResponse::new(status=201, body=b"{}"))
     }
@@ -1073,6 +1414,10 @@ async test "release upload fixture sends binary assets to release id" {
   assert_eq(seen[1].0, "POST")
   assert_eq(seen[1].1, "/repos/acme/widgets/releases/42/assets")
   assert_true(seen[1].2.contains(("name", "tool.bin")))
+  assert_eq(
+    seen[1].4,
+    "https://uploads.github.example/repos/acme/widgets/releases/42/assets?name=tool.bin",
+  )
   guard seen[1].3 is Some(body) else { fail("upload body missing") }
   assert_eq(body, b"upload\x00bytes")
 }

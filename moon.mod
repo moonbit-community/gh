@@ -29,4 +29,6 @@ import {
   "moonbitlang/async@0.22.5",
   "moonbitlang/x@0.5.5",
   "ZSeanYves/MoonbitHTTP@0.7.0",
+  "mizchi/experimental_crypto@0.0.2",
+  "cc06b/mooncry@0.95.0",
 }

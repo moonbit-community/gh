@@ -16,6 +16,17 @@ test "raw response preserves binary body and separates HTTP error" {
 }
 
 ///|
+test "HTTP JSON error message is rendered on stderr while body stays raw" {
+  let body = @utf8.encode(
+    "{\"message\":\"Bad credentials\",\"status\":\"401\"}",
+  )
+  let output = @github_cli.render_response(401, [], body)
+  assert_eq(output.stdout_bytes(), body)
+  assert_eq(output.stderr(), "gh: Bad credentials (HTTP 401)\n")
+  assert_eq(output.exit_code(), 4)
+}
+
+///|
 test "successful non UTF-8 responses remain byte preserving" {
   let bytes = Bytes::from_array([255, 1, 2])
   let output = @github_cli.render_response(200, [], bytes)
@@ -157,6 +168,30 @@ test "template supports predicates, JSON aliases, and literal formatting" {
     ).stdout(),
     "true true true",
   )
+}
+
+///|
+test "template supports gh color, truncation, hyperlink, and table helpers" {
+  let body = @utf8.encode(
+    "{\"url\":\"https://example.test\",\"title\":\"abcdefgh\",\"state\":\"open\"}",
+  )
+  assert_eq(
+    @github_cli.render_response(
+      200,
+      [],
+      body,
+      template="{{truncate 5 .title}}|{{hyperlink .url .title}}|{{autocolor \"green\" .state}}|{{tablerow .state .title}}{{tablerender}}",
+    ).stdout(),
+    "ab...|abcdefgh|open|open  abcdefgh\n",
+  )
+  let colored = @github_cli.render_response(
+    200,
+    [],
+    body,
+    template="{{color \"green\" .state}}",
+    allow_escape_sequences=true,
+  ).stdout()
+  assert_true(colored.contains("\u{001b}[32mopen\u{001b}[0m"))
 }
 
 ///|

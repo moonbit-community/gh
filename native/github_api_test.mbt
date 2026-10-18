@@ -89,7 +89,7 @@ async test "github api fixture keeps HTTP error body for include output" {
   assert_eq(output.exit_code(), 1)
   assert_true(output.stdout().contains("HTTP/1.1 422"))
   assert_true(output.stdout().contains("invalid"))
-  assert_true(output.stderr().contains("gh: HTTP 422"))
+  assert_true(output.stderr().contains("gh: invalid (HTTP 422)"))
 }
 
 ///|

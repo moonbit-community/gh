@@ -27,9 +27,11 @@ moon test --target wasm-gc --frozen
 moon check --target js --frozen --deny-warn
 moon test --target js --frozen
 moon run --target native scripts/live_github_fixture.mbtx -- --self-test
+moon check --target native --deny-warn scripts/live_github_write_fixture.mbtx
+moon run --target native scripts/live_github_write_fixture.mbtx -- --self-test
 moon build --target native --release --frozen --deny-warn cmd/main
 moon info
-moon fmt
+moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx scripts/live_github_write_fixture.mbtx
 ```
 
 Run these sequentially. Inspect generated public-interface and formatting

@@ -44,6 +44,9 @@ pub enum GitHubError {
   Authentication(response~ : RawResponse)
   Permission(response~ : RawResponse)
   RateLimited(response~ : RawResponse)
+  Conflict(response~ : RawResponse)
+  Validation(response~ : RawResponse)
+  Server(status~ : Int, response~ : RawResponse)
   Http(status~ : Int, response~ : RawResponse)
   Decode(message~ : String)
   GraphQL(response~ : RawResponse, errors~ : Array[Json])
@@ -112,10 +115,11 @@ pub struct Request {
   query : Array[(String, String)]
   headers : Array[(String, String)]
   body : Bytes?
+  origin : String?
 }
 pub fn Request::body(Self) -> Bytes?
 pub fn Request::headers(Self) -> Array[(String, String)]
-pub fn Request::new(verb~ : String, path~ : String, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Bytes) -> Self
+pub fn Request::new(verb~ : String, path~ : String, query? : Array[(String, String)], headers? : Array[(String, String)], body? : Bytes, origin? : String) -> Self
 pub fn Request::path(Self) -> String
 pub fn Request::query(Self) -> Array[(String, String)]
 pub fn Request::url(Self) -> String

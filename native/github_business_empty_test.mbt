@@ -183,7 +183,11 @@ async test "workflow list HTTP failures remain visible with an empty collection"
   )
   assert_eq(output.exit_code(), 1)
   assert_eq(output.stdout_bytes(), body)
-  assert_true(output.stderr().contains("gh: HTTP 403"))
+  assert_true(
+    output
+    .stderr()
+    .contains("gh: Resource not accessible by integration (HTTP 403)"),
+  )
 }
 
 ///|
@@ -240,5 +244,69 @@ async test "business JSON projection preserves the HTTP 422 error body" {
   )
   assert_eq(output.exit_code(), 1)
   assert_eq(output.stdout_bytes(), body)
-  assert_true(output.stderr().contains("gh: HTTP 422"))
+  assert_true(
+    output
+    .stderr()
+    .contains(
+      "gh: Query must include 'is:issue' or 'is:pull-request' (HTTP 422)",
+    ),
+  )
+}
+
+///|
+async test "business collections follow REST Link pagination without looping" {
+  let first_items : Array[String] = []
+  for i in 1..<=100 {
+    first_items.push("{\"number\":" + i.to_string() + "}")
+  }
+  let first_body = @utf8.encode(
+    "{\"total_count\":101,\"issues\":[" + first_items.join(",") + "]}",
+  )
+  let second_body = b"{\"total_count\":101,\"issues\":[{\"number\":101}]}"
+  let calls = Ref(0)
+  let transport = @github.Transport::new(send=request => {
+    calls.val += 1
+    assert_eq(request.path(), "/repos/acme/widgets/issues")
+    if calls.val == 1 {
+      assert_true(request.url().contains("page=1"))
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          headers=[
+            (
+              "Link", "<https://api.github.example/repos/acme/widgets/issues?per_page=100&page=2>; rel=\"next\"",
+            ),
+          ],
+          body=first_body,
+        ),
+      )
+    } else {
+      assert_eq(calls.val, 2)
+      assert_true(request.url().contains("page=2"))
+      Ok(@github.RawResponse::new(status=200, body=second_body))
+    }
+  })
+  let client = match
+    @github.Client::new(
+      config=@github.ClientConfig::new(base_url="https://api.github.example"),
+      transport~,
+    ) {
+    Ok(value) => value
+    Err(_) => fail("fixture client setup failed")
+  }
+  let options = match
+    @github_cli.parse([
+      "issue", "list", "-R", "acme/widgets", "--limit", "150", "--json", "number",
+    ]) {
+    @github_cli.Business(value) => value
+    _ => fail("expected business invocation")
+  }
+  let output = @native.execute_github_business(
+    options,
+    client~,
+    base_url="https://api.github.example",
+  )
+  assert_eq(output.exit_code(), 0)
+  assert_eq(calls.val, 2)
+  assert_true(output.stdout().contains("101"))
 }

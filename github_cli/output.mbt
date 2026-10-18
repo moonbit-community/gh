@@ -1316,6 +1316,112 @@ fn template_value(value : Json, expression : String) -> Result[String, String] {
     }
     return Ok(jq_join_value(selected, separator))
   }
+  if expression.has_prefix("truncate ") {
+    let words = match template_argument_words(expression[9:].to_owned()) {
+      Ok(words) => words
+      Err(error) => return Err(error)
+    }
+    guard words.length() == 2 else {
+      return Err("truncate expects a length and a value")
+    }
+    let length = match filter_literal(words[0]) {
+      Ok(Number(number, ..)) if number >= 0.0 && number.floor() == number =>
+        number.to_int()
+      _ => return Err("truncate length must be a non-negative integer")
+    }
+    let selected = match jq_eval(value, words[1]) {
+      Ok(items) => jq_first(items)
+      Err(_) => return Err("unsupported template truncate")
+    }
+    let text = json_to_filter_text(selected)
+    if text.length() <= length {
+      return Ok(text)
+    }
+    if length <= 3 {
+      return Ok(text[:length].to_owned())
+    }
+    return Ok(text[:length - 3].to_owned() + "...")
+  }
+  if expression.has_prefix("hyperlink ") {
+    let words = match template_argument_words(expression[10:].to_owned()) {
+      Ok(words) => words
+      Err(error) => return Err(error)
+    }
+    guard words.length() == 2 else {
+      return Err("hyperlink expects a URL and text")
+    }
+    // Piped output is plain text in gh; preserve URL parsing as an argument
+    // check without emitting terminal OSC-8 sequences in non-TTY output.
+    match jq_eval(value, words[0]) {
+      Ok(_) => ()
+      Err(_) =>
+        match filter_literal(words[0]) {
+          Ok(_) => ()
+          Err(_) => return Err("unsupported hyperlink URL")
+        }
+    }
+    let text = match jq_eval(value, words[1]) {
+      Ok(items) => json_to_filter_text(jq_first(items))
+      Err(_) =>
+        match filter_literal(words[1]) {
+          Ok(item) => json_to_filter_text(item)
+          Err(_) => return Err("unsupported hyperlink text")
+        }
+    }
+    return Ok(text)
+  }
+  if expression.has_prefix("color ") || expression.has_prefix("autocolor ") {
+    let autocolor = expression.has_prefix("autocolor ")
+    let offset = if autocolor { 10 } else { 6 }
+    let words = match template_argument_words(expression[offset:].to_owned()) {
+      Ok(words) => words
+      Err(error) => return Err(error)
+    }
+    guard words.length() == 2 else {
+      return Err("color expects a style and value")
+    }
+    let style = match filter_literal(words[0]) {
+      Ok(String(text)) => text
+      _ => return Err("color style must be a string")
+    }
+    let selected = match jq_eval(value, words[1]) {
+      Ok(items) => json_to_filter_text(jq_first(items))
+      Err(_) =>
+        match filter_literal(words[1]) {
+          Ok(item) => json_to_filter_text(item)
+          Err(_) => return Err("unsupported color value")
+        }
+    }
+    return Ok(
+      if autocolor {
+        selected
+      } else {
+        template_color(style, selected)
+      },
+    )
+  }
+  if expression.has_prefix("tablerow ") {
+    let words = match template_argument_words(expression[9:].to_owned()) {
+      Ok(words) => words
+      Err(error) => return Err(error)
+    }
+    let cells : Array[String] = []
+    for word in words {
+      let cell = match jq_eval(value, word) {
+        Ok(items) => json_to_filter_text(jq_first(items))
+        Err(_) =>
+          match filter_literal(word) {
+            Ok(item) => json_to_filter_text(item)
+            Err(_) => return Err("unsupported tablerow value")
+          }
+      }
+      cells.push(cell)
+    }
+    return Ok(cells.join("  ") + "\n")
+  }
+  if expression == "tablerender" {
+    return Ok("")
+  }
   if expression.has_prefix("contains ") ||
     expression.has_prefix("hasPrefix ") ||
     expression.has_prefix("hasSuffix ") {
@@ -1414,6 +1520,57 @@ fn template_printf(format : String, arguments : Array[String]) -> String {
     cursor += 1
   }
   out.to_string()
+}
+
+///|
+/// Return the ANSI code for a gh template color/style name.
+fn template_color_code(style : String) -> String? {
+  match style.trim().to_lower() {
+    "black" => Some("30")
+    "red" => Some("31")
+    "green" => Some("32")
+    "yellow" => Some("33")
+    "blue" => Some("34")
+    "magenta" => Some("35")
+    "cyan" => Some("36")
+    "white" => Some("37")
+    "gray" | "grey" => Some("90")
+    "bold" => Some("1")
+    "dim" => Some("2")
+    "underline" => Some("4")
+    _ => None
+  }
+}
+
+///|
+fn template_color(style : String, value : String) -> String {
+  let codes : Array[String] = []
+  for part in style.split(" ") {
+    if !part.is_empty() && template_color_code(part.to_owned()) is Some(code) {
+      codes.push(code)
+    }
+  }
+  if codes.is_empty() {
+    value
+  } else {
+    "\u{001b}[" + codes.join(";") + "m" + value + "\u{001b}[0m"
+  }
+}
+
+///|
+fn template_argument_words(source : String) -> Result[Array[String], String] {
+  let words = match split_filter_parts(source.trim().to_owned(), ' ') {
+    Ok(parts) => parts
+    Err(_) => return Err("malformed template arguments")
+  }
+  let words = words
+    .map(word => word.trim().to_owned())
+    .filter(word => !word.is_empty())
+  if words.is_empty() {
+    Err("missing template argument")
+  } else {
+    Ok(words)
+  }
 }
 
 ///|
@@ -1651,12 +1808,25 @@ fn response_prefix(status : Int32, headers : Array[(String, String)]) -> Bytes {
 }
 
 ///|
-fn error_line(status : Int32) -> String {
+/// Render the one-line API diagnostic used by `gh api`. GitHub's JSON error
+/// body carries a user-facing `message`; preserve the raw body on stdout but
+/// surface that message (when available) on stderr with the HTTP status.
+fn error_line(status : Int32, body : Bytes) -> String {
   let reason = status_text(status)
-  if reason.is_empty() {
-    "gh: HTTP " + status.to_string() + "\n"
-  } else {
-    "gh: HTTP " + status.to_string() + " " + reason + "\n"
+  let text = @utf8.decode(body) catch { _ => "" }
+  let value : Json = @json.parse(text) catch { _ => Json::null() }
+  let message : String? = match value {
+    Object(fields) =>
+      match fields.get("message") {
+        Some(String(value)) if !value.is_empty() => Some(value)
+        _ => None
+      }
+    _ => None
+  }
+  match message {
+    Some(value) => "gh: " + value + " (HTTP " + status.to_string() + ")\n"
+    None if reason.is_empty() => "gh: HTTP " + status.to_string() + "\n"
+    None => "gh: HTTP " + status.to_string() + " " + reason + "\n"
   }
 }
 
@@ -1758,8 +1928,12 @@ pub fn render_response(
     output_body
   }
   if status < 200 || status >= 300 {
-    stderr = stderr + error_line(status)
-    return Output::from_bytes(stdout, stderr~, exit_code=1)
+    stderr = stderr + error_line(status, body)
+    return Output::from_bytes(
+      stdout,
+      stderr~,
+      exit_code=if status == 401 { 4 } else { 1 },
+    )
   }
   Output::from_bytes(stdout, stderr~)
 }
