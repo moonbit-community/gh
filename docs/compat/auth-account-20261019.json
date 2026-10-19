@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "scope": "OAuth, native credential persistence, and account command implementation",
+  "source": {
+    "branch": "master",
+    "base_revision": "fb79c88b276e5bca07ce8abda36db440e643ce8a",
+    "working_tree_dirty": true,
+    "committed": false,
+    "note": "State at validation time, before the implementation and handoff commit. Validation includes local branch, release, secret and variable changes. The base revision alone does not reproduce the validated working tree."
+  },
+  "binary": {
+    "path": "_build/native/release/build/cmd/main/main.exe",
+    "sha256": "8f5b9d4872922f77087cd5bdda6d23418fa244786709c11f3c1f899861b30f99",
+    "target": "native",
+    "profile": "release"
+  },
+  "validation": {
+    "native_check_frozen_deny_warn": "passed",
+    "native_whole_tree_tests": { "total": 259, "passed": 259, "failed": 0 },
+    "native_release_build_frozen_deny_warn": "passed",
+    "moon_info": "passed",
+    "generated_interfaces_reviewed": true,
+    "moon_fmt_check_including_project_scripts": "passed",
+    "git_diff_check": "passed",
+    "isolated_release_binary_smoke": {
+      "missing_oauth_app_config": "expected sanitized message and exit 1",
+      "anonymous_auth_status": "expected not-logged-in message and exit 1",
+      "environment": "empty inherited environment, isolated temporary HOME and GH_CONFIG_DIR"
+    },
+    "portable_regression_earlier_in_this_slice": {
+      "wasm": { "passed": 68, "failed": 0 },
+      "wasm_gc": { "passed": 51, "failed": 0 },
+      "js": { "passed": 68, "failed": 0 },
+      "frozen_warning_denied_checks": "passed",
+      "note": "Subsequent persistence changes are confined to the native package. These portable counts are regression checks, not native OAuth implementation coverage."
+    }
+  },
+  "controlled_coverage": [
+    "Device code, polling, slow-down, rejection, expiry and cancellation",
+    "Authorization code with PKCE, state, real loopback socket validation and closure",
+    "Identity verification and refresh account/scope policy",
+    "Linux, macOS and Windows credential helper protocols with injected runners",
+    "Credential commit, rollback, recovery markers and cancellation",
+    "Private temporary-file ownership, failure cleanup and atomic replacement",
+    "Gist file mutations, SSH authentication/signing keys, and GPG public keys",
+    "Projects V2 basic lifecycle and account status aggregation"
+  ],
+  "real_acceptance": {
+    "github_oauth_device": "pending",
+    "github_oauth_web": "pending",
+    "linux_keyring_store_read_delete": "pending",
+    "macos_keychain": "pending",
+    "windows_credential_wincred": "pending",
+    "account_resource_lifecycles": "pending",
+    "real_credentials_read_during_this_slice": false,
+    "real_account_mutations_during_this_slice": false
+  },
+  "remaining_implementation": [
+    "Refresh-token rotation for expiring OAuth credentials",
+    "Automatic device-to-web fallback",
+    "Interactive gist editor, clone/web, truncated raw retrieval and list pagination",
+    "Projects item and field management",
+    "Exact status terminal layout, sorting, limits, cache and partial authorization recovery"
+  ],
+  "core_parity_verified": false,
+  "prior_live_repository_report": {
+    "path": "docs/compat/live-write-20261019.json",
+    "applies_to_this_binary": false
+  },
+  "setup_guide": "docs/development/auth-acceptance.md"
+}

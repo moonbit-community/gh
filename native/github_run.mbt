@@ -29,18 +29,13 @@ pub async fn run_github(args : Array[String]) -> @github_cli.Output {
     @github_cli.Completion(shell~) => completion_output(shell)
     @github_cli.Config(arguments) => github_config_command(arguments)
     @github_cli.Alias(arguments) => github_alias_command(arguments)
-    // The native executable uses Secret Service when available. The backend
-    // reports an unavailable keyring as a normal miss, so hosts.yml remains
-    // the portable fallback and test/embedding callers can still inject their
-    // own CredentialBackend explicitly.
+    // The native executable selects the platform credential store. Embedders
+    // can still inject their own CredentialBackend explicitly.
     @github_cli.Auth(arguments) =>
       github_auth_command(
         arguments,
-        credential_backend=secret_tool_backend(
-          command=@env.get_env_var("GH_KEYRING_COMMAND").unwrap_or(
-            "secret-tool",
-          ),
-        ),
+        oauth_adapter?=default_oauth_adapter(arguments),
+        credential_backend=system_credential_backend(),
       )
     @github_cli.Api(options) => run_api(options)
     @github_cli.Business(options) => run_business(options)
@@ -137,9 +132,7 @@ async fn run_business(
         )
     }
   }
-  let keyring = secret_tool_backend(
-    command=@env.get_env_var("GH_KEYRING_COMMAND").unwrap_or("secret-tool"),
-  )
+  let keyring = system_credential_backend()
   let config = match resolve_github_auth_with_backend(environment, keyring) {
     Ok(value) => value
     Err(error) => return error

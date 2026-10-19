@@ -74,14 +74,48 @@ pub fn github_client(
   @github.Client::new(
     config=@github.ClientConfig::new(base_url~, graphql_url?, token?),
     transport=@github.Transport::new(send=request => {
-      let selected = match upload_origin {
-        Some(value) if value != origin &&
-          request.url().strip_prefix(value + "/") is Some(_) =>
-          match upload_transport {
-            Some(value_transport) => (value_transport, value)
-            None => return Err(@github.TransportError::Failed)
+      let mut download_origin : String? = None
+      if origin == "https://api.github.com" {
+        for
+          candidate in [
+            "https://release-assets.githubusercontent.com", "https://github-releases.githubusercontent.com",
+          ] {
+          if request.url().has_prefix(candidate + "/") {
+            download_origin = Some(candidate)
           }
-        _ => (transport, origin)
+        }
+      }
+      let selected = if download_origin is Some(asset_origin) {
+        // The SDK's explicit release download operation validates every hop.
+        // Never forward API credentials or cookies to the signed asset URL.
+        guard request.verb() == "GET" &&
+          request.body() is None &&
+          request
+          .headers()
+          .all(pair => {
+            pair.0.equal_ignore_ascii_case("Accept") ||
+            pair.0.equal_ignore_ascii_case("User-Agent")
+          }) else {
+          return Err(@github.TransportError::Failed)
+        }
+        let asset_transport = @transport.native_raw_transport(
+          base_url=asset_origin,
+          timeout_ms~,
+          max_response_bytes~,
+        ) catch {
+          _ => return Err(@github.TransportError::Failed)
+        }
+        (asset_transport, asset_origin)
+      } else {
+        match upload_origin {
+          Some(value) if value != origin &&
+            request.url().strip_prefix(value + "/") is Some(_) =>
+            match upload_transport {
+              Some(value_transport) => (value_transport, value)
+              None => return Err(@github.TransportError::Failed)
+            }
+          _ => (transport, origin)
+        }
       }
       let (selected_transport, selected_origin) = selected
       let suffix = match request.url().strip_prefix(selected_origin + "/") {
@@ -193,9 +227,7 @@ async fn run_api(options : @github_cli.ApiOptions) -> @github_cli.Output {
     Some(host) => environment.with_host(host)
     None => environment
   }
-  let keyring = secret_tool_backend(
-    command=@env.get_env_var("GH_KEYRING_COMMAND").unwrap_or("secret-tool"),
-  )
+  let keyring = system_credential_backend()
   let config = match resolve_github_auth_with_backend(environment, keyring) {
     Ok(v) => v
     Err(e) => return e

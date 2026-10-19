@@ -191,18 +191,110 @@ async test "async credential backend participates in account resolution" {
 }
 
 ///|
-#cfg(not(platform="windows"))
-async test "secret tool backend uses argv and bounded process I/O" {
-  let directory = @fs.tmpdir(prefix="gh-secret-tool-fixture-")
+async test "missing secret tool returns unavailable without exposing credential input" {
+  let directory = @fs.tmpdir(prefix="gh-secret-tool-missing-")
   defer @fs.rmdir(directory, recursive=true)
-  let command = directory + "/secret-tool-fixture"
-  @fs.write_file(
-    command,
-    "#!/bin/sh\nif [ \"$1\" = \"lookup\" ]; then printf fixture-secret; fi\ncat >/dev/null\nexit 0\n",
-    permission=0o700,
-  )
+  let command = directory + "/does-not-exist"
   let backend = @native.secret_tool_backend(command~)
-  assert_eq(backend.read_async("github.com", "fixture"), Some("fixture-secret"))
-  assert_true(backend.write_async("github.com", "fixture", "write-secret"))
-  assert_true(backend.delete_async("github.com", "fixture"))
+  assert_eq(backend.read_async("github.com", "fixture"), None)
+  assert_false(backend.write_async("github.com", "fixture", "write-secret"))
+  assert_false(backend.delete_async("github.com", "fixture"))
+}
+
+///|
+async test "auth logout preserves keyring account when delete cannot be confirmed" {
+  let directory = @fs.tmpdir(prefix="gh-keyring-logout-")
+  defer @fs.rmdir(directory, recursive=true)
+  let source = "github.com:\n  user: fixture\n  users:\n    fixture:\n      git_protocol: https\n"
+  @fs.write_file(directory + "/hosts.yml", source)
+  let backend = @native.CredentialBackend::new(
+    read=(_, _) => Some("fixture-token"),
+    write=(_, _, _) => true,
+    delete=(_, _) => false,
+  )
+  let output = @native.github_auth_command(
+    ["logout", "--hostname", "github.com", "--user", "fixture"],
+    environment=@github_auth.Environment::new(),
+    config_dir=directory,
+    credential_backend=backend,
+  )
+  assert_eq(output.exit_code(), 1)
+  assert_true(output.stderr().contains("account configuration was kept"))
+  assert_false(output.stderr().contains("fixture-token"))
+  assert_eq(@fs.read_file(directory + "/hosts.yml").text(), source)
+  let unavailable = @native.github_auth_command(
+    ["logout", "--hostname", "github.com", "--user", "fixture"],
+    environment=@github_auth.Environment::new(),
+    config_dir=directory,
+  )
+  assert_eq(unavailable.exit_code(), 1)
+  assert_eq(@fs.read_file(directory + "/hosts.yml").text(), source)
+}
+
+///|
+async test "auth logout removes keyring account only after backend confirms deletion" {
+  let directory = @fs.tmpdir(prefix="gh-keyring-logout-success-")
+  defer @fs.rmdir(directory, recursive=true)
+  @fs.write_file(
+    directory + "/hosts.yml",
+    "github.com:\n  user: fixture\n  users:\n    fixture:\n      git_protocol: https\n",
+  )
+  let mut deleted = false
+  let backend = @native.CredentialBackend::new(
+    read=(_, _) => Some("fixture-token"),
+    write=(_, _, _) => true,
+    delete=(host, user) => {
+      deleted = host == "github.com" && user == "fixture"
+      deleted
+    },
+  )
+  let output = @native.github_auth_command(
+    ["logout", "--hostname", "github.com", "--user", "fixture"],
+    environment=@github_auth.Environment::new(),
+    config_dir=directory,
+    credential_backend=backend,
+  )
+  assert_eq(output.exit_code(), 0)
+  assert_true(deleted)
+  assert_false(
+    @fs.read_file(directory + "/hosts.yml").text().contains("github.com"),
+  )
+}
+
+///|
+async test "auth logout cancellation preserves the keyring account reference" {
+  let directory = @fs.tmpdir(prefix="gh-keyring-logout-cancel-")
+  defer @fs.rmdir(directory, recursive=true)
+  let source = "github.com:\n  user: fixture\n  users:\n    fixture:\n      git_protocol: https\n"
+  @fs.write_file(directory + "/hosts.yml", source)
+  let mut started = false
+  let mut completed = false
+  let backend = @native.CredentialBackend::new_async(
+    read=(_, _) => Some("fixture-token"),
+    write=(_, _, _) => true,
+    delete=(_, _) => {
+      started = true
+      @async.sleep(60000)
+      true
+    },
+  )
+  @async.with_task_group() <| group => {
+    let task = group.spawn(() => {
+      ignore(
+        @native.github_auth_command(
+          ["logout", "--hostname", "github.com", "--user", "fixture"],
+          environment=@github_auth.Environment::new(),
+          config_dir=directory,
+          credential_backend=backend,
+        ),
+      )
+      completed = true
+    })
+    while !started {
+      @async.pause()
+    }
+    task.cancel()
+  }
+  assert_false(completed)
+  assert_eq(@fs.read_file(directory + "/hosts.yml").text(), source)
 }

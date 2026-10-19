@@ -17,6 +17,7 @@ pub struct Client {
   retry_policy : RetryPolicy
   // private fields
 }
+pub async fn Client::download_release_asset(Self, String) -> Result[RawResponse, GitHubError]
 pub async fn Client::graphql(Self, GraphQLRequest, operation_id? : String) -> Result[GraphQLEnvelope, GitHubError]
 pub async fn Client::graphql_raw(Self, Request, operation_id? : String, operation_name? : String) -> Result[RawResponse, GitHubError]
 pub fn Client::new(config~ : ClientConfig, transport~ : Transport, retry_policy? : RetryPolicy, trace_observer? : async (TraceRecord) -> Unit, clock? : () -> Int64) -> Result[Self, GitHubError]

@@ -51,6 +51,24 @@ fn auth_account_token(
 }
 
 ///|
+fn auth_account_cleanup_pending(
+  values : Map[String, LocalYaml],
+  user : String,
+) -> Bool {
+  match values.get("users") {
+    Some(Mapping(accounts)) =>
+      match accounts.get(user) {
+        Some(Mapping(account)) =>
+          local_get(account, "keyring_cleanup_pending") == Some("true")
+        _ => false
+      }
+    _ =>
+      local_get(values, "user") == Some(user) &&
+      local_get(values, "keyring_cleanup_pending") == Some("true")
+  }
+}
+
+///|
 /// Keep the legacy top-level token synchronized with the selected account.
 /// gh writes this compatibility field even when the canonical account lives
 /// under `users`, so `auth token` and older clients see the same credential.
@@ -210,12 +228,22 @@ async fn github_auth_logout_local(
   guard names.contains(user) else {
     return local_error("not logged in to " + host + " account " + user)
   }
-  // Remove a keyring entry even when the YAML account has no oauth_token.
-  // Backend failures are deliberately ignored: logout still removes the
-  // local account and must never echo an OS credential-store error.
-  match credential_backend {
-    Some(backend) => ignore(backend.delete_async(host, user))
-    None => ()
+  // Keep a keyring-backed account reference until deletion is confirmed.
+  // Otherwise a failed helper would orphan a still-valid OS credential.
+  // Plaintext accounts do not require an available OS keyring to log out.
+  if auth_account_token(values, user) is None ||
+    auth_account_cleanup_pending(values, user) {
+    let deleted = match credential_backend {
+      Some(backend) => backend.delete_async(host, user)
+      None => false
+    }
+    guard deleted else {
+      return local_error(
+        "unable to remove credential from the system credential store; account configuration was kept",
+      )
+    }
+  } else if credential_backend is Some(backend) {
+    ignore(backend.delete_async(host, user))
   }
   match values.get("users") {
     Some(Mapping(accounts)) => {

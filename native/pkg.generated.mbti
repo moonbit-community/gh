@@ -2,6 +2,7 @@
 package "ZSeanYves/gh/native"
 
 import {
+  "ZSeanYves/gh",
   "ZSeanYves/gh/github",
   "ZSeanYves/gh/github_cli",
   "ZSeanYves/gh/internal/github_auth",
@@ -10,6 +11,8 @@ import {
 
 // Values
 pub async fn configured_editor(String?) -> String
+
+pub fn device_oauth_adapter(client_id~ : String, present~ : async (OAuthDevicePrompt) -> Bool, transport? : @gh.RawTransport, wait? : async (Int) -> Unit, now? : () -> UInt64) -> OAuthAdapter
 
 pub async fn execute_github_api(@github_cli.ApiOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext) -> @github_cli.Output
 
@@ -52,6 +55,10 @@ pub async fn run_terminal_process(String, Array[String], timeout_ms? : Int, runn
 pub fn secret_tool_backend(command? : String) -> CredentialBackend
 
 pub fn split_native_command(String) -> Result[(String, Array[String]), ProcessAdapterError]
+
+pub fn system_credential_backend() -> CredentialBackend
+
+pub fn web_oauth_adapter(client_id~ : String, client_secret~ : String, present~ : async (OAuthWebPrompt) -> Bool, transport? : @gh.RawTransport, callback? : async (OAuthWebPrompt) -> Result[String, OAuthError], timeout_ms? : Int) -> OAuthAdapter
 
 // Errors
 pub suberror ProcessAdapterError {
@@ -96,14 +103,32 @@ pub async fn OAuthAdapter::authorize_async(Self, String, String) -> Result[Strin
 pub fn OAuthAdapter::new(authorize~ : (String, String) -> Result[String, OAuthError]) -> Self
 pub fn OAuthAdapter::new_async(authorize~ : async (String, String) -> Result[String, OAuthError]) -> Self
 
+pub struct OAuthDevicePrompt {
+  // private fields
+}
+pub fn OAuthDevicePrompt::expires_in(Self) -> Int
+pub fn OAuthDevicePrompt::user_code(Self) -> String
+pub fn OAuthDevicePrompt::verification_uri(Self) -> String
+
 pub(all) enum OAuthError {
   Unavailable
+  InvalidConfiguration
   Cancelled
+  Denied
+  Expired
+  ExpiringTokenUnsupported
   Failed
 } derive(Eq, @debug.Debug)
 pub fn OAuthError::equal(Self, Self) -> Bool
 pub fn OAuthError::not_equal(Self, Self) -> Bool
 pub fn OAuthError::to_repr(Self) -> @debug.Repr
+
+pub struct OAuthWebPrompt {
+  // private fields
+}
+pub fn OAuthWebPrompt::authorization_uri(Self) -> String
+pub fn OAuthWebPrompt::redirect_uri(Self) -> String
+pub fn OAuthWebPrompt::timeout_ms(Self) -> Int
 
 // Type aliases
 

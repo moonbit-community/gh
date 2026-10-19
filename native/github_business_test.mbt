@@ -342,11 +342,6 @@ async test "core business commands build GitHub REST requests" {
       "GET",
       "/repos/acme/widgets/rulesets/42",
     ),
-    (
-      ["release", "delete-asset", "77", "-R", "acme/widgets"],
-      "DELETE",
-      "/repos/acme/widgets/releases/assets/77",
-    ),
     (["search", "code", "hello world"], "GET", "/search/code"),
   ]
   for (args, expected_method, expected_path) in cases {
@@ -614,12 +609,38 @@ async test "business command loopback fixture serves repo status and release" {
       let (conn, _) = second
       defer conn.close()
       let request = conn.read_request()
-      assert_eq(request.meth, @http.Get)
-      assert_eq(request.path, "/notifications?all=true")
+      assert_eq(request.meth, @http.Post)
+      assert_eq(request.path, "/graphql")
+      let body = conn.read_all().text()
+      assert_true(body.contains("AccountStatus"))
+      assert_true(body.contains("assignee:@me"))
       conn.send_response(200, "OK", extra_headers={
         "Content-Type": "application/json",
       })
-      conn..write("[]\n").end_response()
+      conn
+      ..write(
+        "{\"data\":{\"assignments\":{\"nodes\":[]},\"reviewRequested\":{\"nodes\":[]}}}\n",
+      )
+      .end_response()
+
+      for
+        (path, response) in [
+          ("/user", "{\"login\":\"fixture-user\"}\n"),
+          (
+            "/notifications?participating=true&all=true&per_page=100&page=1", "[]\n",
+          ),
+          ("/users/fixture-user/received_events?per_page=100&page=1", "[]\n"),
+        ] {
+        let (conn, _) = server.accept()
+        defer conn.close()
+        let request = conn.read_request()
+        assert_eq(request.meth, @http.Get)
+        assert_eq(request.path, path)
+        conn.send_response(200, "OK", extra_headers={
+          "Content-Type": "application/json",
+        })
+        conn..write(response).end_response()
+      }
 
       let third = server.accept()
       let (conn, _) = third
@@ -656,7 +677,7 @@ async test "business command loopback fixture serves repo status and release" {
     assert_eq(repo_output.exit_code(), 0)
     assert_true(repo_output.stdout().contains("widgets"))
 
-    let status_options = match @github_cli.parse(["status", "--all"]) {
+    let status_options = match @github_cli.parse(["status"]) {
       @github_cli.Business(value) => value
       _ => fail("expected status invocation")
     }
@@ -691,6 +712,14 @@ async test "business command loopback fixture serves repo status and release" {
 async test "projects and discussions business commands use GraphQL" {
   let seen : Array[(String, String, String)] = []
   let transport = @github.Transport::new(send=request => {
+    if request.path() == "/users/octocat" {
+      return Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"node_id\":\"U_octocat\",\"type\":\"User\"}",
+        ),
+      )
+    }
     let body = match request.body() {
       Some(value) =>
         @utf8.decode(value) catch {
@@ -699,11 +728,11 @@ async test "projects and discussions business commands use GraphQL" {
       None => fail("GraphQL request body was absent")
     }
     seen.push((request.verb(), request.path(), body))
-    if body.contains("ProjectList") {
+    if body.contains("AccountProjects") {
       Ok(
         @github.RawResponse::new(
           status=200,
-          body=b"{\"data\":{\"user\":{\"projectsV2\":{\"nodes\":[{\"number\":7,\"title\":\"Roadmap\"}]}}}}",
+          body=b"{\"data\":{\"node\":{\"projectsV2\":{\"nodes\":[{\"number\":7,\"title\":\"Roadmap\"}]}}}}",
         ),
       )
     } else {
@@ -759,8 +788,8 @@ async test "projects and discussions business commands use GraphQL" {
   assert_eq(seen.length(), 2)
   assert_eq(seen[0].0, "POST")
   assert_eq(seen[0].1, "/graphql")
-  assert_true(seen[0].2.contains("\"operationName\":\"ProjectList\""))
-  assert_true(seen[0].2.contains("\"login\":\"octocat\""))
+  assert_true(seen[0].2.contains("AccountProjects"))
+  assert_true(seen[0].2.contains("\"owner\":\"U_octocat\""))
   assert_eq(seen[1].0, "POST")
   assert_eq(seen[1].1, "/graphql")
   assert_true(seen[1].2.contains("\"operationName\":\"DiscussionView\""))
@@ -770,13 +799,19 @@ async test "projects and discussions business commands use GraphQL" {
 
 ///|
 /// GraphQL business collections use cursor pagination when a requested limit
-/// exceeds GitHub's 100-node connection page.  The query contains several
-/// Project owner fallbacks, so the fixture also proves that the selected
-/// viewer connection's cursor is used instead of guessing across pageInfo
-/// objects.
+/// exceeds GitHub's 100-node connection page. The resolved owner node keeps
+/// the connection cursor unambiguous for users and organizations.
 async test "project GraphQL list follows cursor pagination" {
   let seen : Array[String] = []
   let transport = @github.Transport::new(send=request => {
+    if request.path() == "/user" {
+      return Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"node_id\":\"U_viewer\",\"type\":\"User\"}",
+        ),
+      )
+    }
     let body = match request.body() {
       Some(value) =>
         @utf8.decode(value) catch {
@@ -789,14 +824,14 @@ async test "project GraphQL list follows cursor pagination" {
       Ok(
         @github.RawResponse::new(
           status=200,
-          body=b"{\"data\":{\"viewer\":{\"projectsV2\":{\"nodes\":[{\"number\":2,\"title\":\"Second\"}],\"pageInfo\":{\"hasNextPage\":false,\"endCursor\":\"cursor-2\"}},\"user\":null,\"organization\":null}}}",
+          body=b"{\"data\":{\"node\":{\"projectsV2\":{\"nodes\":[{\"number\":2,\"title\":\"Second\"}],\"pageInfo\":{\"hasNextPage\":false,\"endCursor\":\"cursor-2\"}}}}}",
         ),
       )
     } else {
       Ok(
         @github.RawResponse::new(
           status=200,
-          body=b"{\"data\":{\"viewer\":{\"projectsV2\":{\"nodes\":[{\"number\":1,\"title\":\"First\"}],\"pageInfo\":{\"hasNextPage\":true,\"endCursor\":\"cursor-1\"}},\"user\":null,\"organization\":null}}}",
+          body=b"{\"data\":{\"node\":{\"projectsV2\":{\"nodes\":[{\"number\":1,\"title\":\"First\"}],\"pageInfo\":{\"hasNextPage\":true,\"endCursor\":\"cursor-1\"}}}}}",
         ),
       )
     }
@@ -892,7 +927,15 @@ async test "issue delete resolves node id and sends GraphQL mutation" {
 /// A successful HTTP response can still carry GraphQL errors.  Surface the
 /// provider message on stderr while keeping the command failure exit code.
 async test "business GraphQL errors preserve the first provider message" {
-  let transport = @github.Transport::new(send=_request => {
+  let transport = @github.Transport::new(send=request => {
+    if request.path() == "/users/octocat" {
+      return Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"node_id\":\"U_octocat\",\"type\":\"User\"}",
+        ),
+      )
+    }
     Ok(
       @github.RawResponse::new(
         status=200,
@@ -997,7 +1040,9 @@ async test "business path arguments are encoded as one REST segment" {
     Ok(value) => value
     Err(_) => fail("fixture client setup failed")
   }
-  let invocation = @github_cli.parse(["gist", "view", "a?b#c d"])
+  let invocation = @github_cli.parse([
+    "release", "view", "a?b#c d", "-R", "acme/widgets",
+  ])
   let options = match invocation {
     @github_cli.Business(value) => value
     _ => fail("expected business invocation")
@@ -1008,7 +1053,7 @@ async test "business path arguments are encoded as one REST segment" {
     base_url="https://api.github.example",
   )
   assert_eq(output.exit_code(), 0)
-  assert_eq(seen_path, "/gists/a%3Fb%23c%20d")
+  assert_eq(seen_path, "/repos/acme/widgets/releases/tags/a%3Fb%23c%20d")
 }
 
 ///|

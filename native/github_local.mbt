@@ -219,15 +219,52 @@ async fn local_write_yaml(
     .map(value => value.to_int().to_string(radix=16))
     .join("")
   let temporary = directory + "/." + name + "." + suffix
-  @fs.write_file(
+  local_replace_private_file(
     temporary,
+    directory + "/" + name,
     local_yaml_render(values, ""),
-    create_mode=@fs.CreateNew,
-    permission=0o600,
-    sync=@fs.Full,
   )
-  errdefer (@fs.remove(temporary) catch { _ => () })
-  @fs.rename(temporary, directory + "/" + name, replace=true)
+}
+
+///|
+// Keep ownership explicit: cleanup is registered only after exclusive open
+// succeeds, but before the first write. A collided CreateNew path belongs to
+// someone else and is never unlinked. File close precedes remove/rename on
+// Windows. Shielding ensures cancellation cannot strand a partial secret.
+async fn local_replace_private_file(
+  temporary : String,
+  destination : String,
+  content : String,
+  write~ : async (@fs.File, String) -> Unit = (file, value) => file.write(value),
+  timeout_ms~ : Int32 = 15000,
+) -> Unit {
+  @async.pause()
+  @async.protect_from_cancel(() => {
+    let file = @fs.open(
+      temporary,
+      mode=@fs.WriteOnly,
+      create_mode=@fs.CreateNew,
+      permission=0o600,
+      sync=@fs.Full,
+    )
+    let mut closed = false
+    let mut renamed = false
+    defer {
+      if !closed {
+        file.close()
+      }
+      if !renamed {
+        @fs.remove(temporary) catch {
+          _ => raise LocalConfigError
+        }
+      }
+    }
+    @async.with_timeout(timeout_ms, () => write(file, content))
+    file.close()
+    closed = true
+    @fs.rename(temporary, destination, replace=true)
+    renamed = true
+  })
 }
 
 ///|

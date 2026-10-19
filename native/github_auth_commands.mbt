@@ -93,7 +93,7 @@ async fn github_auth_local(
       _ => return local_error("failed to read or write GitHub credentials")
     }
     return github_auth_login_local(
-      command, args, environment, directory, credential_backend, oauth_adapter,
+      command, args, environment, directory, credential_backend, oauth_adapter, transport,
     )
   }
   if command == "switch" {
@@ -467,16 +467,32 @@ async fn github_auth_login_local(
   directory : String,
   credential_backend : CredentialBackend?,
   oauth_adapter : OAuthAdapter?,
+  transport : @github.Transport?,
 ) -> @github_cli.Output {
   let mut explicit_host : String? = None
   let mut explicit_user : String? = None
   let mut with_token = false
-  let mut scopes = "repo,read:org,gist"
+  let extra_scopes : Array[String] = []
+  let remove_scopes : Array[String] = []
+  let mut reset_scopes = false
+  let mut insecure_storage = false
+  let mut web = false
+  let mut git_protocol : String? = None
   let mut index = 1
   while index < args.length() {
     let arg = args[index]
     index += 1
-    if arg is ("--hostname" | "-h" | "--user" | "-u" | "--scopes") {
+    if arg
+      is ("--hostname"
+      | "-h"
+      | "--user"
+      | "-u"
+      | "--scopes"
+      | "-s"
+      | "--remove-scopes"
+      | "-r"
+      | "--git-protocol"
+      | "-p") {
       guard args.get(index) is Some(value) else {
         return local_error("flag needs an argument: " + arg)
       }
@@ -485,28 +501,55 @@ async fn github_auth_login_local(
         explicit_host = Some(value)
       } else if arg is ("--user" | "-u") {
         explicit_user = Some(value)
+      } else if arg is ("--scopes" | "-s") {
+        extra_scopes.push(value)
+      } else if arg is ("--remove-scopes" | "-r") && command == "refresh" {
+        remove_scopes.push(value)
+      } else if arg is ("--git-protocol" | "-p") && command == "login" {
+        git_protocol = Some(value)
       } else {
-        scopes = value
+        return local_error("unknown flag: " + arg)
       }
     } else if arg.has_prefix("--hostname=") {
       explicit_host = Some(arg[11:].to_owned())
     } else if arg.has_prefix("--user=") {
       explicit_user = Some(arg[7:].to_owned())
     } else if arg.has_prefix("--scopes=") {
-      scopes = arg[9:].to_owned()
-    } else if arg == "--with-token" {
+      extra_scopes.push(arg[9:].to_owned())
+    } else if arg.has_prefix("--remove-scopes=") && command == "refresh" {
+      remove_scopes.push(arg[16:].to_owned())
+    } else if arg.has_prefix("--git-protocol=") && command == "login" {
+      git_protocol = Some(arg[15:].to_owned())
+    } else if arg == "--with-token" && command == "login" {
       with_token = true
-    } else if arg is ("--web" | "--clipboard" | "--insecure-storage") {
+    } else if arg is ("--web" | "-w") && command == "login" {
+      web = true
+    } else if arg == "--insecure-storage" {
+      insecure_storage = true
+    } else if arg == "--reset-scopes" && command == "refresh" {
+      reset_scopes = true
+    } else if arg is ("--clipboard" | "-c") ||
+      (arg == "--skip-ssh-key" && command == "login") {
       ()
     } else {
       return local_error("unknown flag: " + arg)
     }
+  }
+  if with_token && (web || !extra_scopes.is_empty()) {
+    return local_error("--with-token cannot be combined with --web or --scopes")
+  }
+  if git_protocol is Some(value) && value != "https" && value != "ssh" {
+    return local_error("git protocol must be https or ssh")
   }
   let environment = match explicit_host {
     Some(host) => environment.with_host(host)
     None => environment
   }
   let host = match @github_auth.resolve(environment) {
+    Ok(config) if config.token() is Some(_) =>
+      return local_error(
+        "An environment token is active. Unset it before storing or refreshing authentication.",
+      )
     Ok(config) => config.host()
     Err(_) => return local_error("invalid hostname", code=4)
   }
@@ -516,31 +559,102 @@ async fn github_auth_login_local(
     Some(Mapping(values)) => values
     _ => Map([])
   }
-  let user = match explicit_user {
-    Some(value) if !value.is_empty() => value
-    None => auth_active_name(existing).unwrap_or("default")
-    _ => return local_error("invalid account name")
-  }
   if command == "refresh" && auth_account_names(existing).is_empty() {
     return local_error("not logged in to " + host)
   }
-  let token = if with_token {
-    let text = @stdio.stdin.read_all().text() catch {
-        _ => return local_error("failed to read token")
+  let mut requested = ["repo", "read:org", "gist"]
+  let mut refresh_user : String? = None
+  if command == "refresh" {
+    let user = auth_active_name(existing).unwrap_or("")
+    let prior = match auth_account_token(existing, user) {
+      Some(value) => Some(value)
+      None =>
+        match credential_backend {
+          Some(backend) => backend.read_async(host, user)
+          None => None
+        }
+    }
+    guard prior is Some(prior) else {
+      return local_error("no stored credential for the active account")
+    }
+    let (login, scopes) = match auth_verify_identity(host, prior, transport) {
+      Ok(value) => value
+      Err(error) => return error
+    }
+    guard login == user else {
+      return local_error("stored credential belongs to a different account")
+    }
+    refresh_user = Some(user)
+    if !reset_scopes {
+      for scope in auth_scope_names(scopes) {
+        if !requested.contains(scope) {
+          requested.push(scope)
+        }
       }
+    }
+  }
+  let removed = auth_scope_names(remove_scopes.join(","))
+  requested = requested.filter(scope => {
+    ["repo", "read:org", "gist"].contains(scope) || !removed.contains(scope)
+  })
+  for scope in auth_scope_names(extra_scopes.join(",")) {
+    if !requested.contains(scope) {
+      requested.push(scope)
+    }
+  }
+  let scopes = requested.join(",")
+  guard requested.all(scope => {
+    scope
+    .iter()
+    .all(ch => ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9' | ':' | '_' | '-'))
+  }) else {
+    return local_error("invalid OAuth scope")
+  }
+  let token = if with_token {
+    let text = local_stdin_text(None) catch {
+      err if @async.is_being_cancelled() => raise err
+      _ => return local_error("failed to read token")
+    }
     let value = text.trim().to_owned()
     guard !value.is_empty() else { return local_error("token is required") }
     value
   } else {
     let adapter = match oauth_adapter {
       Some(value) => value
-      None => return local_error("OAuth login is unavailable in this host")
+      None =>
+        return local_error(
+          "Set GH_OAUTH_CLIENT_ID for your own OAuth App and enable Device Flow; GH_OAUTH_FLOW=web additionally requires GH_OAUTH_CLIENT_SECRET.",
+        )
     }
     match adapter.authorize_async(host, scopes) {
       Ok(value) => value
       Err(OAuthError::Cancelled) => return @github_cli.Output::new(exit_code=2)
+      Err(OAuthError::Denied) =>
+        return local_error("OAuth authorization was denied", code=2)
+      Err(OAuthError::Expired) =>
+        return local_error("OAuth authorization expired; retry login")
+      Err(OAuthError::InvalidConfiguration) =>
+        return local_error("invalid OAuth App configuration")
+      Err(OAuthError::ExpiringTokenUnsupported) =>
+        return local_error(
+          "This build does not support expiring OAuth tokens. Disable token expiration on the test OAuth App, or use a supported credential.",
+        )
       Err(_) => return local_error("OAuth authorization failed")
     }
+  }
+  let (user, _) = match auth_verify_identity(host, token, transport) {
+    Ok(value) => value
+    Err(error) => return error
+  }
+  if explicit_user is Some(expected) && expected != user {
+    return local_error(
+      "authorized account does not match the requested account",
+    )
+  }
+  if refresh_user is Some(expected) && expected != user {
+    return local_error(
+      "refresh authorized a different account; credentials were not changed",
+    )
   }
   match
     @github_auth.resolve(
@@ -550,41 +664,8 @@ async fn github_auth_login_local(
     Ok(_) => ()
     Err(_) => return local_error("invalid GitHub token", code=4)
   }
-  let stored_in_backend = match credential_backend {
-    Some(backend) => backend.write_async(host, user, token)
-    None => false
-  }
-  let account : Map[String, LocalYaml] = match existing.get("users") {
-    Some(Mapping(users)) =>
-      match users.get(user) {
-        Some(Mapping(values)) => values
-        _ => Map([])
-      }
-    _ => Map([])
-  }
-  let users : Map[String, LocalYaml] = match existing.get("users") {
-    Some(Mapping(values)) => values
-    _ => Map([])
-  }
-  if !stored_in_backend {
-    account["oauth_token"] = Scalar(token)
-  } else {
-    account.remove("oauth_token")
-  }
-  users[user] = Mapping(account)
-  existing["users"] = Mapping(users)
-  existing["user"] = Scalar(user)
-  if stored_in_backend {
-    existing.remove("oauth_token")
-  } else {
-    existing["oauth_token"] = Scalar(token)
-  }
-  root[host] = Mapping(existing)
-  local_write_yaml(directory, "hosts.yml", root) catch {
-    _ => return local_error("failed to write GitHub credentials")
-  }
-  @github_cli.success(
-    stdout="✓ Logged in to " + host + " account " + user + "\n",
+  auth_persist_login(
+    directory, host, user, token, root, credential_backend, insecure_storage, git_protocol,
   )
 }
 

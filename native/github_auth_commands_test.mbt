@@ -200,6 +200,14 @@ async test "auth login delegates OAuth and stores only an account reference in k
     config_dir=directory,
     credential_backend=backend,
     oauth_adapter=adapter,
+    transport=@github.Transport::new(send=_ => {
+      Ok(
+        @github.RawResponse::new(
+          status=200,
+          body=b"{\"login\":\"fixture-user\"}",
+        ),
+      )
+    }),
   )
   assert_eq(output.exit_code(), 0)
   assert_true(seen.val.contains("github.com:"))

@@ -12,7 +12,7 @@ pub struct CredentialBackend {
   priv delete_credential : (String, String) -> Bool
   // Async callbacks are optional so existing embedders that use an in-memory
   // synchronous backend keep source compatibility. Native keyring providers
-  // (secret-tool, osascript, or a host FFI) need async process I/O and use
+  // (secret-tool, Git credential helpers, or host FFI) need async process I/O and use
   // these fields instead.
   priv read_async_credential : (async (String, String) -> String?)?
   priv write_async_credential : (async (String, String, String) -> Bool)?
@@ -132,103 +132,17 @@ pub async fn CredentialBackend::delete_async(
 }
 
 ///|
-async fn secret_tool_read(
-  command : String,
-  host : String,
-  user : String,
-) -> String? {
-  let result = run_native_process(
-    command,
-    ["lookup", "service", "github-cli", "host", host, "user", user],
-    timeout_ms=5000,
-    max_output_bytes=65536,
-  ) catch {
-    _ => return None
-  }
-  match result {
-    Ok(value) if value.exit_code() == 0 => {
-      let token = @utf8.decode(value.stdout()) catch { _ => return None }
-      let token = token.trim().to_owned()
-      if token.is_empty() {
-        None
-      } else {
-        Some(token)
-      }
-    }
-    _ => None
-  }
-}
-
-///|
-async fn secret_tool_write(
-  command : String,
-  host : String,
-  user : String,
-  token : String,
-) -> Bool {
-  let result = run_native_process(
-    command,
-    [
-      "store", "--label=GitHub CLI credential", "service", "github-cli", "host",
-      host, "user", user,
-    ],
-    input=@utf8.encode(token + "\n"),
-    timeout_ms=5000,
-    max_output_bytes=65536,
-  ) catch {
-    _ => return false
-  }
-  match result {
-    Ok(value) => value.exit_code() == 0
-    _ => false
-  }
-}
-
-///|
-async fn secret_tool_delete(
-  command : String,
-  host : String,
-  user : String,
-) -> Bool {
-  let result = run_native_process(
-    command,
-    ["clear", "service", "github-cli", "host", host, "user", user],
-    timeout_ms=5000,
-    max_output_bytes=65536,
-  ) catch {
-    _ => return false
-  }
-  match result {
-    Ok(value) => value.exit_code() == 0
-    _ => false
-  }
-}
-
-///|
-/// Build a Linux Secret Service backend using the `secret-tool` executable.
-/// The command is invoked with an argv array and never through a shell. When
-/// Secret Service is unavailable, operations return false/None and callers
-/// can fall back to the regular hosts.yml credential path. Tests may provide
-/// a fixture executable through `command~`; production callers should leave
-/// the default unchanged.
-pub fn secret_tool_backend(
-  command~ : String = "secret-tool",
-) -> CredentialBackend {
-  CredentialBackend::new_async(
-    read=(host, user) => secret_tool_read(command, host, user),
-    write=(host, user, token) => secret_tool_write(command, host, user, token),
-    delete=(host, user) => secret_tool_delete(command, host, user),
-  )
-}
-
-///|
 /// OAuth is intentionally an adapter boundary.  Browser/device-code flows
 /// belong to the host application, which can enforce its own process, browser
 /// and clipboard policy.  The adapter returns a token only on success; errors
 /// carry no provider response or token text.
 pub(all) enum OAuthError {
   Unavailable
+  InvalidConfiguration
   Cancelled
+  Denied
+  Expired
+  ExpiringTokenUnsupported
   Failed
 } derive(Debug, Eq)
 

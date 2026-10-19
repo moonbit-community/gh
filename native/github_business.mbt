@@ -73,6 +73,7 @@ fn business_value_option(name : String) -> Bool {
   | "commit_title"
   | "commit_message"
   | "sha"
+  | "match_head_commit"
   | "merge_method"
   | "tag_name"
   | "target_commitish"
@@ -100,6 +101,12 @@ fn business_value_option(name : String) -> Bool {
   | "tag"
   | "name"
   | "description"
+  | "desc"
+  | "add"
+  | "remove"
+  | "readme"
+  | "exclude"
+  | "armored_public_key"
   | "visibility"
   | "affiliation"
   | "type"
@@ -201,6 +208,7 @@ fn business_boolean_option(name : String) -> Bool {
   | "watch"
   | "exit_status"
   | "yes"
+  | "undo"
   | "delete_branch"
   | "admin"
   | "verbose"
@@ -214,6 +222,8 @@ fn business_boolean_option(name : String) -> Bool {
   | "no_label"
   | "no_milestone"
   | "merge"
+  | "squash"
+  | "rebase"
   | "request_changes"
   | "approve"
   | "comment"
@@ -268,6 +278,22 @@ fn parse_business(options : @github_cli.BusinessOptions) -> ParsedBusiness {
     if arg.has_prefix("--repo=") {
       repository = Some(arg[7:].to_owned())
       index += 1
+      continue
+    }
+    if arg == "-" {
+      positionals.push(arg)
+      index += 1
+      continue
+    }
+    if business_account_short_option(options.command(), subcommand, arg)
+      is Some((name, takes_value)) {
+      if takes_value && index + 1 < args.length() {
+        business_account_option(values, name, args[index + 1])
+        index += 2
+      } else {
+        flags[name] = true
+        index += 1
+      }
       continue
     }
     if arg == "--jq" ||
@@ -328,16 +354,28 @@ fn parse_business(options : @github_cli.BusinessOptions) -> ParsedBusiness {
         None => (business_option_key(raw), None)
       }
       if attached is Some(value) {
-        values[name] = value
+        business_account_option(values, name, value)
       } else if business_value_option(name) &&
         !business_boolean_option(name) &&
         index + 1 < args.length() &&
         !args[index + 1].has_prefix("-") {
-        values[name] = args[index + 1]
+        business_account_option(values, name, args[index + 1])
         index += 1
       } else {
         flags[name] = true
       }
+      index += 1
+      continue
+    }
+    if options.command() == "pr" &&
+      subcommand == "merge" &&
+      arg is ("-m" | "-s" | "-r") {
+      let name = match arg {
+        "-m" => "merge"
+        "-s" => "squash"
+        _ => "rebase"
+      }
+      flags[name] = true
       index += 1
       continue
     }
@@ -1595,6 +1633,7 @@ async fn execute_release_download(
   }
   if !@fs.exists(directory) {
     @fs.mkdir(directory, recursive=true) catch {
+      error if @async.is_being_cancelled() => raise error
       _ =>
         return @github_cli.failure(message="cannot create download directory")
     }
@@ -1619,16 +1658,12 @@ async fn execute_release_download(
       return @github_cli.failure(message="file already exists: " + target)
     }
     let asset_response = match
-      client.request(
-        @github.Request::new(
-          verb="GET",
-          path=repo_api_path(repo) + "/releases/assets/" + asset.id,
-          headers=[("Accept", "application/octet-stream")],
-        ),
-        operation_id="release-download-" + asset.id,
-        operation_name="release.download",
+      client.download_release_asset(
+        repo_api_path(repo) + "/releases/assets/" + asset.id,
       ) {
       Ok(value) => value
+      Err(@github.Cancelled) =>
+        return @github_cli.failure(message="cancelled", exit_code=2)
       Err(error) =>
         match error.response() {
           Some(value) => value
@@ -1641,6 +1676,7 @@ async fn execute_release_download(
       )
     }
     @fs.write_file(target, asset_response.body()) catch {
+      error if @async.is_being_cancelled() => raise error
       _ =>
         return @github_cli.failure(
           message="cannot write release asset " + target,
@@ -2203,8 +2239,18 @@ fn business_request(
           Ok(value) => value
           Err(error) => return Err(error)
         }
-        path = Some(scoped_path + "/" + name)
-        verb = "PUT"
+        path = Some(
+          if command == "variable" {
+            // Variables use POST on the collection for creation and PATCH on
+            // an existing item.  execute_variable_set selects the method
+            // after a create conflict, so the request seam carries the
+            // collection path here.
+            scoped_path
+          } else {
+            scoped_path + "/" + name
+          },
+        )
+        verb = if command == "variable" { "POST" } else { "PUT" }
         body = if command == "variable" {
           match business_string_body(parsed, "value") {
             Some(value) => Some(value)
@@ -2586,9 +2632,10 @@ fn business_request(
         if sub == "merge" {
           verb = "PUT"
           path = Some(path.unwrap() + "/merge")
-          body = business_json_body(parsed, [
-            "commit_title", "commit_message", "sha", "merge_method",
-          ])
+          body = match business_pr_merge_body(parsed) {
+            Ok(value) => value
+            Err(error) => return Err(error)
+          }
         }
         if sub is ("lock" | "unlock") {
           verb = if sub == "lock" { "PUT" } else { "DELETE" }
@@ -2768,15 +2815,23 @@ fn business_request(
         }
       }
       "delete-asset" => {
-        guard parsed.positionals.get(0) is Some(identifier) else {
-          return Err(@github_cli.failure(message="asset ID is required"))
+        guard parsed.positionals.length() == 2 else {
+          return Err(
+            @github_cli.failure(
+              message="release tag and asset name are required",
+            ),
+          )
         }
-        let identifier = match business_segment(identifier) {
+        guard !parsed.positionals[1].is_empty() else {
+          return Err(@github_cli.failure(message="asset name is required"))
+        }
+        let tag = match business_segment(parsed.positionals[0]) {
           Ok(value) => value
           Err(error) => return Err(error)
         }
-        path = Some(repo_path + "/releases/assets/" + identifier)
-        verb = "DELETE"
+        // The CLI accepts a tag and an exact asset name. Resolve metadata
+        // before execute_release_delete_asset sends the numeric-ID delete.
+        path = Some(repo_path + "/releases/tags/" + tag)
       }
       "create" => {
         path = Some(repo_path + "/releases")
@@ -2892,6 +2947,15 @@ pub async fn execute_github_business(
   // Keep the configured origin explicit in the fixture seam even though the
   // Client owns URL preparation and the injected transport only sees paths.
   ignore(base_url)
+  if business_account_command(options.command()) {
+    if business_unknown_option(options) is Some(option) {
+      return @github_cli.failure(message="unknown flag: " + option)
+    }
+    let parsed = parse_business(options)
+    if execute_account_business(parsed, client, base_url) is Some(output) {
+      return output
+    }
+  }
   let request = match business_request(options, repository?) {
     Ok(value) => value
     Err(error) => return error
@@ -2899,6 +2963,9 @@ pub async fn execute_github_business(
   let parsed = parse_business(options)
   if options.command() == "secret" && parsed.subcommand == "set" {
     return execute_secret_set(parsed, request, client, repository?)
+  }
+  if options.command() == "variable" && parsed.subcommand == "set" {
+    return execute_variable_set(parsed, request, client)
   }
   if options.command() == "issue" && parsed.subcommand == "delete" {
     return execute_issue_delete(parsed, repository, client)
@@ -2938,6 +3005,11 @@ pub async fn execute_github_business(
   if options.command() == "release" && parsed.subcommand == "upload" {
     return execute_release_upload(
       options, parsed, request, response, client, repository,
+    )
+  }
+  if options.command() == "release" && parsed.subcommand == "delete-asset" {
+    return execute_release_delete_asset(
+      parsed, request, response, client, repository,
     )
   }
   let response_body = match paged_body {
