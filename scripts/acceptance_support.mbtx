@@ -113,10 +113,8 @@ async fn acceptance_build_evidence_at(
     content_digest(source_hash) else {
     fail("acceptance binary is not bound to a successful source build")
   }
-  guard @fs.realpath(path).rev_split_once("/") is Some((directory, _)) else {
-    fail("build manifest directory")
-  }
-  let source = directory.to_owned() + "/source-files.json"
+  let directory = @path.Path(@fs.realpath(path)).dirname().to_string()
+  let source = directory + "/source-files.json"
   guard @fs.kind(source, follow_symlink=false) == @fs.Regular &&
     @fs.file_size(source) <= 16777216L else {
     fail("build source fingerprint missing")
@@ -128,8 +126,8 @@ async fn acceptance_build_evidence_at(
     source_hash else {
     fail("build source fingerprint changed")
   }
-  let dependencies = directory.to_owned() + "/dependencies.json"
-  let compiler = directory.to_owned() + "/toolchain.txt"
+  let dependencies = directory + "/dependencies.json"
+  let compiler = directory + "/toolchain.txt"
   guard @fs.kind(dependencies, follow_symlink=false) == @fs.Regular &&
     @fs.file_size(dependencies) <= 1048576L &&
     @crypto.bytes_to_hex_string(

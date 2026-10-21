@@ -34,6 +34,7 @@ async fn main {
     #|  "moonbitlang/core/encoding/percent",
     #|  "moonbitlang/core/encoding/base64",
     #|  "moonbitlang/x@0.5.5/crypto",
+    #|  "moonbitlang/x@0.5.5/path",
     #|}
     #|
   source.write_string(imports)
