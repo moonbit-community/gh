@@ -40,7 +40,7 @@ async fn execute_actions_download(
       "no artifact matches any of the names or patterns provided",
     )
   }
-  guard !parsed.directory.is_empty() && valid_local_git_value(parsed.directory) else {
+  guard valid_local_file_path(parsed.directory) else {
     return @github_cli.failure(message="invalid download directory")
   }
   // Validate every selected name before downloading or publishing any file.

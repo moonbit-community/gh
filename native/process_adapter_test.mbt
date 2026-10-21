@@ -180,11 +180,14 @@ async test "browse uses GH_BROWSER argv and preserves URL punctuation" {
     "#!/bin/sh\nprintf '%s' \"$1\" > \"" + captured + "\"\n",
     permission=0o700,
   )
-  @env.set_env_var("GH_BROWSER", command)
+  // Execute an installed interpreter, so the fixture does not race Linux's
+  // executable-file write exclusion when other tests start child processes.
+  @env.set_env_var("GH_BROWSER", "/bin/sh '" + command + "'")
   defer @env.unset_env_var("GH_BROWSER")
   let output = @native.run_github([
     "browse", "-R", "github.com/acme/demo", "issues?x=$(id)",
   ])
+  assert_eq(output.stderr(), "")
   assert_eq(output.exit_code(), 0)
   assert_eq(
     @fs.read_file(captured).text(),
@@ -202,7 +205,8 @@ async test "native process adapter uses Windows process fixtures" {
   assert_eq(value.exit_code(), 0)
   assert_eq(
     @utf8.decode(value.stdout()).trim_end(chars="\r\n"),
-    "literal;$(echo should-not-run)",
+    // cmd's echo builtin prints the quotes needed to protect a spaced argv.
+    "\"literal;$(echo should-not-run)\"",
   )
   let status = @native.run_terminal_process("cmd.exe", ["/d", "/c", "exit", "0"])
   assert_eq(status, Ok(0))

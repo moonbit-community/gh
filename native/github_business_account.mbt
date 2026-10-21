@@ -199,7 +199,7 @@ async fn account_input(path : String) -> Result[String, @github_cli.Output] {
       }
     return Ok(text)
   }
-  guard valid_local_git_value(path) else {
+  guard valid_local_file_path(path) else {
     return Err(@github_cli.failure(message="invalid input path"))
   }
   let text = @fs.read_file(path).text() catch {

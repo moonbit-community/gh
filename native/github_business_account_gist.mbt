@@ -65,7 +65,7 @@ async fn execute_account_gist(
         let name = if source == "-" {
           parsed.values.get("filename").unwrap_or("gistfile1.txt")
         } else {
-          source.split("/").last().unwrap_or("").to_owned()
+          local_file_basename(source)
         }
         guard business_asset_filename(name) && !files.contains(name) else {
           return @github_cli.failure(
@@ -104,11 +104,9 @@ async fn execute_account_gist(
       }
       if selected_source is Some(source) {
         let name = if added is Some(_) {
-          source.split("/").last().unwrap_or("").to_owned()
+          local_file_basename(source)
         } else {
-          parsed.values
-          .get("filename")
-          .unwrap_or(source.split("/").last().unwrap_or("").to_owned())
+          parsed.values.get("filename").unwrap_or(local_file_basename(source))
         }
         guard business_asset_filename(name) else {
           return @github_cli.failure(message="invalid gist filename")

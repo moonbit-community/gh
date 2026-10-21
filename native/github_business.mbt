@@ -1607,10 +1607,10 @@ async fn execute_release_upload(
   }
   for index = 1; index < parsed.positionals.length(); index = index + 1 {
     let source = parsed.positionals[index]
-    guard valid_local_git_value(source) else {
+    guard valid_local_file_path(source) else {
       return @github_cli.failure(message="invalid asset filename")
     }
-    let name = source.split("/").last().unwrap_or(source).to_owned()
+    let name = local_file_basename(source)
     guard business_asset_filename(name) else {
       return @github_cli.failure(message="invalid asset filename")
     }

@@ -251,7 +251,7 @@ async fn run_repo_clone(
     "https://" + repository.host() + "/" + repository.full_name() + ".git",
   )
   if parsed.positionals.get(1) is Some(directory) {
-    guard valid_local_git_value(directory) else {
+    guard valid_local_file_path(directory) else {
       return @github_cli.failure(message="invalid clone directory")
     }
     args.push(directory)
@@ -328,6 +328,20 @@ fn valid_local_git_value(value : String) -> Bool {
   .all(ch => {
     ch.to_int() > 32 && ch.to_int() != 127 && ch != '\\' && ch != '\u{0}'
   })
+}
+
+///|
+/// Local paths are passed to filesystem APIs or as a single argv element.
+/// Spaces and Windows separators are not Git reference syntax errors.
+fn valid_local_file_path(value : String) -> Bool {
+  !value.is_empty() &&
+  value.length() <= 4096 &&
+  value.iter().all(ch => ch.to_int() >= 32 && ch.to_int() != 127)
+}
+
+///|
+fn local_file_basename(value : String) -> String {
+  @path.Path(value).basename().to_owned()
 }
 
 ///|
