@@ -141,6 +141,7 @@ async fn keyring_capture(reader : &@io.Reader, capture : Bool) -> Bytes {
 #warnings("-result_error_return")
 async fn keyring_run(
   request : KeyringRequest,
+  timeout_ms~ : Int32 = 5000,
 ) -> Result[NativeProcessResult, ProcessAdapterError] {
   guard acceptance_process_allowed(request.program, request.args) else {
     return Err(InvalidCommand)
@@ -152,11 +153,12 @@ async fn keyring_run(
   guard request.args.all(arg => {
       !arg.iter().any(ch => ch.to_int() < 32 || ch.to_int() == 127)
     }) &&
-    request.input.length() <= 65536 else {
+    request.input.length() <= 65536 &&
+    timeout_ms > 0 else {
     return Err(InvalidArgument)
   }
   try
-    @async.with_timeout(5000) <| () => {
+    @async.with_timeout(timeout_ms) <| () => {
       let (child_stdin, writer) = @process.write_to_process()
       let (out_reader, child_stdout) = @process.read_from_process()
       defer out_reader.close()
@@ -180,10 +182,9 @@ async fn keyring_run(
           defer writer.close()
           writer.write(request.input)
         })
-        let stdout = group.spawn((
         // Leave pipes open until group cancellation has stopped the helper.
         // Closing here can make SIGPIPE replace OutputLimit on Linux.
-        ) => keyring_capture(out_reader, true))
+        let stdout = group.spawn(() => keyring_capture(out_reader, true))
         // A helper may include credential material in a diagnostic. Drain
         // bounded stderr but never retain or return it.
         let stderr = group.spawn(() => keyring_capture(err_reader, false))
@@ -292,7 +293,7 @@ fn keyring_backend(
   run~ : async (KeyringRequest) -> Result[
     NativeProcessResult,
     ProcessAdapterError,
-  ] = keyring_run,
+  ] = request => keyring_run(request),
 ) -> CredentialBackend {
   CredentialBackend::new_async(
     read=(host, user) => {

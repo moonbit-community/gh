@@ -278,23 +278,33 @@ async test "keyring process returns unavailable when helper executable is missin
 async test "keyring process bounds stdout without a shell" {
   // Existing system tools receive only synthetic test bytes. This test never
   // invokes a credential helper or accesses the host credential service.
-  let result = keyring_run({
-    program: "printf",
-    args: ["fixture-output"],
-    input: b"",
-  })
+  // Functional assertions must not depend on process startup latency while
+  // other test executables perform crypto and loopback work on CI runners.
+  let result = keyring_run(
+    { program: "printf", args: ["fixture-output"], input: b"", },
+    timeout_ms=30000,
+  )
   guard result is Ok(value) else { fail("printf fixture failed") }
   assert_eq(value.stdout(), b"fixture-output")
-  let overflow = keyring_run({
-    program: "yes",
-    args: ["synthetic-fixture-output"],
-    input: b"",
-  })
+  let overflow = keyring_run(
+    { program: "yes", args: ["synthetic-fixture-output"], input: b"", },
+    timeout_ms=30000,
+  )
   match overflow {
     Err(OutputLimit) => ()
     Err(error) => fail("overflow returned \{Repr(error)}")
     Ok(_) => fail("overflow unexpectedly succeeded")
   }
+}
+
+///|
+#cfg(not(platform="windows"))
+async test "keyring process deadline cancels a running helper" {
+  let result = keyring_run(
+    { program: "sleep", args: ["10"], input: b"", },
+    timeout_ms=1,
+  )
+  assert_true(result is Err(TimedOut))
 }
 
 ///|
@@ -340,17 +350,25 @@ async test "keyring Git dispatch does not execute configured aliases for missing
   let configured_alias = ["-c", "alias." + command + "=version"]
   let ordinary_args = configured_alias.copy()
   ordinary_args.append([command])
-  guard keyring_run({ program: "git", args: ordinary_args, input: b"", })
-    is Ok(ordinary) else {
-    fail("Git fixture could not run")
+  let ordinary = match
+    keyring_run(
+      { program: "git", args: ordinary_args, input: b"", },
+      timeout_ms=30000,
+    ) {
+    Ok(result) => result
+    Err(error) => fail("Git alias fixture failed: \{Repr(error)}")
   }
   assert_eq(ordinary.exit_code(), 0)
   assert_true(@utf8.decode(ordinary.stdout()).has_prefix("git version "))
   let protected_args = configured_alias.copy()
   protected_args.append(keyring_git_args(command, "get"))
-  guard keyring_run({ program: "git", args: protected_args, input: b"", })
-    is Ok(blocked_alias) else {
-    fail("Git fixture could not run")
+  let blocked_alias = match
+    keyring_run(
+      { program: "git", args: protected_args, input: b"", },
+      timeout_ms=30000,
+    ) {
+    Ok(result) => result
+    Err(error) => fail("Git protected fixture failed: \{Repr(error)}")
   }
   assert_true(blocked_alias.exit_code() != 0)
   assert_eq(blocked_alias.stdout(), b"")
