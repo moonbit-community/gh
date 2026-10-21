@@ -159,7 +159,9 @@ async fn keyring_run(
     @async.with_timeout(5000) <| () => {
       let (child_stdin, writer) = @process.write_to_process()
       let (out_reader, child_stdout) = @process.read_from_process()
+      defer out_reader.close()
       let (err_reader, child_stderr) = @process.read_from_process()
+      defer err_reader.close()
       @async.with_task_group() <| group => {
         let process = group.spawn(() => {
           @process.run(
@@ -178,16 +180,13 @@ async fn keyring_run(
           defer writer.close()
           writer.write(request.input)
         })
-        let stdout = group.spawn(() => {
-          defer out_reader.close()
-          keyring_capture(out_reader, true)
-        })
+        let stdout = group.spawn((
+        // Leave pipes open until group cancellation has stopped the helper.
+        // Closing here can make SIGPIPE replace OutputLimit on Linux.
+        ) => keyring_capture(out_reader, true))
         // A helper may include credential material in a diagnostic. Drain
         // bounded stderr but never retain or return it.
-        let stderr = group.spawn(() => {
-          defer err_reader.close()
-          keyring_capture(err_reader, false)
-        })
+        let stderr = group.spawn(() => keyring_capture(err_reader, false))
         let exit_code = process.wait()
         input.wait()
         let output = stdout.wait()

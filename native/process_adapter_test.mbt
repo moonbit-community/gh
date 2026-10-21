@@ -201,7 +201,7 @@ async test "native process adapter uses Windows process fixtures" {
   guard result is Ok(value) else { fail("Windows process fixture failed") }
   assert_eq(value.exit_code(), 0)
   assert_eq(
-    value.stdout().text().trim_end(chars="\r\n"),
+    @utf8.decode(value.stdout()).trim_end(chars="\r\n"),
     "literal;$(echo should-not-run)",
   )
   let status = @native.run_terminal_process("cmd.exe", ["/d", "/c", "exit", "0"])

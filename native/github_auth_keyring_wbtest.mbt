@@ -290,7 +290,11 @@ async test "keyring process bounds stdout without a shell" {
     args: ["synthetic-fixture-output"],
     input: b"",
   })
-  assert_true(overflow is Err(OutputLimit))
+  match overflow {
+    Err(OutputLimit) => ()
+    Err(error) => fail("overflow returned \{Repr(error)}")
+    Ok(_) => fail("overflow unexpectedly succeeded")
+  }
 }
 
 ///|
