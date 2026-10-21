@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-20",
+  "host": "macOS arm64",
+  "base_commit": "c1b8712ab01fa9debd5d8d4bdba643371bb5bd15",
+  "source_state": "uncommitted local changes",
+  "source_hashes": "tested-source-sha256.json",
+  "binary_sha256": "b908bd783052051ab9e7786ebe3cffb60bb973eadbcdf349876a2594cf21d7e3",
+  "oracle_version": "2.102.0",
+  "oracle_binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "oracle_archive_sha256": "da922c20d1792e5b2cbf375593d7a658acf034c12c84e007e71c76ef959c337e",
+  "toolchain": "moon 0.1.20261012 (748b63c 2026-10-12) ~/.moon/bin/moon\nmoonc v0.10.15+943464bfa (2026-10-12) ~/.moon/bin/moonc\nmoonrun 0.1.20261012 (748b63c 2026-10-12) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "read_differential": {
+    "passed": 20
+  },
+  "repair_acceptance": {
+    "passed": 28,
+    "pending_permission": 2
+  },
+  "repository_write_lifecycle": {
+    "passed": 59,
+    "skipped": 10
+  },
+  "write_cleanup_passed": true,
+  "repair_cleanup_passed": true,
+  "clean_gate_passed": true,
+  "native_tests": 272,
+  "wasm_tests": 68,
+  "wasm_gc_tests": 51,
+  "js_tests": 68,
+  "public_interfaces_changed": false,
+  "format_verified": true,
+  "runner_self_tests_passed": [
+    "scripts/live_github_fixture.mbtx",
+    "scripts/live_github_write_fixture.mbtx",
+    "scripts/live_github_repair_fixture.mbtx"
+  ],
+  "credential_scan_passed": true,
+  "hosted_ci_verified": false,
+  "core_parity_verified": false
+}

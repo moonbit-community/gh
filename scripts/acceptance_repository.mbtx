@@ -1,0 +1,614 @@
+///|
+/// Recognized GitHub default labels in a freshly created personal repository.
+/// A changed template, extra label, or edited default blocks bootstrap instead
+/// of admitting arbitrary pre-existing IDs to the run's ownership ledger.
+/// https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels
+fn repository_default_labels() -> Array[(String, String, String)] {
+  [
+    ("accessibility", "f143ab", "Barrier affecting people with disabilities"),
+    ("bug", "d73a4a", "Something isn't working"),
+    ("documentation", "0075ca", "Improvements or additions to documentation"),
+    ("duplicate", "cfd3d7", "This issue or pull request already exists"),
+    ("enhancement", "a2eeef", "New feature or request"),
+    ("good first issue", "7057ff", "Good for newcomers"),
+    ("help wanted", "008672", "Extra attention is needed"),
+    ("invalid", "e4e669", "This doesn't seem right"),
+    ("question", "d876e3", "Further information is requested"),
+    ("wontfix", "ffffff", "This will not be worked on"),
+  ]
+}
+
+///|
+fn repository_bootstrap_labels(
+  ledger : Ledger,
+  key : String,
+  labels : Json,
+) -> Unit raise {
+  let repository = ledger.owned(key)
+  guard repository.kind == "repository" &&
+    labels is Array(actual) &&
+    (
+      actual.is_empty() ||
+      actual.length() == repository_default_labels().length()
+    ) &&
+    !ledger.resources.values().any(resource => resource.parent == Some(key)) else {
+    fail("repository bootstrap is not fresh")
+  }
+  // An empty repository may have no labels yet. Register nothing; the complete
+  // inventory still has to prove that no unknown object appeared afterwards.
+  if actual.is_empty() {
+    return
+  }
+  // Validate the entire observation before registering any child receipt.
+  let receipts : Array[(String, String, Json)] = []
+  let ids : Map[String, Unit] = Map([])
+  let nodes : Map[String, Unit] = Map([])
+  for index, (name, color, description) in repository_default_labels() {
+    let matches = actual.filter(label => {
+      label is { "name": String(value), .. } && value == name
+    })
+    guard matches is [Object(fields) as value] &&
+      fields.get("color") == Some(Json(color)) &&
+      fields.get("description") == Some(Json(description)) &&
+      fields.get("default") == Some(Json(true)) else {
+      fail("repository default labels changed; automatic deletion blocked")
+    }
+    let id = acceptance_id(value)
+    guard identifier(id) && !ids.contains(id) else {
+      fail("duplicate or invalid default label ID")
+    }
+    ids[id] = ()
+    if value is { "node_id": String(node), .. } {
+      guard node_identifier(node) && !nodes.contains(node) else {
+        fail("duplicate or invalid default label node ID")
+      }
+      nodes[node] = ()
+    }
+    receipts.push(("bootstrap-label-" + index.to_string(), id, value))
+  }
+  for (child, id, value) in receipts {
+    let item = inventory_item("label", value, repository.locator)
+    let locator = inventory_string(item, "locator")
+    ledger.intend_resource(child, key, "/labels", "label")
+    ledger.confirm_created(child, id, locator~)
+    ledger.record_content_receipt(
+      child,
+      id,
+      inventory_string(item, "content_sha256"),
+    )
+    if value is { "node_id": String(node_id), .. } {
+      ledger.bind_node(child, id, node_id)
+    }
+  }
+}
+
+///|
+/// Resume only this run's receipt-backed repository; never discover a deletion
+/// target from a name prefix. Preserve the initial failure report unchanged.
+async fn recover_repository(
+  credential_path : String,
+  report_directory : String,
+  recovery_report : String,
+) -> Unit {
+  guard !@fs.exists(recovery_report) else { fail("recovery report exists") }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let directory = @fs.realpath(report_directory)
+  let original = @json.parse(@fs.read_file(directory + "/report.json").text())
+  let ledger = Ledger::from_json(
+    @json.parse(@fs.read_file(directory + "/ledger.json").text()),
+  )
+  let resource = ledger.resource("repository")
+  guard original
+    is {
+      "family": String("private-repository-lifecycle"),
+      "run_id": String(run_id),
+      "repository": String(full_name),
+      ..
+    } &&
+    run_id == ledger.run_id &&
+    resource.kind == "repository" &&
+    resource.locator == "/repos/" + full_name &&
+    resource.remote_id is Some(id) &&
+    resource.state == Created &&
+    original is { "cases": Array(cases), .. } &&
+    cases.any(item => {
+      item
+      is {
+        "id": String("repository.create-read"),
+        "status": String("pass"),
+        "resource_id": String(created_id),
+        ..
+      } &&
+      created_id == id
+    }) else {
+    fail(
+      "recovery requires the original successful creation receipt and exact ledger ID",
+    )
+  }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("test OAuth credential missing")
+  }
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory + "/config",
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger,
+    verified_binary: Ref(None),
+  }
+  let records : Array[Json] = []
+  let mut cleaned = false
+  defer @async.protect_from_cancel(() => {
+    acceptance.persist([])
+    @fs.write_file(
+      recovery_report,
+      Json::object({
+        "schema": 1,
+        "family": "private-repository-recovery",
+        "original_report": directory + "/report.json",
+        "run_id": run_id,
+        "resource_id": id,
+        "core_parity_verified": false,
+        "binary_sha256": acceptance.verified_binary.val.map_or(Json::null(), value => {
+          Json(value)
+        }),
+        "status": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cleanup": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  try {
+    let (status, viewer) = acceptance.api("GET", "/user")
+    guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+      fail("recovery credential account mismatch")
+    }
+    ignore(acceptance.repository_metadata("repository"))
+    if !ledger.resources
+      .values()
+      .any(child => child.parent == Some("repository")) {
+      let pages = acceptance.inventory_read(
+        resource.locator + "/labels?per_page=100",
+      )
+      guard pages is Array([Array(labels) as page]) else {
+        fail("bootstrap labels exceed one page")
+      }
+      records.push({
+        "id": "repository.bootstrap-observation",
+        "status": "pass",
+        "label_count": labels.length(),
+        "default_count": labels
+        .filter(label => label is { "default": True, .. })
+        .length(),
+      })
+      repository_bootstrap_labels(ledger, "repository", page)
+      acceptance.persist([])
+    }
+    cleaned = acceptance.cleanup_repository("repository", records, directory)
+    guard cleaned else { fail("repository recovery cleanup incomplete") }
+  } catch {
+    error if @async.is_being_cancelled() => raise error
+    error => {
+      records.push({
+        "id": "repository.recovery",
+        "status": "blocked",
+        "reason": acceptance_diagnostic(error.to_string(), token),
+      })
+      raise error
+    }
+  }
+}
+
+///|
+async fn Acceptance::repository_metadata(
+  self : Acceptance,
+  key : String,
+) -> Json {
+  let resource = self.ledger.resource(key)
+  guard resource.kind == "repository" && resource.remote_id is Some(id) else {
+    fail("repository creation receipt required")
+  }
+  let (status, metadata) = self.api("GET", resource.locator)
+  guard status == 200 &&
+    acceptance_id(metadata) == id &&
+    metadata
+    is {
+      "private": True,
+      "has_wiki": False,
+      "has_pages": False,
+      "full_name": String(full_name),
+      "owner": { "login": String("ZSeanYves"), .. },
+      ..
+    } &&
+    "/repos/" + full_name == resource.locator &&
+    resource.content_sha256 ==
+    Some(inventory_content_hash("repository", metadata)) else {
+    fail("repository identity, settings or recorded content changed")
+  }
+  metadata
+}
+
+///|
+/// Only the intended metadata field changes may differ after PATCH; unrelated
+/// settings are compared before updating the receipt.
+fn repository_changed_receipt(
+  before : Json,
+  change : Json,
+  after : Json,
+) -> String raise {
+  guard before is Object(original) && change is Object(changes) else {
+    fail("metadata shape")
+  }
+  let expected = original.copy()
+  for name, value in changes {
+    expected[name] = value
+  }
+  let hash = inventory_content_hash("repository", Json::object(expected))
+  guard inventory_content_hash("repository", after) == hash else {
+    fail("unrelated repository settings changed during mutation")
+  }
+  hash
+}
+
+///|
+async fn Acceptance::change_repository(
+  self : Acceptance,
+  key : String,
+  change : Json,
+) -> Unit {
+  let before = self.repository_metadata(key)
+  let resource = self.ledger.owned(key)
+  let id = resource.remote_id.unwrap()
+  let permit = self.ledger.approve_mutation(
+    key,
+    id,
+    "PATCH",
+    resource.locator,
+    body=@utf8.encode(change.stringify()),
+  )
+  let (status, response) = self.api("PATCH", resource.locator, body=change, permits=[
+    permit,
+  ])
+  guard status == 200 && acceptance_id(response) == id else {
+    fail("repository mutation receipt unavailable")
+  }
+  let hash = repository_changed_receipt(before, change, response)
+  let (status, readback) = self.api("GET", resource.locator)
+  guard status == 200 &&
+    acceptance_id(readback) == id &&
+    inventory_content_hash("repository", readback) == hash else {
+    fail("repository mutation read-back mismatch")
+  }
+  self.ledger.confirm_created(key, id)
+  self.ledger.record_content_receipt(key, id, hash)
+  self.persist([])
+}
+
+///|
+async fn Acceptance::cleanup_repository(
+  self : Acceptance,
+  key : String,
+  records : Array[Json],
+  directory : String,
+) -> Bool {
+  guard self.ledger.resources.get(key) is Some(resource) else { return true }
+  if resource.state is (Intended | Removed) {
+    return true
+  }
+  let cleaned = try {
+    guard resource.remote_id is Some(id) else {
+      fail("repository creation outcome unknown; no deletion permitted")
+    }
+    guard resource.state == Created else {
+      fail("repository has an unreconciled operation; no automatic deletion")
+    }
+    let metadata = self.repository_metadata(key)
+    if !(metadata is { "archived": True, .. }) {
+      self.change_repository(key, { "archived": true })
+    }
+    let audit_path = directory +
+      "/repository-inventory-" +
+      @env.now().to_string() +
+      ".json"
+    let audit = self.collect_repository_inventory(
+      key,
+      observation_path=audit_path,
+    )
+    records.push({
+      "id": "repository.inventory",
+      "status": "pass",
+      "report": audit_path,
+      "resource_id": id,
+    })
+    let permit = self.ledger.approve_repository_deletion(
+      key,
+      id,
+      audit,
+      now_ms=UInt64::reinterpret_as_int64(@env.now()),
+    )
+    let (status, _) = self.api("DELETE", resource.locator, permits=[permit])
+    guard status == 204 else {
+      fail("repository deletion did not return HTTP 204")
+    }
+    // Check both the name and the immutable repository lookup after deletion.
+    let (status, _) = self.api("GET", resource.locator)
+    let (id_status, _) = self.api("GET", "/repositories/" + id)
+    guard status == 404 && id_status == 404 else {
+      fail("repository absence not confirmed")
+    }
+    self.ledger.confirm_repository_removed(key, id)
+    self.persist([])
+    records.push({
+      "id": "repository.cleanup",
+      "status": "pass",
+      "resource_id": id,
+      "readback_status": status,
+      "id_readback_status": id_status,
+      "history_claim": "repository deletion confirmed; service audit history not erased",
+    })
+    true
+  } catch {
+    error => {
+      records.push({
+        "id": "repository.cleanup",
+        "status": "blocked",
+        "reason": acceptance_diagnostic(error.to_string(), self.token),
+      })
+      false
+    }
+  }
+  cleaned
+}
+
+///|
+fn repository_require_preflight(
+  preflight : Json,
+  credential_hash : String,
+  now_ms : Int64,
+) -> Unit raise {
+  guard preflight
+    is {
+      "family": String("repository-permission-preflight"),
+      "repository": String("ZSeanYves/gh_test"),
+      "identity_verified": True,
+      "inventory_ready": True,
+      "credential_sha256": String(recorded_hash),
+      "expected_cases": Number(15, ..),
+      "completed_cases": Number(15, ..),
+      "observed_at_ms": Number(observed, ..),
+      ..
+    } &&
+    recorded_hash == credential_hash &&
+    observed > 0 &&
+    observed < 9007199254740992.0 &&
+    observed == observed.to_int64().to_double() &&
+    now_ms >= observed.to_int64() &&
+    now_ms - observed.to_int64() <= 600000L else {
+    fail(
+      "private repository creation requires a fresh successful permission preflight for this credential",
+    )
+  }
+}
+
+///|
+/// First exercise repository provisioning/cleanup without workflows or Git
+/// writes. A successful scoped PAT read does not establish creation or deletion
+/// rights; use the dedicated OAuth credential for this private temporary repo.
+async fn run_repository_lifecycle(
+  credential_path : String,
+  preflight_path : String,
+  report_directory : String,
+  actions~ : Bool = false,
+  storage_independent~ : Bool = false,
+) -> Unit {
+  guard !@fs.exists(report_directory) else { fail("repository report exists") }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("test OAuth credential unavailable")
+  }
+  let preflight = @json.parse(@fs.read_file(preflight_path).text())
+  repository_require_preflight(
+    preflight,
+    @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(token))),
+    UInt64::reinterpret_as_int64(@env.now()),
+  )
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  @fs.mkdir(report_directory, permission=0o700)
+  let directory = @fs.realpath(report_directory)
+  let config = directory + "/config"
+  @fs.mkdir(config, permission=0o700)
+  let run_id = @crypto.bytes_to_hex_string(@env.rand(12).unwrap())
+  let name = "gh-acceptance-" + run_id + "-repository"
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config,
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger: Ledger::new(run_id, "unverified"),
+    verified_binary: Ref(None),
+  }
+  acceptance.verify_binary()
+  let build_evidence = acceptance_build_evidence(
+    acceptance.verified_binary.val.unwrap(),
+  )
+  guard build_evidence != Json::null() else {
+    fail("repository write requires a source-bound build")
+  }
+  let records : Array[Json] = []
+  let mut passed = false
+  defer @async.protect_from_cancel(() => {
+    if actions {
+      acceptance.cleanup_actions(directory, records) catch {
+        error =>
+          records.push({
+            "id": "actions.cleanup",
+            "status": "blocked",
+            "reason": acceptance_diagnostic(error.to_string(), token),
+          })
+      }
+    }
+    let cleaned = acceptance.cleanup_repository(
+      "repository", records, directory,
+    )
+    acceptance.persist([])
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "private-repository-lifecycle",
+        "actions_requested": actions,
+        "storage_independent": storage_independent,
+        "actions_profile_verified": false,
+        "run_id": run_id,
+        "repository": "ZSeanYves/" + name,
+        "source_build": build_evidence,
+        "binary_sha256": acceptance.verified_binary.val.unwrap(),
+        "status": if passed && cleaned && storage_independent {
+          "blocked"
+        } else if passed && cleaned {
+          "pass"
+        } else {
+          "fail"
+        },
+        "cleanup": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "core_parity_verified": false,
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      permission=0o600,
+    )
+    guard cleaned else {
+      fail("repository cleanup blocked; preserve receipts for recovery")
+    }
+  })
+  try {
+    let (status, viewer) = acceptance.api("GET", "/user")
+    guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+      fail("test credential account mismatch")
+    }
+    let (status, fixture) = acceptance.api("GET", "/repos/ZSeanYves/gh_test")
+    guard status == 200 &&
+      fixture is { "full_name": String("ZSeanYves/gh_test"), .. } else {
+      fail("fixture identity unavailable")
+    }
+    acceptance.ledger = Ledger::new(run_id, acceptance_id(fixture))
+    let locator = "/repos/ZSeanYves/" + name
+    let (status, _) = acceptance.api("GET", locator)
+    guard status == 404 else {
+      fail("temporary repository name already exists or lookup failed")
+    }
+    acceptance.ledger.intend_repository("repository", name)
+    let body : Json = {
+      "name": name,
+      "private": true,
+      "auto_init": false,
+      "has_wiki": false,
+      "description": "temporary private GitHub CLI acceptance repository",
+    }
+    @fs.write_file(
+      directory + "/bootstrap-intent.json",
+      Json::object({
+        "run_id": run_id,
+        "repository": locator,
+        "create_body": body,
+        "automatic_labels": repository_default_labels().map(item => {
+          Json::object({
+            "name": item.0,
+            "color": item.1,
+            "description": item.2,
+          })
+        }),
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+    let permit = acceptance.ledger.approve_creation("repository", body)
+    let (status, created) = acceptance.api("POST", "/user/repos", body~, permits=[
+      permit,
+    ])
+    guard status == 201 &&
+      created
+      is {
+        "full_name": String(actual),
+        "node_id": String(node_id),
+        "owner": { "login": String("ZSeanYves"), .. },
+        "private": True,
+        "archived": False,
+        "has_wiki": False,
+        "has_pages": False,
+        ..
+      } &&
+      actual == "ZSeanYves/" + name else {
+      fail("private repository creation receipt unavailable")
+    }
+    let id = acceptance_id(created)
+    acceptance.ledger.confirm_created("repository", id)
+    acceptance.ledger.bind_node("repository", id, node_id)
+    acceptance.ledger.record_content_receipt(
+      "repository",
+      id,
+      inventory_content_hash("repository", created),
+    )
+    acceptance.persist([])
+    ignore(acceptance.repository_metadata("repository"))
+    records.push({
+      "id": "repository.create-read",
+      "status": "pass",
+      "resource_id": id,
+    })
+    acceptance.change_repository("repository", {
+      "description": "updated temporary acceptance repository",
+    })
+    records.push({
+      "id": "repository.edit-read",
+      "status": "pass",
+      "resource_id": id,
+    })
+    let labels = acceptance.inventory_read(locator + "/labels?per_page=100")
+    guard labels is Array([labels]) else {
+      fail("default labels exceed one page")
+    }
+    repository_bootstrap_labels(acceptance.ledger, "repository", labels)
+    acceptance.persist([])
+    records.push({ "id": "repository.bootstrap-receipts", "status": "pass" })
+    if actions {
+      acceptance.run_actions_lifecycle(directory, records, storage_independent~)
+    }
+    acceptance.change_repository("repository", { "archived": true })
+    records.push({
+      "id": "repository.archive-read",
+      "status": "pass",
+      "resource_id": id,
+    })
+    passed = true
+  } catch {
+    error if @async.is_being_cancelled() => raise error
+    error => {
+      records.push({
+        "id": "repository.lifecycle",
+        "status": "fail",
+        "reason": acceptance_diagnostic(error.to_string(), token),
+      })
+      raise error
+    }
+  }
+}

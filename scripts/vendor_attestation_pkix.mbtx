@@ -1,0 +1,44 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn main {
+  let source = ".mooncakes/mizchi/experimental_crypto"
+  let destination = "internal/pkix_verify"
+  guard !@fs.exists(destination) else {
+    fail("attestation PKIX vendor already exists")
+  }
+  guard @fs.read_file(source + "/moon.mod").text().contains("0.0.2") else {
+    fail("unexpected crypto version")
+  }
+  @fs.mkdir(destination)
+  let files : Array[Json] = []
+  for
+    name in [
+      "pkix_verify.mbt", "pkix_verify_test.mbt", "pkix_verify_wbtest.mbt", "LICENSE",
+    ] {
+    let bytes = @fs.read_file(source + "/pkix_verify/" + name).binary()
+    @fs.write_file(destination + "/" + name, bytes, create_mode=CreateNew)
+    files.push({
+      "path": name,
+      "upstream_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+    })
+  }
+  @fs.write_file(
+    destination + "/upstream.json",
+    Json::object({
+      "module": "mizchi/experimental_crypto",
+      "version": "0.0.2",
+      "package": "pkix_verify",
+      "repository": "https://github.com/mizchi/experimental_crypto",
+      "license": @fs.read_file(source + "/pkix_verify/LICENSE").text(),
+      "reason": "Critical EKU is rejected even when the chain caller explicitly supplies required_eku. RFC3161 requires a critical timestamping EKU. Preserve rejection without a purpose, enforce purpose with critical EKU, and propagate that purpose to every chain check.",
+      "files": files,
+    }).stringify(indent=2) +
+    "\n",
+  )
+}

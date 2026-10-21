@@ -1,0 +1,96 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
+}
+
+///|
+async fn main {
+  let api = "http://api.github.localhost/repos/acme/widgets"
+  let metadata : Json = {
+    "id": 10,
+    "tag_name": "v1",
+    "name": "Version 1",
+    "draft": false,
+    "zipball_url": api + "/zipball/v1",
+    "tarball_url": api + "/tarball/v1",
+    "assets": [
+      {
+        "id": 101,
+        "name": "package-1.deb",
+        "url": api + "/releases/assets/101",
+      },
+      {
+        "id": 102,
+        "name": "package-2.rpm",
+        "url": api + "/releases/assets/102",
+      },
+    ],
+  }
+  let cases : Array[Json] = []
+  let inputs : Array[(String, Array[String])] = [
+    ("single_pattern", ["--pattern", "*.deb", "-D", "out"]),
+    (
+      "repeated_overlapping_pattern",
+      ["-p", "missing*", "-p", "package-[1].d?b", "-p", "*.deb", "-D", "out"],
+    ),
+    ("empty_pattern", ["-p", "", "-D", "out"]),
+    ("glob_middle_required", ["-p", "package*absent*deb", "-D", "out"]),
+    ("output_file", ["-p", "*.rpm", "-O", "custom.bin"]),
+    ("output_stdout", ["-p", "*.deb", "-O", "-"]),
+    ("output_many", ["-p", "*", "-O", "custom.bin"]),
+    ("skip_existing", ["-p", "*.deb", "--skip-existing"]),
+    ("clobber_existing", ["-p", "*.deb", "--clobber"]),
+    ("reject_existing", ["-p", "*.deb"]),
+    ("archive_zip", ["--archive", "zip", "-D", "out"]),
+    ("archive_tar", ["--archive=tar.gz", "-O", "source.tgz"]),
+    ("archive_missing_filename", ["-A", "zip", "-O", "source.zip"]),
+    ("latest_requires_selector", []),
+    ("clobber_conflict", ["-p", "*", "--clobber", "--skip-existing"]),
+    ("destination_conflict", ["-p", "*", "-D", "out", "-O", "file"]),
+    ("archive_conflict", ["-p", "*", "-A", "zip"]),
+    ("archive_bad_type", ["-A", "7z"]),
+    ("too_many_arguments", ["v1", "v2"]),
+  ]
+  for (id, args) in inputs {
+    let routes : Map[String, Json] = Map([])
+    routes["/repos/acme/widgets/releases/latest"] = { "json": metadata }
+    routes["/repos/acme/widgets/releases/assets/101"] = { "text": "deb-data\n" }
+    routes["/repos/acme/widgets/releases/assets/102"] = { "text": "rpm-data\n" }
+    routes["/repos/acme/widgets/zipball/v1"] = {
+      "text": "zip-source-data",
+      "headers": if id == "archive_missing_filename" {
+        Json::object({})
+      } else {
+        Json::object({
+          "Content-Disposition": "attachment; filename=\"widgets-v1.zip\"",
+        })
+      },
+    }
+    routes["/repos/acme/widgets/tarball/v1"] = {
+      "text": "tar-source-data",
+      "headers": {
+        "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\"",
+      },
+    }
+    let files : Map[String, Json] = Map([])
+    if ["skip_existing", "clobber_existing", "reject_existing"].contains(id) {
+      files["package-1.deb"] = Json(
+        @base64.encode(@utf8.encode("existing-content")),
+      )
+    }
+    cases.push({
+      "id": id,
+      "args": Json(["release", "download", ..args]),
+      "routes": Json::object(routes),
+      "input_files_base64": Json::object(files),
+    })
+  }
+  @fs.write_file(
+    "testdata/release-download-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+  )
+}

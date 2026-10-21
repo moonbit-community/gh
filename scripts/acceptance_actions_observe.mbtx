@@ -1,0 +1,278 @@
+///|
+async fn observe_actions(
+  credential_path : String,
+  directory : String,
+  output : String,
+) -> Unit {
+  guard !@fs.exists(output) else { fail("observation exists") }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } else {
+    fail("credential")
+  }
+  let directory = @fs.realpath(directory)
+  let ledger = Ledger::from_json(
+    @json.parse(@fs.read_file(directory + "/ledger.json").text()),
+  )
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory + "/config",
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger,
+    verified_binary: Ref(None),
+  }
+  // Observation is read-only and also needed after a response is lost.
+  let repository = ledger.resource("repository")
+  guard repository.remote_id is Some(_) &&
+    repository.state is (Created | Uncertain) else {
+    fail("repository receipt unavailable")
+  }
+  ignore(acceptance.repository_metadata("repository"))
+  let values : Map[String, Json] = Map([])
+  for
+    (kind, suffix, field) in [
+      ("workflow", "/actions/workflows?per_page=100", "workflows"),
+      ("run", "/actions/runs?per_page=100", "workflow_runs"),
+      ("artifact", "/actions/artifacts?per_page=100", "artifacts"),
+      ("cache", "/actions/caches?per_page=100", "actions_caches"),
+    ] {
+    let (status, response) = acceptance.api("GET", repository.locator + suffix)
+    guard status == 200 &&
+      response is Object(fields) &&
+      fields.get("total_count") is Some(Number(count, ..)) &&
+      count <= 100 &&
+      fields.get(field) is Some(Array(items)) else {
+      fail("incomplete Actions observation")
+    }
+    values[kind] = Json::array(
+      items.map(item => {
+        guard item is Object(fields) else { fail("invalid Actions object") }
+        let safe : Map[String, Json] = Map([])
+        for
+          key in [
+            "id", "name", "path", "state", "key", "ref", "version", "created_at",
+            "updated_at", "size_in_bytes", "status", "conclusion", "display_title",
+            "workflow_id", "run_attempt", "head_sha", "head_branch", "workflow_run",
+          ] {
+          if fields.get(key) is Some(value) {
+            safe[key] = value
+          }
+        }
+        Json::object(safe)
+      }),
+    )
+  }
+  @fs.write_file(
+    output,
+    Json::object({
+      "schema": 1,
+      "run_id": ledger.run_id,
+      "repository_id": repository.remote_id.unwrap(),
+      "observations": Json::object(values),
+      "remote_mutations": 0,
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+}
+
+///|
+fn actions_cache_time(value : String) -> Int64 raise {
+  guard value.has_suffix("Z") &&
+    value.length() >= 20 &&
+    (
+      value.length() == 20 ||
+      (
+        value.length() >= 22 &&
+        value[19:20] == "." &&
+        value[20:value.length() - 1].iter().all(ch => ch is ('0'..<='9'))
+      )
+    ) else {
+    fail("cache receipt timestamp is not UTC")
+  }
+  let date : @time.PlainDateTime = @string.from_str(value[:19])
+  date.to_unix_second() * 1000L
+}
+
+///|
+/// Reconcile a cache whose asynchronous creation was described by a durable
+/// dispatch intent but whose run failed before the normal output-registration
+/// step. Require the exact successful dispatch receipt, immutable commit,
+/// workflow bytes, bounded creation time and a complete cache observation.
+async fn recover_actions_cache(
+  credential_path : String,
+  directory : String,
+  output : String,
+) -> Unit {
+  guard !@fs.exists(output) else { fail("cache recovery report exists") }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } else {
+    fail("credential")
+  }
+  let directory = @fs.realpath(directory)
+  let ledger = Ledger::from_json(
+    @json.parse(@fs.read_file(directory + "/ledger.json").text()),
+  )
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory + "/config",
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger,
+    verified_binary: Ref(None),
+  }
+  let repository = ledger.owned("repository")
+  let run = ledger.resource("run-success")
+  let workflow = ledger.owned("workflow")
+  let intent = @json.parse(
+    @fs.read_file(directory + "/dispatch-success.json").text(),
+  )
+  let receipt = @json.parse(
+    @fs.read_file(directory + "/dispatch-success-response.json").text(),
+  )
+  let original = @json.parse(@fs.read_file(directory + "/report.json").text())
+  guard intent
+    is {
+      "run_id": String(run_id),
+      "repository_id": String(repo_id),
+      "workflow_id": String(workflow_id),
+      "branch": String(branch),
+      "sha": String(sha),
+      "nonce": String(nonce),
+      "cache_key": String(expected_key),
+      "created_at_ms": Number(created, ..),
+      ..
+    } &&
+    run_id == ledger.run_id &&
+    repository.remote_id == Some(repo_id) &&
+    workflow.remote_id == Some(workflow_id) &&
+    identifier(branch) &&
+    nonce == "gh-acceptance-" + ledger.run_id + "-success" &&
+    expected_key == nonce + "-cache-1" &&
+    created > 0 &&
+    run.remote_id is Some(run_id) &&
+    run.parent == Some("repository") &&
+    receipt is { "exit_code": Number(0, ..), "url": String(url), .. } &&
+    url ==
+    "https://github.com/" +
+    repository.locator[7:].to_owned() +
+    "/actions/runs/" +
+    run_id &&
+    original is { "cases": Array(cases), .. } &&
+    cases.any(item => {
+      item
+      is {
+        "id": String("workflow.dispatch-success"),
+        "status": String("pass"),
+        "resource_id": String(id),
+        ..
+      } &&
+      id == run_id
+    }) else {
+    fail("cache recovery has no original dispatch receipt")
+  }
+  ignore(acceptance.repository_metadata("repository"))
+  let reference = ledger.owned("actions-branch")
+  let (status, ref_value) = acceptance.api(
+    "GET",
+    repository.locator + "/git/ref/heads/" + branch,
+  )
+  guard status == 200 &&
+    ref_value is { "object": { "sha": String(actual_sha), .. }, .. } &&
+    actual_sha == sha &&
+    Some(inventory_content_hash("git_ref", ref_value)) ==
+    reference.content_sha256 else {
+    fail("cache recovery commit changed")
+  }
+  let filename = ".github/workflows/gh-acceptance-" + ledger.run_id + ".yml"
+  let (status, file) = acceptance.api(
+    "GET",
+    repository.locator + "/contents/" + filename + "?ref=" + sha,
+  )
+  let fixture_intent = @json.parse(
+    @fs.read_file(directory + "/actions-intent.json").text(),
+  )
+  let expected_source = acceptance_workflow_source(
+    ledger.run_id,
+    include_artifacts=!(fixture_intent is { "include_artifacts": False, .. }),
+  )
+  guard status == 200 &&
+    file is { "content": String(encoded), "encoding": String("base64"), .. } &&
+    @base64.decode(encoded.replace_all(old="\n", new="")) ==
+    @utf8.encode(expected_source) &&
+    @fs.read_file(directory + "/workflow.yml").text() == expected_source else {
+    fail("cache recovery workflow differs from the pre-dispatch source")
+  }
+  let (status, values) = acceptance.api(
+    "GET",
+    repository.locator + "/actions/caches?per_page=100",
+  )
+  guard status == 200 &&
+    values
+    is { "total_count": Number(1, ..), "actions_caches": Array([cache]), .. } &&
+    cache
+    is {
+      "key": String(key),
+      "ref": String(ref_name),
+      "created_at": String(time),
+      ..
+    } &&
+    key == expected_key &&
+    ref_name == "refs/heads/" + branch &&
+    actions_cache_time(time) >= created.to_int64() - 1000L &&
+    actions_cache_time(time) <= created.to_int64() + 600000L else {
+    fail(
+      "cache recovery observation does not match the exact intent and time window",
+    )
+  }
+  let id = acceptance_id(cache)
+  ledger.intend_resource(
+    "cache-success", "repository", "/actions/caches", "cache",
+  )
+  ledger.confirm_created(
+    "cache-success",
+    id,
+    locator=repository.locator + "/actions/caches/" + id,
+  )
+  ledger.record_content_receipt(
+    "cache-success",
+    id,
+    inventory_content_hash("cache", cache),
+  )
+  acceptance.persist([])
+  let records : Array[Json] = []
+  let mut cleaned = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      output,
+      Json::object({
+        "schema": 1,
+        "family": "actions-cache-reconciliation",
+        "run_id": ledger.run_id,
+        "repository_id": repo_id,
+        "workflow_run_id": run_id,
+        "cache_id": id,
+        "dispatch_receipt_verified": true,
+        "workflow_bytes_verified": true,
+        "commit_verified": true,
+        "creation_time_verified": true,
+        "status": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  acceptance.cleanup_actions(directory, records)
+  cleaned = true
+}

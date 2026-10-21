@@ -155,9 +155,15 @@ async test "configured editor honors GH_EDITOR without shell expansion" {
   assert_eq(command, "printf %s")
   let result = @native.run_configured_editor(
     "draft;$(echo should-not-run)",
-    timeout_ms=1000,
+    // This test checks argv separation, not process-startup latency under a
+    // concurrent build. The separate deadline test exercises short timeouts.
+    timeout_ms=10000,
   )
-  guard result is Ok(value) else { fail("configured editor fixture failed") }
+  let value = match result {
+    Ok(value) => value
+    Err(error) =>
+      fail("configured editor fixture failed: " + @debug.to_string(error))
+  }
   assert_eq(value.exit_code(), 0)
   assert_eq(value.stdout(), b"draft;$(echo should-not-run)")
 }

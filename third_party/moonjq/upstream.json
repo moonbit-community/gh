@@ -1,0 +1,390 @@
+{
+  "module": "bobzhang/moonjq",
+  "version": "0.2.0",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/moonbit-community/moobit-jq",
+  "registry_checksum": "c3dafe143c2c50fcce57b417ed1b7d9e37dfb288903a5dc88ef2de71a78aec0a",
+  "reason": "gh formatter needs gojq-compatible streaming, lexical filter/value bindings, exact integer literals, compile-time name checks, dynamic indexes, regex semantics and diagnostics. These local changes retain the pinned upstream source provenance and do not modify the upstream repository.",
+  "files": [
+    {
+      "path": "moon.pkg",
+      "upstream_sha256": "be0b789f2cc08529dcb6921b47e369acc2673eafddf6a44980cc71d14fd4fc7a"
+    },
+    {
+      "path": "moon.mod",
+      "upstream_sha256": "b9fad62649c09c548cbfe7247cb6acb0743e08491fdf422039eb6c8a59087aa4"
+    },
+    {
+      "path": "LICENSE",
+      "upstream_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "moonjq.mbt",
+      "upstream_sha256": "b8253b69def89b28b156dd0d83a864923bf9b7380cac378daad7ff4e4a52d05d"
+    },
+    {
+      "path": "parser/moon.pkg",
+      "upstream_sha256": "303569c848d2f31a596fc69a8acb0799135d96df95373eb4545233f18c090158"
+    },
+    {
+      "path": "parser/parser_builtin_flow_predicates.mbt",
+      "upstream_sha256": "a2fcb9ea586fb4872fc2e838a54b54aaccae28592495e6a59393a98682483a09"
+    },
+    {
+      "path": "parser/parser_functions.mbt",
+      "upstream_sha256": "8545cbdbd4c62b4d64e78b1dc0139fa2d1c7a0cc713d650d109d77dc7838563d"
+    },
+    {
+      "path": "parser/parser_builtin_flow_reduce.mbt",
+      "upstream_sha256": "d7f6392deafc0fb0bf97a17d26e89a4548e85c6c8c9ad0e2a4c71c054bf43a80"
+    },
+    {
+      "path": "parser/parser_builtin_flow_control.mbt",
+      "upstream_sha256": "272f51fa684a3655e894df85dcb9f624bda45f7a2a606c9c8b17f06eee9c2757"
+    },
+    {
+      "path": "parser/parser_builtin.mbt",
+      "upstream_sha256": "30fdc4639b81dacde9fcfdda84a824ad9ab8adf47ad01fa54263043e54779b85"
+    },
+    {
+      "path": "parser/lexer_error.mbt",
+      "upstream_sha256": "46f957a20c3a90e9fed8a8f3a9d29820885b3dfeef60f46bd706cb9c1b8c7d35"
+    },
+    {
+      "path": "parser/parser_builtin_flow_traversal.mbt",
+      "upstream_sha256": "fd54917836b5a2901db0cf3d199f5322d778e23f65d9c06a0a929b9f25bb5261"
+    },
+    {
+      "path": "parser/lexer_state.mbt",
+      "upstream_sha256": "041f17c5c1376aabff254695c6ccf144741c7d21948990331ab312a039b86d1f"
+    },
+    {
+      "path": "parser/parser.mbt",
+      "upstream_sha256": "5ec23946294dcca63b7183c7818a22a2c626a295b5cc9ee590ab418974fbabcd"
+    },
+    {
+      "path": "parser/parser_builtin_string.mbt",
+      "upstream_sha256": "79f382bf36c08fe950d5977e393a02f5d11e3c930377d6c43b361fbb7fab715c"
+    },
+    {
+      "path": "parser/parser_builtin_string_trim.mbt",
+      "upstream_sha256": "733af38d12f12d95b3bfd384f00f1e29c7d105baaebf36a1cea7bfc3ca2a3a9b"
+    },
+    {
+      "path": "parser/parser_constructs.mbt",
+      "upstream_sha256": "391f8ecbc9d8d91ceb6387ad51e83679a16c792b4f6faeb0f1658914afb85fee"
+    },
+    {
+      "path": "parser/parser_parse_logic.mbt",
+      "upstream_sha256": "5e4e207c93a65256c1be4751ab8b056338f3ac73129af87c918bb85090447956"
+    },
+    {
+      "path": "parser/lexer_number.mbt",
+      "upstream_sha256": "a01683a7a739e9de7318b7e608168da5b4b8c5841c3c386464b80d85c6ea3d88"
+    },
+    {
+      "path": "parser/token.mbt",
+      "upstream_sha256": "d99a1af79c519fc1e4980071498c37fc70e67eb62817f20538fb26c5a79291b8"
+    },
+    {
+      "path": "parser/parser_builtin_core.mbt",
+      "upstream_sha256": "d0edb5ccfb3ca3fd45c4508d548c24ecfee877a5c4f843ec1023c9e06e9ae43e"
+    },
+    {
+      "path": "parser/parser_parse_assignment.mbt",
+      "upstream_sha256": "78ee73850bcaf86d9dd023524c2921d794630d98d9133ab09188d3e615f148e9"
+    },
+    {
+      "path": "parser/parse_error.mbt",
+      "upstream_sha256": "86fdfce7bd01ea59c14f35114824acf7c0278f46d16fb14c352b045a29f69b76"
+    },
+    {
+      "path": "parser/parser_builtin_flow.mbt",
+      "upstream_sha256": "58c60cf048d46b8481986c181cd1ee7fd65ad062958fc73378e4a118f90b60c0"
+    },
+    {
+      "path": "parser/parser_builtin_object.mbt",
+      "upstream_sha256": "555d8425e6626d926d30ca7862c06eaefb3e8b115b913240fe64ac6694f7c23b"
+    },
+    {
+      "path": "parser/parser_builtin_string_regex.mbt",
+      "upstream_sha256": "3a8dbdb87ce7fe80002243e5d726288764f3ab01b740449f4126a191c78f3209"
+    },
+    {
+      "path": "parser/parser_builtin_flow_range.mbt",
+      "upstream_sha256": "facebd439099ba9107955ce87c1ee24c1860989abceda6d5eeecae2c5a1da25b"
+    },
+    {
+      "path": "parser/parser_builtin_numeric.mbt",
+      "upstream_sha256": "54667f1292998d84219bf434e2368b27724157c5541751529fb3a3a8dea6fba4"
+    },
+    {
+      "path": "parser/lexer_symbol.mbt",
+      "upstream_sha256": "d08d200b422af6d7499adcb5cbec862072d447ce2662ff0f2df49d22b46e32f6"
+    },
+    {
+      "path": "parser/parser_builtin_string_codec.mbt",
+      "upstream_sha256": "617695eb7e20163fef088e0127d56c9952df9d06d9a6efc031ff22a4467780bc"
+    },
+    {
+      "path": "parser/parser_primary.mbt",
+      "upstream_sha256": "2310e4103594eb3c2dd2878a2aec94ea3658e730c4f6e1df4d1c328d921f3491"
+    },
+    {
+      "path": "parser/parser_postfix.mbt",
+      "upstream_sha256": "aab55ef81900fa9c0bff2b63732448bd5e6460be58f33297c630dfd05714253a"
+    },
+    {
+      "path": "parser/lexer.mbt",
+      "upstream_sha256": "2c0379daeb10c7c9f0edf116647df939cc9c966425772f11be947598f812dc86"
+    },
+    {
+      "path": "parser/lexer_identifier.mbt",
+      "upstream_sha256": "54e9fa7fc6261ff64aed202f0ed494a58fd0ba7f25387441ed70c93ef4643ec9"
+    },
+    {
+      "path": "parser/parser_parse_pipe.mbt",
+      "upstream_sha256": "cbca29acbb07d855c46071a2722e83f29040cdc21e800af4d4b03593336a3ffa"
+    },
+    {
+      "path": "parser/lexer_string.mbt",
+      "upstream_sha256": "6ec71da2263cebc789ddcd9c2374df0a6903e2c2642e6da8098193dd25e81382"
+    },
+    {
+      "path": "parser/parser_state.mbt",
+      "upstream_sha256": "db440cd16af8b45656112774aa6edb189140801870a0a99a9d9794aba4261c06"
+    },
+    {
+      "path": "parser/parser_builtin_string_core.mbt",
+      "upstream_sha256": "536b448ba6d667ea72a49a19587137941ff13a70fb67d368923c59b391cc44ab"
+    },
+    {
+      "path": "parser/parser_builtin_array.mbt",
+      "upstream_sha256": "639ee4e4271f2dbe4c2c58cd231217703f99672e6142f99105e20eff6af45a64"
+    },
+    {
+      "path": "parser/parser_parse_arithmetic.mbt",
+      "upstream_sha256": "a6745cb5c2e85597e41b65f8176c7196737d5d8b72a8f21bacbf08b2f1babfe8"
+    },
+    {
+      "path": "parser/parser_builtin_path.mbt",
+      "upstream_sha256": "163a8cbbfc0bce612cfa88a5c9f1d981e8dd10dca4b83e60ec8c2161417a754e"
+    },
+    {
+      "path": "parser/lexer_helpers.mbt",
+      "upstream_sha256": "c25773acd0b74598e0136f737c70d239b01200989a6189cb2d5476ae702c1072"
+    },
+    {
+      "path": "ast/moon.pkg",
+      "upstream_sha256": "045b39fed1a81746e721e8a994aff7a11376dbec39c427a8e047db74eb6373a1"
+    },
+    {
+      "path": "ast/interpreter_aggregates.mbt",
+      "upstream_sha256": "2889c474ad8128440752c1056b3931077349307131bd26468de683d902884ded"
+    },
+    {
+      "path": "ast/interpreter_access.mbt",
+      "upstream_sha256": "e71e6ec006e3e77915de0e73bea363bd1cd2eb34a31c55a24a19814527819b29"
+    },
+    {
+      "path": "ast/interpreter_collection_order.mbt",
+      "upstream_sha256": "1bf6b5f14295584503ff1a28b5fb2ea0e375900d846bbeff12541f1d2736318c"
+    },
+    {
+      "path": "ast/interpreter_path_enumeration.mbt",
+      "upstream_sha256": "82cfa003d529f5f290eb9dfbb61fb354aa840394e65a2b3df195ce8f7f0f603c"
+    },
+    {
+      "path": "ast/interpreter_assignment_update.mbt",
+      "upstream_sha256": "8d498ed9b56628830b340b6839dec8e74d798a972947d2ebdb9d1730e3fce6cb"
+    },
+    {
+      "path": "ast/interpreter_encoding_html.mbt",
+      "upstream_sha256": "7940fcec99036ed610c35d95dedab8aba32cfbc992b74f2c50d1505fbd5bf0a9"
+    },
+    {
+      "path": "ast/interpreter_construct.mbt",
+      "upstream_sha256": "fe0343518aa48c6b447da0e80b075cbe918b0e1c141f4e020460e33d6b04e8b8"
+    },
+    {
+      "path": "ast/interpreter_bindings.mbt",
+      "upstream_sha256": "2744a61689f063d63dc0fa510b0b78e7dd44b624016dfc21e5ac3f4e8791726c"
+    },
+    {
+      "path": "ast/interpreter_assignment_compound.mbt",
+      "upstream_sha256": "17b8c84aea7675a1e2225dc12ad9d3d15b49f8e3751699e9e0e5e12b32747ba1"
+    },
+    {
+      "path": "ast/interpreter_collection_matrix.mbt",
+      "upstream_sha256": "55ffb10dbcbe4a8e616bdbaecb5944aa573b71202a87c3ecc81c1611780d07be"
+    },
+    {
+      "path": "ast/interpreter_generator_range.mbt",
+      "upstream_sha256": "d66867abdca65a34595f48a618c5b58a656f649c216859236acc0b35358f0903"
+    },
+    {
+      "path": "ast/interpreter_interpolation.mbt",
+      "upstream_sha256": "b23b8067eff0bc35475ee561301e31a7114bd1a36095c7ce508c5b592502da3d"
+    },
+    {
+      "path": "ast/interpreter_json_string.mbt",
+      "upstream_sha256": "aaa15dffed8bee7bdd1975007c2a87718178632cc77f891f17907baebe3d4849"
+    },
+    {
+      "path": "ast/interpreter_regex.mbt",
+      "upstream_sha256": "cc5c90b9101bd6ed4436bfebee5074095411db7b2121278275e085e5071ab313"
+    },
+    {
+      "path": "ast/interpreter_numeric_basic.mbt",
+      "upstream_sha256": "92af395516bcfbbc401be32a9726bbd4f80c6b19ab86995841f339bdf2353cf9"
+    },
+    {
+      "path": "ast/interpreter_generator_predicates.mbt",
+      "upstream_sha256": "262d595de45941e5f325254b124c8a7a2a76f0d0617ed65c50927cb60d494e78"
+    },
+    {
+      "path": "ast/interpreter_binary_ops.mbt",
+      "upstream_sha256": "4c037563e29ecf6b29de870b5928d65e2295c769bff65d35f16e64a336b43c32"
+    },
+    {
+      "path": "ast/interpreter_path_access.mbt",
+      "upstream_sha256": "040309d57be98562ab589fb54cdca89a5501409bc0839a0a260649eede3e2b8e"
+    },
+    {
+      "path": "ast/literal.mbt",
+      "upstream_sha256": "10b287de893c3cbd8e45c024f1b3765a286155f1d7b4bd6cdb02652a0374348b"
+    },
+    {
+      "path": "ast/interpreter_literal_eval.mbt",
+      "upstream_sha256": "490a3c98febf773f915e5854b38505218cb5cffbbfbeaba731667b2aaae86cef"
+    },
+    {
+      "path": "ast/internal/helpers/moon.pkg",
+      "upstream_sha256": "607f4ea3b5530b645a8286bc6d42575be31cf537f672e1847c84672e65d0daa9"
+    },
+    {
+      "path": "ast/internal/helpers/truthy.mbt",
+      "upstream_sha256": "ab2f1a0ae5a03d42c121303451def77ac913d8524ee901fe31f7c6d37da9a4e0"
+    },
+    {
+      "path": "ast/internal/helpers/json_helpers.mbt",
+      "upstream_sha256": "314813a7909ed12197bd3dd7b1b4c600fdd0a28d9d3042a9a48c82621e95c44d"
+    },
+    {
+      "path": "ast/interpreter_object_array_ops.mbt",
+      "upstream_sha256": "17e5d14430706e6ebf09f1330978db7e7ee89dfe36e10726b974e12c73317315"
+    },
+    {
+      "path": "ast/interpreter_operation.mbt",
+      "upstream_sha256": "65cdf02a35f82607cd39c99cec38c88987961a666583fddb5dbafe08ee145e83"
+    },
+    {
+      "path": "ast/expression.mbt",
+      "upstream_sha256": "d3f79967820b9dfbbe9deb0a190beeafd654246d7f9d52a0f0bb2c1fd9597e02"
+    },
+    {
+      "path": "ast/interpreter_encoding_base64.mbt",
+      "upstream_sha256": "2e7b594fbaad83c94baa5a0548cddc2fef4a7bc266560cb7a91567ac36772e7e"
+    },
+    {
+      "path": "ast/interpreter_string_trim.mbt",
+      "upstream_sha256": "e08d74da2d967d61a902ff23b6f802c96e921d34a86aa3307359e91392dc76da"
+    },
+    {
+      "path": "ast/interpreter_control_flow.mbt",
+      "upstream_sha256": "8ba77f3758a32f4845859c1ec709299bd737f40f67c4658103ff1b308968cc18"
+    },
+    {
+      "path": "ast/interpreter_path_expression.mbt",
+      "upstream_sha256": "dbc3b055ffe3cf905924b9db4cdd48ed6214880f2b4dd7795d12d18108015170"
+    },
+    {
+      "path": "ast/interpreter_encoding_uri.mbt",
+      "upstream_sha256": "046c0b3e27ce049c350091e74bc5c66b116e62259bf0d835a7a9f39b9168acf5"
+    },
+    {
+      "path": "ast/interpreter.mbt",
+      "upstream_sha256": "917d92cb33e7caf9e29aaa23b44a034b602c4339468a8994ee221b693c06e51e"
+    },
+    {
+      "path": "ast/interpreter_iteration_sequence.mbt",
+      "upstream_sha256": "d913d7fd3608bb8471b5d820de0dbbc718d5308d909dcd41ff2a29fb66c8851d"
+    },
+    {
+      "path": "ast/interpreter_assignment_basic.mbt",
+      "upstream_sha256": "344dfe6a555bcb4ec241630e4fe2c23d8ada453df06ed9954eb258e7ed62c7f8"
+    },
+    {
+      "path": "ast/interpreter_generator_foreach.mbt",
+      "upstream_sha256": "1d2ddea91d0b5b7cf40e6ae28d423e66771e10dc613c5d75f4ef5ba1d327f4cb"
+    },
+    {
+      "path": "ast/interpreter_numeric_math.mbt",
+      "upstream_sha256": "17ae970f3ea58438dcf93b05d376ce38ea4046b49a33c659477dd1394313a5fd"
+    },
+    {
+      "path": "ast/interpreter_collection_object.mbt",
+      "upstream_sha256": "582e400654d7b63e5d4426c9c07b915df7ebad0025b98ba07c5212f20979517e"
+    },
+    {
+      "path": "ast/interpreter_array_functions.mbt",
+      "upstream_sha256": "2cedf1afe8f2e3168ed2aeec6018453a73909d3328bd32e8d0e13b963a0bb49c"
+    },
+    {
+      "path": "ast/interpreter_traversal.mbt",
+      "upstream_sha256": "1cbfd6d27379c8248b044e52b18093921ca99bc94e5d5a05d5131b3131598db8"
+    },
+    {
+      "path": "ast/interpreter_builtins.mbt",
+      "upstream_sha256": "439184c7dba0885cf3c6149b9d8676e7e8357757299b5455bbcd2371dc8e6a97"
+    },
+    {
+      "path": "ast/interpreter_env.mbt",
+      "upstream_sha256": "4875dadee9061014e48e3ca89a5d3ffbc2b5229460ef179d5c316f69bcbe8e35"
+    },
+    {
+      "path": "ast/interpreter_iteration_index.mbt",
+      "upstream_sha256": "70e77c4816755020acf89b217f4541a47dd9f66cafc689be8d74dbad1a059b86"
+    },
+    {
+      "path": "ast/interpreter_compare.mbt",
+      "upstream_sha256": "abb5f76737da9ddd78e5c87b274bef0ec5be45f479e2c4e63d36cd98abee9baa"
+    },
+    {
+      "path": "ast/interpreter_string_core.mbt",
+      "upstream_sha256": "af175d4cb3107d94213cfc8014e4feea97744835fd63844244f715eb9b6e9287"
+    },
+    {
+      "path": "ast/interpreter_generator_stream.mbt",
+      "upstream_sha256": "7c52f5bd2b7fb046eaa2a1a08c5c5d427eef7f97ee2071cbe0dce37c7eedcc25"
+    },
+    {
+      "path": "ast/interpreter_numeric_round.mbt",
+      "upstream_sha256": "6348def723bb9828a7880a3da3377b323a77a62538c385bcfcb33288cb10b0ac"
+    },
+    {
+      "path": "ast/interpreter_error.mbt",
+      "upstream_sha256": "ddae2b1df1f180644ef334048a75be91361621d1021ace2d4f92ce3f39ee439e"
+    },
+    {
+      "path": "ast/interpreter_format.mbt",
+      "upstream_sha256": "bae7e4a80d1e34803cab45b656f41d0d1248f0caf93a568b880d35df8c89e9c7"
+    },
+    {
+      "path": "ast/interpreter_path_mutation.mbt",
+      "upstream_sha256": "d7ca1c9c23d9deea557fb2d3362be9cdb0ea560162a8e3f57eb31cd16f42f999"
+    },
+    {
+      "path": "ast/interpreter_string_scan.mbt",
+      "upstream_sha256": "fa8410eab7880561d3753440c56d62b923d598f20d16fd222303a9ba6fc7afe3"
+    },
+    {
+      "path": "ast/operator.mbt",
+      "upstream_sha256": "b8c9b3316ad1dd032909a90131beb605d8d293c5c8714d9e5c6d924269c66631"
+    },
+    {
+      "path": "query.mbt",
+      "upstream_sha256": "65188cb411feea1f7ea473721afcc78bae2b3d3ce459e351f7d9a48f915ec7e4"
+    }
+  ]
+}

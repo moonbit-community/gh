@@ -1,0 +1,610 @@
+{
+  "schema": 2,
+  "repository": "ZSeanYves/gh_test",
+  "host": "github.com",
+  "mode": "read-only-smoke",
+  "live_requests_attempted": true,
+  "live_server_verified": true,
+  "oracle_version": "2.102.0",
+  "oracle_executed": true,
+  "core_parity_verified": false,
+  "pagination_verified": false,
+  "oauth_verified": false,
+  "keyring_verified": false,
+  "multi_account_verified": false,
+  "write_operations_verified": false,
+  "command_budget": 40,
+  "project_request_budget": 20,
+  "oracle_request_count_verified": false,
+  "project_binary_sha256": "17280659f7ba9734b62197deab4850d61d379b1791a11be92d8af54bdb127ea8",
+  "cases": [
+    {
+      "name": "user",
+      "schema": "user",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 2691,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4929",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 2680,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4928",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "repository",
+      "schema": "repository",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 6854,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4927",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 6844,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4926",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "issues",
+      "schema": "list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 8352,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4925",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": true,
+        "output_kind": "json",
+        "item_count": 2,
+        "nonempty_semantics_verified": false,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 8342,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4924",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": true,
+        "output_kind": "json",
+        "item_count": 2,
+        "nonempty_semantics_verified": false
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "pulls",
+      "schema": "list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 31832,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4923",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": true,
+        "output_kind": "json",
+        "item_count": 2,
+        "nonempty_semantics_verified": false,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 31821,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4922",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": true,
+        "output_kind": "json",
+        "item_count": 2,
+        "nonempty_semantics_verified": false
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "releases",
+      "schema": "list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1407,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4921",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1417,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4920",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "runs",
+      "schema": "runs",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1442,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4919",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1433,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4918",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792506247",
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "workflows",
+      "schema": "workflows",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1437,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4958",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792504287",
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1429,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4957",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792504287",
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "graphql-viewer",
+      "schema": "viewer",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1200,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4813",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792504950",
+        "next_link_present": false,
+        "output_kind": "json",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1184,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4812",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792504950",
+        "next_link_present": false,
+        "output_kind": "json"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "graphql-repository",
+      "schema": "graphql-repository",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1237,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4811",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792504950",
+        "next_link_present": false,
+        "output_kind": "json",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 1222,
+        "stderr_characters": 0,
+        "http_status": 200,
+        "x-ratelimit-remaining": "4810",
+        "x-ratelimit-limit": "5000",
+        "x-ratelimit-reset": "1792504950",
+        "next_link_present": false,
+        "output_kind": "json"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "jq",
+      "schema": "repository-text",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 18,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "text",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 18,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "text"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "template",
+      "schema": "repository-text",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 17,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "text",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 17,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "text"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "repo-view",
+      "schema": "repo-view",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 55,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 55,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "repo-details",
+      "schema": "repo-details",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 78,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 78,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json"
+      },
+      "normalized_output_matches": true
+    },
+    {
+      "name": "issue-list",
+      "schema": "issue-list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 230,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 3,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 230,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 3,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true
+      },
+      "normalized_output_matches": true,
+      "selected_fields_output_matches": true,
+      "nonempty_semantics_verified": true
+    },
+    {
+      "name": "pr-list",
+      "schema": "pr-list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 256,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 3,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 256,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 3,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true
+      },
+      "normalized_output_matches": true,
+      "selected_fields_output_matches": true,
+      "nonempty_semantics_verified": true
+    },
+    {
+      "name": "release-list",
+      "schema": "release-list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 3,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 3,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true
+      },
+      "normalized_output_matches": true,
+      "selected_fields_output_matches": true,
+      "nonempty_semantics_verified": false
+    },
+    {
+      "name": "run-list",
+      "schema": "run-list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 3,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 3,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true
+      },
+      "normalized_output_matches": true,
+      "selected_fields_output_matches": true,
+      "nonempty_semantics_verified": false
+    },
+    {
+      "name": "workflow-list",
+      "schema": "workflow-list",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 0,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "empty",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": false,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 0,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "empty",
+        "item_count": 0,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": false
+      },
+      "normalized_output_matches": true,
+      "empty_stdout_matches": true,
+      "nonempty_semantics_verified": false
+    },
+    {
+      "name": "search-issues",
+      "schema": "search-issues",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 230,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 3,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 230,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 3,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true
+      },
+      "normalized_output_matches": true,
+      "selected_fields_output_matches": true,
+      "nonempty_semantics_verified": true
+    },
+    {
+      "name": "search-repos",
+      "schema": "search-repos",
+      "project": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 35,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 1,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true,
+        "single_request_trace_verified": true
+      },
+      "oracle": {
+        "exit_code": 0,
+        "passed": true,
+        "stdout_characters": 35,
+        "stderr_characters": 0,
+        "next_link_present": false,
+        "output_kind": "json",
+        "item_count": 1,
+        "nonempty_semantics_verified": false,
+        "selected_fields_schema_verified": true
+      },
+      "normalized_output_matches": true,
+      "selected_fields_output_matches": true,
+      "nonempty_semantics_verified": true
+    }
+  ]
+}

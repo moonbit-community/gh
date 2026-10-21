@@ -76,6 +76,27 @@ test "hosts yaml uses the active account without leaking other accounts" {
 }
 
 ///|
+test "hosts yaml accepts empty keyring account maps without selecting another token" {
+  let source =
+    #|"github.com":
+    #|  "user": "alice"
+    #|  "users":
+    #|    "alice": {}
+    #|    "bob":
+    #|      "oauth_token": "other-account-fixture"
+  assert_eq(@github_auth.hosts_token(source, host="github.com"), Ok(None))
+  for
+    source in [
+      "github.com:\n  oauth_token: {}", "github.com:\n  users:\n    alice: {oauth_token: hidden}",
+    ] {
+    assert_true(
+      @github_auth.hosts_token(source, host="github.com")
+      is Err(@github_auth.InvalidConfig),
+    )
+  }
+}
+
+///|
 test "hosts yaml rejects duplicate keys and unsupported structures" {
   for
     source in [

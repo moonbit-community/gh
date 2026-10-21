@@ -12,23 +12,35 @@ pub(all) enum OriginError {
 }
 
 pub struct RawBodyStream {
-  length : Int?
+  length : Int32?
   // private fields
 }
-pub fn RawBodyStream::length(Self) -> Int?
-pub fn RawBodyStream::new(next~ : async () -> Bytes?, length? : Int) -> Self
+pub fn RawBodyStream::length(Self) -> Int32?
+pub fn RawBodyStream::new(next~ : async () -> Bytes?, length? : Int32) -> Self
 pub async fn RawBodyStream::next(Self) -> Bytes?
 
+pub struct RawDownloadResult {
+  head : RawResponseHead
+  bytes_received : Int64
+  complete : Bool
+}
+pub fn RawDownloadResult::bytes_received(Self) -> Int64
+pub fn RawDownloadResult::complete(Self) -> Bool
+pub fn RawDownloadResult::head(Self) -> RawResponseHead
+pub fn RawDownloadResult::new(head~ : RawResponseHead, bytes_received~ : Int64, complete~ : Bool) -> Self
+
 pub struct RawHttpResponse {
-  status : Int
+  status : Int32
+  reason_phrase : String?
   headers : Array[(String, String)]
   body : Bytes
 }
 pub fn RawHttpResponse::body(Self) -> Bytes
 pub fn RawHttpResponse::header(Self, String) -> String?
 pub fn RawHttpResponse::headers(Self) -> Array[(String, String)]
-pub fn RawHttpResponse::new(status~ : Int, headers? : Array[(String, String)], body? : Bytes) -> Self
-pub fn RawHttpResponse::status(Self) -> Int
+pub fn RawHttpResponse::new(status~ : Int32, headers? : Array[(String, String)], body? : Bytes, reason_phrase? : String) -> Self
+pub fn RawHttpResponse::reason_phrase(Self) -> String?
+pub fn RawHttpResponse::status(Self) -> Int32
 
 pub struct RawRequest {
   verb : String
@@ -45,13 +57,33 @@ pub fn RawRequest::path(Self) -> String
 pub fn RawRequest::stream(Self) -> RawBodyStream?
 pub fn RawRequest::verb(Self) -> String
 
+pub struct RawResponseHead {
+  status : Int32
+  reason_phrase : String?
+  headers : Array[(String, String)]
+}
+pub fn RawResponseHead::header(Self, String) -> String?
+pub fn RawResponseHead::headers(Self) -> Array[(String, String)]
+pub fn RawResponseHead::new(status~ : Int32, headers? : Array[(String, String)], reason_phrase? : String) -> Self
+pub fn RawResponseHead::reason_phrase(Self) -> String?
+pub fn RawResponseHead::status(Self) -> Int32
+
+pub struct RawResponseSink {
+  // private fields
+}
+pub async fn RawResponseSink::chunk(Self, Bytes) -> Unit
+pub async fn RawResponseSink::headers(Self, RawResponseHead) -> Bool
+pub fn RawResponseSink::new(headers~ : async (RawResponseHead) -> Bool, chunk~ : async (Bytes) -> Unit) -> Self
+
 pub struct RawTransport {
   origin : String
   // private fields
 }
-pub fn RawTransport::new(origin~ : String, send~ : async (RawRequest) -> RawHttpResponse) -> Self
+pub fn RawTransport::new(origin~ : String, send~ : async (RawRequest) -> RawHttpResponse, receive? : async (RawRequest, RawResponseSink) -> RawDownloadResult) -> Self
 pub fn RawTransport::origin(Self) -> String
+pub async fn RawTransport::receive(Self, RawRequest, RawResponseSink) -> RawDownloadResult
 pub async fn RawTransport::send(Self, RawRequest) -> RawHttpResponse
+pub fn RawTransport::supports_streaming(Self) -> Bool
 
 // Type aliases
 

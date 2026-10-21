@@ -1,0 +1,52 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn main {
+  let expected = "5ddfc56aa339f48e671e8d680c67f7e96f0422489698ae6e05c8015feb8a0b46"
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file("_build/moonctl-0.10.0.zip").binary()),
+  )
+  guard hash == expected else { fail("moonctl archive checksum mismatch") }
+  let source = @fs.read_file("_build/moonctl-template/template.mbt").text()
+  guard source.split_once("///|\n/// One `@server` group") is Some((engine, _)) else {
+    fail("upstream template extraction boundary changed")
+  }
+  let directory = "internal/formatter_template"
+  @fs.mkdir(directory, recursive=true)
+  @fs.write_file(
+    directory + "/engine.mbt",
+    engine.to_owned(),
+    create_mode=CreateNew,
+  )
+  @fs.write_file(
+    directory + "/LICENSE",
+    @fs.read_file("_build/moonctl-template/LICENSE").binary(),
+    create_mode=CreateNew,
+  )
+  @fs.write_file(
+    directory + "/upstream.json",
+    Json::object({
+      "module": "moonbitstack/moonctl",
+      "version": "0.10.0",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/moonbitstack/moonctl",
+      "archive_sha256": Json(hash),
+      "file": "template.mbt",
+      "upstream_file_sha256": @crypto.bytes_to_hex_string(
+        @crypto.sha256(
+          @fs.read_file("_build/moonctl-template/template.mbt").binary(),
+        ),
+      ),
+      "extraction": "Pure Value/AST/parser/evaluator, excluding spec_to_value and code generation",
+      "reason": "Reuse the pure template engine without code generation, database, PostgreSQL or SQLite dependencies",
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+  )
+}

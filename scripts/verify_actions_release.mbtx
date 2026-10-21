@@ -1,0 +1,201 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+fn property(value : Json, name : String) -> Json raise {
+  guard value is Object(fields) && fields.get(name) is Some(value) else {
+    fail("missing comparison field " + name)
+  }
+  value
+}
+
+///|
+/// Compare complete Native executions against pinned captures. JSON stdout
+/// compares types/values/array order; all other output and files compare byte
+/// for byte. Input fixtures, command lines and request paths are immutable.
+async fn main {
+  let args = @env.args()
+  let supported = [
+    "actions-progress-pty", "run-rerun-pty", "cache-delete-pty", "actions", "release",
+    "release-download", "workflow-run", "run-rerun", "cache-delete", "run-watch",
+    "run-watch-pty", "run-watch-stream", "run-watch-interrupt", "run-watch-edge",
+    "run-watch-edge-pty", "workflow-manage", "workflow-manage-pty",
+  ]
+  guard (args.length() == 3 || args.length() == 4) &&
+    !@fs.exists(args[2]) &&
+    (args.length() == 3 || supported.contains(args[3])) else {
+    fail(
+      "usage: verify_actions_release.mbtx BINARY NEW_REPORT_DIRECTORY [FAMILY]",
+    )
+  }
+  let binary = @fs.realpath(args[1])
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  @fs.mkdir(args[2])
+  let directory = @fs.realpath(args[2])
+  let records : Array[Json] = []
+  let mut passed = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "binary_sha256": hash,
+        "core_parity_verified": false,
+        "status": if passed {
+          "pass"
+        } else {
+          "fail"
+        },
+        "cases": records,
+        "scope": "fixed gh 2.102.0; synthetic loopback; no live account writes",
+      }).stringify(indent=2) +
+      "\n",
+    )
+  })
+  for family in (if args.length() == 4 { [args[3]] } else { supported }) {
+    let expected = @json.parse(
+      @fs.read_file("testdata/" + family + "-oracle-v2.102.0.json").text(),
+    )
+    let case_family = if family.has_suffix("-pty") {
+      family.strip_suffix("-pty").unwrap().to_owned()
+    } else {
+      family
+    }
+    let case_path = "testdata/" + case_family + "-cases.json"
+    let case_hash = @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(case_path).binary()),
+    )
+    guard property(expected, "cases_sha256") == Json(case_hash) &&
+      property(expected, "failures") == Json(0) &&
+      property(expected, "expected_cases") ==
+      property(expected, "completed_cases") else {
+      fail("oracle capture is incomplete or case inputs changed")
+    }
+    guard @crypto.bytes_to_hex_string(
+        @crypto.sha256(@fs.read_file(binary).binary()),
+      ) ==
+      hash else {
+      fail("candidate binary changed")
+    }
+    let report = directory + "/" + family + ".json"
+    let capture_args = [
+      "run", "--target", "native", "scripts/actions_oracle.mbtx", "--", binary, case_path,
+      report, hash,
+    ]
+    if expected is { "terminal": True, .. } {
+      capture_args.push("--pty")
+    }
+    if expected is { "color": True, .. } {
+      capture_args.push("--color")
+    }
+    let result = @shell.Cmd("moon", capture_args).output(
+      timeout_ms=900000,
+      max_output_bytes=65536,
+    )
+    @fs.write_file(directory + "/" + family + ".stdout", result.stdout())
+    @fs.write_file(directory + "/" + family + ".stderr", result.stderr())
+    guard result.exit_code() == 0 && @fs.exists(report) else {
+      fail("candidate capture failed: " + family)
+    }
+    let actual = @json.parse(@fs.read_file(report).text())
+    guard property(actual, "candidate_sha256") == Json(hash) &&
+      property(actual, "cases_sha256") == Json(case_hash) &&
+      property(actual, "failures") == Json(0) &&
+      property(actual, "completed_cases") ==
+      property(expected, "completed_cases") &&
+      property(actual, "cases") is Array(observed) &&
+      property(expected, "cases") is Array(reference) &&
+      observed.length() == reference.length() else {
+      fail("candidate capture is incomplete")
+    }
+    for index in 0..<reference.length() {
+      let expected = reference[index]
+      let actual = observed[index]
+      let differences : Array[String] = []
+      if expected is { "progress_before_completion": True, .. } &&
+        !(actual is { "progress_before_completion": True, .. }) {
+        differences.push("progress_before_completion")
+      }
+      if expected is { "interrupt_sent": True, .. } &&
+        !(actual is { "interrupt_sent": True, .. }) {
+        differences.push("interrupt_sent")
+      }
+      for
+        field in ["id", "args", "requests", "stderr", "exit_code", "files_hex"] {
+        if property(actual, field) != property(expected, field) {
+          differences.push(field)
+        }
+      }
+      if expected is { "request_messages": Array(messages), .. } {
+        guard actual is { "request_messages": Array(observed), .. } else {
+          fail("missing request protocol capture")
+        }
+        // JSON object order/spacing is not protocol behavior. Keep raw bytes in
+        // both captures; compare methods, exact paths, JSON types and array order.
+        fn protocol(items : Array[Json]) -> Array[Json] raise {
+          items.map(item => {
+            Json::object({
+              "method": property(item, "method"),
+              "path": property(item, "path"),
+              "body": property(item, "json_body"),
+            })
+          })
+        }
+        if protocol(messages) != protocol(observed) {
+          differences.push("request_messages")
+        }
+      }
+      let expected_output = property(expected, "stdout")
+      let actual_output = property(actual, "stdout")
+      let is_json = property(expected, "args") is Array(arguments) &&
+        arguments.contains(Json("--format")) &&
+        property(expected, "exit_code") == Json(0)
+      let equal_output = if is_json &&
+        expected_output is String(expected) &&
+        actual_output is String(actual) {
+        try @json.parse(actual) == @json.parse(expected) catch {
+          _ => false
+        }
+      } else {
+        actual_output == expected_output
+      }
+      if !equal_output {
+        differences.push("stdout")
+      }
+      // Directory traversal order is platform dependent; the exact set is
+      // compared, without removing or normalizing any path.
+      guard property(actual, "directories") is Array(actual_dirs) &&
+        property(expected, "directories") is Array(expected_dirs) else {
+        fail("missing directories")
+      }
+      if actual_dirs.length() != expected_dirs.length() ||
+        !actual_dirs.all(path => expected_dirs.contains(path)) {
+        differences.push("directories")
+      }
+      records.push({
+        "family": family,
+        "id": property(expected, "id"),
+        "status": if differences.is_empty() {
+          "pass"
+        } else {
+          "fail"
+        },
+        "differences": differences,
+      })
+    }
+    println(family + ": compared " + reference.length().to_string() + " cases")
+  }
+  passed = records.all(record => record is { "status": String("pass"), .. })
+  guard passed else {
+    fail("Actions/Release differential mismatch; see report")
+  }
+}

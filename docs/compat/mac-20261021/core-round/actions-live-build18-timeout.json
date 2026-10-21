@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "family": "private-repository-lifecycle",
+  "actions_requested": true,
+  "storage_independent": true,
+  "actions_profile_verified": false,
+  "run_id": "fdc6274e5c320bc70b03d02e",
+  "repository": "ZSeanYves/gh-acceptance-fdc6274e5c320bc70b03d02e-repository",
+  "source_build": {
+    "schema": 1,
+    "family": "native-acceptance-build",
+    "source_base": "c1b8712ab01fa9debd5d8d4bdba643371bb5bd15",
+    "source_files_sha256": "e1ac39dc988103a6b22f2b24b2d0054b983d1e442e7a3563fabd051b238107bc",
+    "source_unchanged": true,
+    "toolchain": "moon 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moon\nmoonc v0.10.16+b1a0e846e (2026-10-16) ~/.moon/bin/moonc\nmoonrun 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+    "dependencies_sha256": "f2ae545ec274b7abae73567e759228d4a04f214f9f163fa1bbeaba90a45a5856",
+    "selection": [],
+    "status": "pass",
+    "core_parity_verified": false,
+    "cases": [
+      {
+        "id": "native-check",
+        "argv": [
+          "check",
+          "--target",
+          "native",
+          "--frozen",
+          "--deny-warn"
+        ],
+        "exit_code": 0,
+        "status": "pass"
+      },
+      {
+        "id": "native-build",
+        "argv": [
+          "build",
+          "--target",
+          "native",
+          "--release",
+          "--frozen",
+          "--deny-warn",
+          "cmd/main"
+        ],
+        "exit_code": 0,
+        "status": "pass"
+      }
+    ],
+    "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47"
+  },
+  "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47",
+  "status": "fail",
+  "cleanup": "pass",
+  "core_parity_verified": false,
+  "cases": [
+    {
+      "id": "repository.create-read",
+      "status": "pass",
+      "resource_id": "1427880162"
+    },
+    {
+      "id": "repository.edit-read",
+      "status": "pass",
+      "resource_id": "1427880162"
+    },
+    {
+      "id": "repository.bootstrap-receipts",
+      "status": "pass"
+    },
+    {
+      "id": "workflow.create-file-read",
+      "status": "pass",
+      "resource_id": "391303490",
+      "source_sha256": "4a911731b24e22cfd3b26aa1fef85ff5fcda7f2ed8664cb7b3b46b7bc56cac96",
+      "commit_sha": "82192eef4e885fa870ad673f0398cd3b174eb0e7"
+    },
+    {
+      "id": "workflow.disable-read",
+      "status": "pass",
+      "resource_id": "391303490"
+    },
+    {
+      "id": "workflow.enable-read",
+      "status": "pass",
+      "resource_id": "391303490"
+    },
+    {
+      "id": "run.download-bytes-and-paths",
+      "status": "blocked",
+      "reason": "account_artifact_storage_quota; user will restore quota; private repository retained as visibility requirement"
+    },
+    {
+      "id": "workflow.dispatch-failure",
+      "status": "pass",
+      "resource_id": "39544981832",
+      "outcome_reconciled": true
+    },
+    {
+      "id": "run-failure.observed-states",
+      "status": "pass",
+      "resource_id": "39544981832",
+      "states": [
+        "in_progress"
+      ],
+      "conclusion": null
+    },
+    {
+      "id": "run.watch-failure",
+      "status": "fail",
+      "resource_id": "39544981832",
+      "argv": [
+        "run",
+        "watch",
+        "39544981832",
+        "--exit-status",
+        "-i2",
+        "-R",
+        "ZSeanYves/gh-acceptance-fdc6274e5c320bc70b03d02e-repository"
+      ],
+      "exit_code": 1,
+      "first_progress_after_ms": null,
+      "elapsed_ms": 5006,
+      "cancellation_issued_after_progress": false,
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-08/watch-failure.trace.jsonl",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reason": "failed to get run: transport\n"
+    },
+    {
+      "id": "actions.scenario-failure",
+      "status": "fail",
+      "reason": "Failure(runner.mbtx:6285:5-6285:80@moon/test/single FAILED: run watch command did not satisfy progress and exit-status contract)"
+    },
+    {
+      "id": "repository.lifecycle",
+      "status": "fail",
+      "reason": "Failure(runner.mbtx:5450:5-5450:81@moon/test/single FAILED: run cancellation failed: gh: Cannot cancel a workflow run that is completed. (HTTP 409)\n)"
+    },
+    {
+      "id": "run.cleanup",
+      "status": "pass",
+      "resource_id": "39544981832"
+    },
+    {
+      "id": "repository.inventory",
+      "status": "pass",
+      "report": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-08/repository-inventory-1792557441891.json",
+      "resource_id": "1427880162"
+    },
+    {
+      "id": "repository.cleanup",
+      "status": "pass",
+      "resource_id": "1427880162",
+      "readback_status": 404,
+      "id_readback_status": 404,
+      "history_claim": "repository deletion confirmed; service audit history not erased"
+    }
+  ]
+}

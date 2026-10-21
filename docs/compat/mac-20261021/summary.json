@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-21",
+  "host": "macOS arm64",
+  "base_commit": "c1b8712ab01fa9debd5d8d4bdba643371bb5bd15",
+  "source_state": "uncommitted local changes",
+  "source_hashes": "tested-source-sha256.json",
+  "binary_sha256": "4f577d66e89803bb9e3b4c80ba3a562364488a0b3fa1495d749d782a1ba49b38",
+  "oracle_version": "2.102.0",
+  "oracle_binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "toolchain": "moon 0.1.20261012 (748b63c 2026-10-12) ~/.moon/bin/moon\nmoonc v0.10.15+943464bfa (2026-10-12) ~/.moon/bin/moonc\nmoonrun 0.1.20261012 (748b63c 2026-10-12) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "oauth_device_passed": true,
+  "oauth_web_passed": true,
+  "test_app_grant_revoked": true,
+  "deploy_key_acceptance": {
+    "passed": 2
+  },
+  "deploy_key_cleanup_passed": true,
+  "read_differential": {
+    "passed": 20
+  },
+  "unit_test_results_source": "successful command outputs in the local 2026-10-21 session",
+  "native_tests": 278,
+  "wasm_tests": 69,
+  "wasm_gc_tests": 52,
+  "js_tests": 69,
+  "public_interfaces_changed": false,
+  "credential_scan_passed": true,
+  "full_write_matrix_rerun": false,
+  "multi_account_verified": false,
+  "hosted_ci_verified": false,
+  "core_parity_verified": false
+}

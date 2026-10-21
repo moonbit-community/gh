@@ -1,0 +1,50 @@
+{
+  "status": "pass",
+  "gates": [
+    {
+      "id": "format-packages",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "format-automation",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "interfaces",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "inventory",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "scope",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "readonly-runner",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "write-runner",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "repair-runner",
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "formatter",
+      "exit_code": 0,
+      "status": "pass"
+    }
+  ]
+}

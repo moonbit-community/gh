@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/formatter_common"
+
+import {
+  "moonbitlang/x/time",
+}
+
+// Values
+pub fn color_json(String, punctuation? : String) -> String
+
+pub fn compare_text(String, String) -> Int32
+
+pub fn fixed_number(Double, Int32) -> String
+
+pub fn parse_rfc3339(String) -> Result[(@time.PlainDateTime, Int32), String]
+
+pub fn pretty_wire_json(String) -> String
+
+pub fn sanitize_wire_json(String) -> String
+
+pub fn scalar_number(Double) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

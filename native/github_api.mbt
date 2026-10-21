@@ -7,6 +7,7 @@ pub fn github_client(
   trace_path? : String,
   timeout_ms~ : Int32 = 30000,
   max_response_bytes~ : Int32 = 16777216,
+  max_download_bytes~ : Int32 = 2147483647,
 ) -> Result[@github.Client, @github_cli.Output] {
   guard base_url.split_once("://") is Some((scheme, rest)) else {
     return Err(@github_cli.failure(message="invalid API URL"))
@@ -21,6 +22,7 @@ pub fn github_client(
     base_url=origin,
     timeout_ms~,
     max_response_bytes~,
+    max_download_bytes~,
   ) catch {
     _ =>
       return Err(
@@ -45,6 +47,7 @@ pub fn github_client(
           base_url=value,
           timeout_ms~,
           max_response_bytes~,
+          max_download_bytes~,
         ),
       ) catch {
         _ => None
@@ -62,89 +65,142 @@ pub fn github_client(
           Some(v) => [v]
           None => []
         }
-        @fs.write_file(
-          path,
-          record.to_json_line(secrets~),
-          append=true,
-          permission=0o600,
-        )
+        append_github_trace(path, record, secrets)
       })
     }
   }
-  @github.Client::new(
-    config=@github.ClientConfig::new(base_url~, graphql_url?, token?),
-    transport=@github.Transport::new(send=request => {
-      let mut download_origin : String? = None
-      if origin == "https://api.github.com" {
-        for
-          candidate in [
-            "https://release-assets.githubusercontent.com", "https://github-releases.githubusercontent.com",
-          ] {
-          if request.url().has_prefix(candidate + "/") {
-            download_origin = Some(candidate)
+  fn select(
+    request : @github.Request,
+  ) -> Result[(@gh.RawTransport, @gh.RawRequest), @github.TransportError] {
+    let download_origin = if origin == "https://api.github.com" {
+      github_download_origin(request.url())
+    } else {
+      None
+    }
+    let selected = if download_origin is Some(asset_origin) {
+      // The SDK's explicit release download operation validates every hop.
+      // Never forward API credentials or cookies to the signed asset URL.
+      guard request.verb() == "GET" &&
+        request.body() is None &&
+        request
+        .headers()
+        .all(pair => {
+          pair.0.equal_ignore_ascii_case("Accept") ||
+          pair.0.equal_ignore_ascii_case("User-Agent")
+        }) else {
+        return Err(@github.TransportError::Failed)
+      }
+      let asset_transport = @transport.native_raw_transport(
+        base_url=asset_origin,
+        timeout_ms~,
+        max_response_bytes~,
+        max_download_bytes~,
+      ) catch {
+        _ => return Err(@github.TransportError::Failed)
+      }
+      (asset_transport, asset_origin)
+    } else {
+      match upload_origin {
+        Some(value) if value != origin &&
+          request.url().strip_prefix(value + "/") is Some(_) =>
+          match upload_transport {
+            Some(value_transport) => (value_transport, value)
+            None => return Err(@github.TransportError::Failed)
           }
-        }
+        _ => (transport, origin)
       }
-      let selected = if download_origin is Some(asset_origin) {
-        // The SDK's explicit release download operation validates every hop.
-        // Never forward API credentials or cookies to the signed asset URL.
-        guard request.verb() == "GET" &&
-          request.body() is None &&
-          request
-          .headers()
-          .all(pair => {
-            pair.0.equal_ignore_ascii_case("Accept") ||
-            pair.0.equal_ignore_ascii_case("User-Agent")
-          }) else {
-          return Err(@github.TransportError::Failed)
-        }
-        let asset_transport = @transport.native_raw_transport(
-          base_url=asset_origin,
-          timeout_ms~,
-          max_response_bytes~,
-        ) catch {
-          _ => return Err(@github.TransportError::Failed)
-        }
-        (asset_transport, asset_origin)
-      } else {
-        match upload_origin {
-          Some(value) if value != origin &&
-            request.url().strip_prefix(value + "/") is Some(_) =>
-            match upload_transport {
-              Some(value_transport) => (value_transport, value)
-              None => return Err(@github.TransportError::Failed)
-            }
-          _ => (transport, origin)
-        }
-      }
-      let (selected_transport, selected_origin) = selected
-      let suffix = match request.url().strip_prefix(selected_origin + "/") {
-        Some(value) => value
-        None => return Err(@github.TransportError::Failed)
-      }
-      let response = selected_transport.send(
+    }
+    let (selected_transport, selected_origin) = selected
+    let suffix = match request.url().strip_prefix(selected_origin + "/") {
+      Some(value) => value
+      None => return Err(@github.TransportError::Failed)
+    }
+    Ok(
+      (
+        selected_transport,
         @gh.RawRequest::new(
           verb=request.verb(),
           path="/" + suffix.to_owned(),
           body?=request.body(),
           headers=request.headers(),
         ),
-      ) catch {
-        error if @async.is_being_cancelled() => raise error
-        _ => return Err(@github.TransportError::Failed)
-      }
-      Ok(
-        @github.RawResponse::new(
-          status=response.status(),
-          headers=response.headers(),
-          body=response.body(),
-        ),
-      )
-    }),
+      ),
+    )
+  }
+  @github.Client::new(
+    config=@github.ClientConfig::new(base_url~, graphql_url?, token?),
+    transport=@github.Transport::new(
+      send=request => {
+        let (selected_transport, raw_request) = match select(request) {
+          Ok(value) => value
+          Err(error) => return Err(error)
+        }
+        let response = selected_transport.send(raw_request) catch {
+          error if @async.is_being_cancelled() => raise error
+          _ => return Err(@github.TransportError::Failed)
+        }
+        Ok(
+          @github.RawResponse::new(
+            status=response.status(),
+            headers=response.headers(),
+            body=response.body(),
+            reason_phrase?=response.reason_phrase(),
+          ),
+        )
+      },
+      receive=(request, sink) => {
+        let (selected_transport, raw_request) = match select(request) {
+          Ok(value) => value
+          Err(error) => return Err(error)
+        }
+        Ok(selected_transport.receive(raw_request, sink)) catch {
+          error if @async.is_being_cancelled() => raise error
+          _ => Err(@github.TransportError::Failed)
+        }
+      },
+    ),
     trace_observer?=observer,
   ).map_err(_ => {
     @github_cli.failure(message="invalid GitHub client configuration")
   })
+}
+
+///|
+/// `write_file` otherwise defaults to CreateOrTruncate, even with append=true.
+/// Opening without truncation is necessary to retain every request/attempt.
+async fn append_github_trace(
+  path : String,
+  record : @github.TraceRecord,
+  secrets : Array[String],
+) -> Unit {
+  @fs.write_file(
+    path,
+    record.to_json_line(secrets~),
+    create_mode=OpenOrCreate,
+    append=true,
+    permission=0o600,
+  )
+}
+
+///|
+/// This adapter allowlist must include every credential-free download origin
+/// supported by the SDK. The operation-specific redirect check still runs
+/// first; recognizing a host here cannot authorize an arbitrary API request.
+fn github_download_origin(url : String) -> String? {
+  guard url.strip_prefix("https://") is Some(rest) &&
+    rest.split_once("/") is Some((host, _)) else {
+    return None
+  }
+  let origin = "https://" + host.to_owned()
+  if @github.actions_download_origin(origin) ||
+    origin
+    is ("https://release-assets.githubusercontent.com"
+    | "https://github-releases.githubusercontent.com"
+    | "https://codeload.github.com") {
+    Some(origin)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -242,22 +298,41 @@ async fn run_api(options : @github_cli.ApiOptions) -> @github_cli.Output {
     Ok(v) => v
     Err(e) => return e
   }
+  let endpoint = match api_substitute(options.path(), repository) {
+    Ok(value) => value
+    Err(error) => return error
+  }
+  let target = match api_absolute_endpoint(endpoint) {
+    Ok(value) => value
+    Err(error) => return error
+  }
+  let base_url = target.map_or(config.rest_base_url(), pair => pair.0)
+  // A GitHub credential never follows an explicit URL to an unrelated host.
+  let token = if target is Some((origin, _)) &&
+    !(config.rest_base_url() == origin ||
+    config.rest_base_url().has_prefix(origin + "/")) {
+    None
+  } else {
+    config.token()
+  }
+  let cache_partition = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@utf8.encode(token.unwrap_or(""))),
+  )
   let client = match
     github_client(
-      base_url=config.rest_base_url(),
-      graphql_url=config.graphql_url(),
-      token?=config.token(),
+      base_url~,
+      graphql_url?=if target is None {
+        Some(config.graphql_url())
+      } else {
+        None
+      },
+      token?,
       trace_path?=@env.get_env_var("GH_TRACE_FILE"),
     ) {
     Ok(v) => v
     Err(e) => return e
   }
-  execute_github_api(
-    options,
-    client~,
-    base_url=config.rest_base_url(),
-    repository?,
-  )
+  execute_github_api(options, client~, base_url~, cache_partition~, repository?)
 }
 
 ///|
@@ -267,13 +342,23 @@ pub async fn execute_github_api(
   client~ : @github.Client,
   base_url~ : String,
   repository? : @github_cli.RepositoryContext,
+  cache_partition~ : String = "",
 ) -> @github_cli.Output {
   let endpoint = match api_substitute(options.path(), repository) {
     Ok(v) => v
     Err(e) => return e
   }
   let graphql = endpoint == "graphql"
-  let path = if endpoint.has_prefix("/") { endpoint } else { "/" + endpoint }
+  let path = match api_absolute_endpoint(endpoint) {
+    Ok(Some((origin, path))) if origin == base_url => path
+    Ok(Some(_)) =>
+      return @github_cli.failure(
+        message="API URL does not match the client origin",
+      )
+    Ok(None) => if endpoint.has_prefix("/") { endpoint } else { "/" + endpoint }
+    Err(error) => return error
+  }
+  let cache_scope = base_url + "\n" + cache_partition
   let values : Array[(String, Json)] = []
   for (name, value) in options.raw_fields() {
     let value = match api_substitute(value, repository) {
@@ -378,7 +463,7 @@ pub async fn execute_github_api(
   }
   let cached = match cache_duration {
     Some(duration) if options.verb() == "GET" =>
-      api_cache_read(request, duration)
+      api_cache_read(request, duration, cache_scope)
     _ => None
   }
   for page = 0; page < 10000; page = page + 1 {
@@ -408,9 +493,9 @@ pub async fn execute_github_api(
       response.status() >= 200 &&
       response.status() < 300 &&
       options.verb() == "GET" {
-      api_cache_write(request, response, duration)
+      api_cache_write(request, response, duration, cache_scope)
     }
-    let rendered = @github_cli.render_response(
+    let rendered = render_github_response(
       response.status(),
       response.headers(),
       response.body(),

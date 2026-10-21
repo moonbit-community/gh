@@ -1,0 +1,370 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": "1",
+    "terminal": false,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 25,
+  "completed_cases": 25,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "builtin-dynamic-split",
+      "input": {
+        "text": "a:b,c",
+        "separator": ":"
+      },
+      "expression": ".separator as $sep | .text | split($sep)",
+      "format": "jq",
+      "stdout": "[\"a\",\"b,c\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-split-stream",
+      "input": "a:b,c",
+      "expression": "split((\":\",\",\"))",
+      "format": "jq",
+      "stdout": "[\"a\",\"b,c\"]\n[\"a:b\",\"c\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-split-empty",
+      "input": "a😀b",
+      "expression": "split(\"\")",
+      "format": "jq",
+      "stdout": "[\"a\",\"😀\",\"b\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-dynamic-join",
+      "input": [
+        "a",
+        null,
+        1,
+        true
+      ],
+      "expression": "\"|\" as $sep | join($sep)",
+      "format": "jq",
+      "stdout": "a||1|true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-join-container-error",
+      "input": [
+        "a",
+        {}
+      ],
+      "expression": "join(\",\")",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "cannot add: string (\"a,\") and object ({})\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-prefix-dynamic",
+      "input": "abcdef",
+      "expression": "startswith((\"ab\",\"bc\")),endswith((\"ef\",\"de\"))",
+      "format": "jq",
+      "stdout": "true\nfalse\ntrue\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-trim-dynamic",
+      "input": "abcd",
+      "expression": "(\"ab\",\"cd\") as $part | ltrimstr($part),rtrimstr($part)",
+      "format": "jq",
+      "stdout": "cd\nabcd\nabcd\nab\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-string-type-errors",
+      "input": null,
+      "expression": "(try split(\",\") catch .),(try startswith(\"a\") catch .),(try join(\",\") catch .)",
+      "format": "jq",
+      "stdout": "split cannot be applied to: null\nstartswith(\"a\") cannot be applied to: null\njoin(\",\") cannot be applied to: null\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-argument-type-errors",
+      "input": "abc",
+      "expression": "(try split(1) catch .),(try startswith(1) catch .),(try endswith(null) catch .)",
+      "format": "jq",
+      "stdout": "split cannot be applied to: number (1)\nstartswith(1) cannot be applied to: string (\"abc\")\nendswith(null) cannot be applied to: string (\"abc\")\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-contains-deep",
+      "input": {
+        "a": [
+          {
+            "x": "foobar",
+            "y": 3
+          },
+          {
+            "x": "other"
+          }
+        ],
+        "b": 2
+      },
+      "expression": "contains({a:[{x:\"foo\"}]}),contains({a:[{x:\"bar\"}]}),contains({a:[{x:\"no\"}]})",
+      "format": "jq",
+      "stdout": "true\ntrue\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-contains-array",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": "contains([1,3]),contains([3,1]),contains([1,1]),contains([])",
+      "format": "jq",
+      "stdout": "true\ntrue\ntrue\ntrue\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-contains-stream",
+      "input": "abc",
+      "expression": "contains((\"a\",\"z\")),contains(empty)",
+      "format": "jq",
+      "stdout": "true\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-contains-mismatch",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "(try contains(1) catch .),(try contains(null) catch .)",
+      "format": "jq",
+      "stdout": "contains(1) cannot be applied to: array ([1,2])\ncontains(null) cannot be applied to: array ([1,2])\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-inside-deep",
+      "input": {
+        "x": "foo"
+      },
+      "expression": "inside({x:\"foobar\",y:1}),inside({x:\"no\"})",
+      "format": "jq",
+      "stdout": "true\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-has-dynamic",
+      "input": {
+        "a": null,
+        "b": 2
+      },
+      "expression": "(\"a\",\"c\") as $key | has($key)",
+      "format": "jq",
+      "stdout": "true\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-has-array",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "has((-1,0,1,2,0.5)),(try has(\"0\") catch .)",
+      "format": "jq",
+      "stdout": "false\ntrue\ntrue\nfalse\ntrue\nhas(\"0\") cannot be applied to: array ([1,2])\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-has-null",
+      "input": null,
+      "expression": "has((\"x\",0,true,null))",
+      "format": "jq",
+      "stdout": "false\nfalse\nfalse\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-in-stream",
+      "input": "x",
+      "expression": "in(({x:1},{y:2},null))",
+      "format": "jq",
+      "stdout": "true\nfalse\nfalse\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-type-selectors",
+      "input": [
+        null,
+        false,
+        0,
+        "",
+        [],
+        {}
+      ],
+      "expression": "[.[]|scalars],[.[]|arrays],[.[]|objects],[.[]|booleans],[.[]|numbers],[.[]|strings],[.[]|nulls],[.[]|iterables]",
+      "format": "jq",
+      "stdout": "[null,false,0,\"\"]\n[[]]\n[{}]\n[false]\n[0]\n[\"\"]\n[null]\n[[],{}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-keys-unsorted",
+      "input": {
+        "z": 1,
+        "a": 2
+      },
+      "expression": "keys_unsorted",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "function not defined: keys_unsorted/0\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-from-entries-aliases",
+      "input": [
+        {
+          "Key": "a",
+          "Value": 1
+        },
+        {
+          "name": "b",
+          "value": 2
+        },
+        {
+          "Name": "c",
+          "Value": 3
+        },
+        {
+          "key": "d"
+        }
+      ],
+      "expression": "from_entries",
+      "format": "jq",
+      "stdout": "{\"a\":1,\"b\":2,\"c\":3,\"d\":null}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-from-entries-invalid",
+      "input": [
+        {
+          "key": 1,
+          "value": "a"
+        }
+      ],
+      "expression": "from_entries",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "expected a string for object key but got: number (1)\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-json-string-key-order",
+      "input": {
+        "z": 1,
+        "abc": 2
+      },
+      "expression": "tojson,tostring",
+      "format": "jq",
+      "stdout": "{\"abc\":2,\"z\":1}\n{\"abc\":2,\"z\":1}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-json-string-escapes",
+      "input": {
+        "x": "<>&  "
+      },
+      "expression": "tojson",
+      "format": "jq",
+      "stdout": "{\"x\":\"<>&  \"}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "builtin-split-regex",
+      "input": "A1b22C",
+      "expression": "split(\"[0-9]+\";\"i\")",
+      "format": "jq",
+      "stdout": "[\"A\",\"b\",\"C\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

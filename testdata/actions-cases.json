@@ -1,0 +1,74 @@
+[
+  {
+    "id": "download_one_name",
+    "args": ["run", "download", "-n", "one", "-D", "out"],
+    "routes": {
+      "/repos/acme/widgets/actions/artifacts?per_page=100": {
+        "json": {
+          "artifacts": [
+            {"id":1,"name":"one","expired":false,"archive_download_url":"http://api.github.localhost/repos/acme/widgets/actions/artifacts/1/zip"},
+            {"id":2,"name":"one","expired":false,"archive_download_url":"http://api.github.localhost/repos/acme/widgets/actions/artifacts/2/zip"}
+          ]
+        }
+      },
+      "/repos/acme/widgets/actions/artifacts/1/zip": {"zip":[{"name":"nested/file","text":"one\n"},{"name":"empty/","text":""}]}
+    }
+  },
+  {
+    "id": "download_pattern_isolated",
+    "args": ["run", "download", "7", "-p", "o?e", "-D", "out"],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/7/artifacts?per_page=100": {"json":{"artifacts":[
+        {"id":1,"name":"one","expired":false,"archive_download_url":"http://api.github.localhost/repos/acme/widgets/actions/artifacts/1/zip"},
+        {"id":2,"name":"old","expired":true,"archive_download_url":"http://api.github.localhost/repos/acme/widgets/actions/artifacts/2/zip"}
+      ]}},
+      "/repos/acme/widgets/actions/artifacts/1/zip": {"zip":[{"name":"file","text":"one\n"}]}
+    }
+  },
+  {
+    "id": "download_no_valid",
+    "args": ["run", "download", "7"],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/7/artifacts?per_page=100": {"json":{"artifacts":[]}}
+    }
+  },
+  {
+    "id": "download_no_match",
+    "args": ["run", "download", "7", "-n", "missing"],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/7/artifacts?per_page=100": {"json":{"artifacts":[
+        {"id":1,"name":"one","expired":false,"archive_download_url":"http://api.github.localhost/repos/acme/widgets/actions/artifacts/1/zip"}
+      ]}}
+    }
+  },
+  {
+    "id": "failed_step_log",
+    "args": ["run", "view", "7", "--log-failed", "--exit-status"],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/7?exclude_pull_requests=true": {"json":{"id":7,"workflow_id":5,"status":"completed","conclusion":"failure","jobs_url":"http://api.github.localhost/repos/acme/widgets/actions/runs/7/jobs"}},
+      "/repos/acme/widgets/actions/workflows/5": {"json":{"name":"CI"}},
+      "/repos/acme/widgets/actions/runs/7/jobs?per_page=100": {"json":{"jobs":[
+        {"id":11,"run_id":7,"name":"build","status":"completed","conclusion":"failure","steps":[
+          {"name":"Setup","number":1,"conclusion":"success"},
+          {"name":"Run tests","number":2,"conclusion":"failure"}
+        ]}
+      ]}},
+      "/repos/acme/widgets/actions/runs/7/logs": {"zip":[
+        {"name":"build/1_setup.txt","text":"setup\n"},
+        {"name":"build/2_tests.txt","text":"timestamp fail\u001b[31m\r\n"},
+        {"name":"0_build.txt","text":"full job"}
+      ]}
+    }
+  },
+  {
+    "id": "job_log_fallback",
+    "args": ["run", "view", "--job", "11", "--log"],
+    "routes": {
+      "/repos/acme/widgets/actions/jobs/11": {"json":{"id":11,"run_id":7,"name":"build","status":"completed","conclusion":"success","steps":[]}},
+      "/repos/acme/widgets/actions/runs/7?exclude_pull_requests=true": {"json":{"id":7,"workflow_id":5,"status":"completed","conclusion":"success"}},
+      "/repos/acme/widgets/actions/workflows/5": {"json":{"name":"CI"}},
+      "/repos/acme/widgets/actions/runs/7/logs": {"zip":[]},
+      "/repos/acme/widgets/actions/jobs/11/logs": {"text":"fallback\nlast"}
+    }
+  }
+]

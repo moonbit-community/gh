@@ -1,6 +1,6 @@
 # Credentials and local commands implementation status
 
-As of 2026-10-19. This records the authentication and local-command evidence
+As of 2026-10-21. This records the authentication and local-command evidence
 for the GitHub CLI v2.102.0 core-parity target. It does not claim that the
 deferred integrations listed in the compatibility inventory are implemented.
 
@@ -92,12 +92,20 @@ fallback; alias sorting, default `co`, duplicate refusal, `--clobber`, shell
 quoting, import conflict skipping, deletion; anonymous auth token/status and
 JSON status output. Native unit tests embed those expected observations.
 
-The live-auth oracle probe against a local HTTP fixture timed out. Successful
-auth status text/JSON is therefore validated with the project's loopback
-transport and synthetic credentials rather than a live GitHub account. This is
-appropriate for the core fixture gate: no test or CI job uses a real token.
+The earlier live-auth oracle probe against a local HTTP fixture timed out.
+Auth status text/JSON formatting remains fixture-backed, rather than a complete
+live oracle differential. Separate 2026-10-21 manual acceptance verified the
+real selected account's JSON identity and keyring source; ordinary tests and CI
+continue to use synthetic credentials.
 
 ## Validation
+
+The [2026-10-21 Mac record](../development/handoff-20261021-oauth.md) confirms
+real device/web OAuth and Keychain store/read/delete on one selected account,
+including `api user` without an environment token and final remote App grant
+revocation. It fixes empty keyring account mappings being rejected by the
+token parser and OAuth traffic ignoring the host proxy. The same source passed
+Native 278, Wasm 69, Wasm-GC 52 and JS 69 tests; public interfaces are unchanged.
 
 Final 2026-10-19 integration passed 259/259 Native tests, the warning-denying
 frozen check, Native release build, interface generation and formatting checks.
@@ -122,14 +130,15 @@ cooperative cancellation, recovery references and private-file cleanup.
 
 ## Boundaries and remaining limitations
 
-- Real GitHub OAuth consent and real OS keyring acceptance remain pending.
-  Device and web protocols have synthetic/loopback tests; these are not a
-  real authorization claim. A caller-owned OAuth App is required. Expiring
+- Real device/web OAuth and macOS Keychain acceptance passed for `ZSeanYves`.
+  Linux/Windows keyrings and multiple real accounts remain unverified.
+  A caller-owned OAuth App is required for further consent tests. Expiring
   tokens are rejected until refresh-token rotation is implemented. Flow
   selection is explicit, not upstream automatic device-to-web fallback.
   See [the runnable setup guide](../development/auth-acceptance.md).
-- Auth status success output is fixture-checked with synthetic credentials. A
-  real GitHub account is intentionally never used in tests or CI.
+- Auth status formatting is fixture-checked with synthetic credentials;
+  selected-account JSON identity/source also passed manual live acceptance.
+  Ordinary tests and CI never use a real GitHub account.
 - `--jq` and `--template` implement the supported deterministic formatter
   subset used by core commands; they are not a vendored full jq interpreter or
   the complete Go template runtime.

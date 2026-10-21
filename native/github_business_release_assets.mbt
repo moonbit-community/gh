@@ -59,7 +59,7 @@ async fn execute_release_delete_asset(
   repository : @github_cli.RepositoryContext?,
 ) -> @github_cli.Output {
   if metadata_response.status() < 200 || metadata_response.status() >= 300 {
-    return @github_cli.render_response(
+    return render_github_response(
       metadata_response.status(),
       metadata_response.headers(),
       metadata_response.body(),
@@ -112,9 +112,5 @@ async fn execute_release_delete_asset(
   if response.status() >= 200 && response.status() < 300 {
     return @github_cli.success(stdout="")
   }
-  @github_cli.render_response(
-    response.status(),
-    response.headers(),
-    response.body(),
-  )
+  render_github_response(response.status(), response.headers(), response.body())
 }

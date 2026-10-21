@@ -1,0 +1,85 @@
+///|
+/// Retain only the MoonJQ library dependency graph, with upstream provenance.
+/// Never modifies the shared Moon cache or another repository.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn copy_sources(
+  source : String,
+  destination : String,
+  relative : String,
+  records : Array[Json],
+) -> Unit {
+  @fs.mkdir(destination)
+  for name in @fs.readdir(source) {
+    let original = source + "/" + name
+    if @fs.kind(original) == @fs.Directory {
+      if name is ("ast" | "internal" | "helpers" | "parser") {
+        copy_sources(
+          original,
+          destination + "/" + name,
+          relative + name + "/",
+          records,
+        )
+      }
+      continue
+    }
+    if name.has_suffix("_test.mbt") ||
+      name.has_suffix("_wbtest.mbt") ||
+      name.has_suffix("_bench.mbt") ||
+      name.has_suffix(".mbti") {
+      continue
+    }
+    if !(name.has_suffix(".mbt") ||
+      name == "moon.pkg" ||
+      name == "moon.mod" ||
+      name == "LICENSE" ||
+      name == "LICENSE.txt" ||
+      name == "NOTICE") {
+      continue
+    }
+    let bytes = @fs.read_file(original).binary()
+    @fs.write_file(destination + "/" + name, bytes, create_mode=CreateNew)
+    records.push({
+      "path": relative + name,
+      "upstream_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+    })
+  }
+}
+
+///|
+async fn main {
+  let root = @env.current_dir().unwrap_or(".")
+  let source = root + "/.mooncakes/bobzhang/moonjq"
+  let destination = root + "/third_party/moonjq"
+  guard !@fs.exists(destination) else { fail("vendored source already exists") }
+  let manifest = @fs.read_file(source + "/moon.mod").text()
+  guard manifest.contains("version = \"0.2.0\"") else {
+    fail("MoonJQ version mismatch")
+  }
+  if !@fs.exists(root + "/third_party") {
+    @fs.mkdir(root + "/third_party")
+  }
+  let records : Array[Json] = []
+  copy_sources(source, destination, "", records)
+  @fs.write_file(
+    destination + "/upstream.json",
+    Json::object({
+      "module": "bobzhang/moonjq",
+      "version": "0.2.0",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/moonbit-community/moobit-jq",
+      "registry_checksum": "c3dafe143c2c50fcce57b417ed1b7d9e37dfb288903a5dc88ef2de71a78aec0a",
+      "reason": "gh formatter requires strict type errors and preservation of output before evaluation failures",
+      "files": Json::array(records),
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+  )
+}

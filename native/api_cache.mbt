@@ -78,16 +78,20 @@ fn api_cache_unhex(value : String) -> Bytes? {
 }
 
 ///|
-fn api_cache_key(request : @github.Request) -> String {
+fn api_cache_key(request : @github.Request, scope : String) -> String {
   let input = StringBuilder()
   // Keep github.com and Enterprise caches separate without ever including
   // bearer credentials in filenames or metadata.
-  input.write_string(@env.get_env_var("GH_HOST").unwrap_or("github.com"))
+  input.write_string(scope)
   input.write_char('\n')
   input.write_string(request.verb())
   input.write_char('\n')
   input.write_string(request.url())
   input.write_char('\n')
+  for (key, value) in request.query() {
+    input.write_string(Json::array([Json(key), Json(value)]).stringify())
+    input.write_char('\n')
+  }
   for pair in request.headers() {
     let name = pair.0
     let value = pair.1
@@ -115,9 +119,9 @@ fn api_cache_key(request : @github.Request) -> String {
 }
 
 ///|
-fn api_cache_path(request : @github.Request) -> String? {
+fn api_cache_path(request : @github.Request, scope : String) -> String? {
   api_cache_root().map(root => {
-    root + "/api-" + api_cache_key(request) + ".cache"
+    root + "/api-" + api_cache_key(request, scope) + ".cache"
   })
 }
 
@@ -125,12 +129,13 @@ fn api_cache_path(request : @github.Request) -> String? {
 async fn api_cache_read(
   request : @github.Request,
   duration : String,
+  scope : String,
 ) -> @github.RawResponse? {
   let ttl = match api_cache_duration(duration) {
     Some(value) => value
     None => return None
   }
-  let key = api_cache_key(request)
+  let key = api_cache_key(request, scope)
   let memory_key = key + "\u{0}" + duration
   let now = UInt64::reinterpret_as_int64(@env.now())
   match api_cache_memory.get(memory_key) {
@@ -138,7 +143,7 @@ async fn api_cache_read(
       return Some(response)
     _ => ()
   }
-  let path = match api_cache_path(request) {
+  let path = match api_cache_path(request, scope) {
     Some(value) => value
     None => return None
   }
@@ -178,6 +183,10 @@ async fn api_cache_read(
         status=status.to_int(),
         headers=parsed_headers,
         body~,
+        reason_phrase?=match metadata {
+          { "reason_phrase": String(value), .. } => Some(value)
+          _ => None
+        },
       )
       api_cache_memory[memory_key] = (now, response)
       Some(response)
@@ -191,12 +200,13 @@ async fn api_cache_write(
   request : @github.Request,
   response : @github.RawResponse,
   duration : String,
+  scope : String,
 ) -> Unit {
-  api_cache_memory[api_cache_key(request) + "\u{0}" + duration] = (
+  api_cache_memory[api_cache_key(request, scope) + "\u{0}" + duration] = (
     UInt64::reinterpret_as_int64(@env.now()),
     response,
   )
-  let path = match api_cache_path(request) {
+  let path = match api_cache_path(request, scope) {
     Some(value) => value
     None => return
   }
@@ -213,6 +223,9 @@ async fn api_cache_write(
   let metadata : Json = {
     "status": Json(response.status()),
     "headers": Json::array(headers),
+    "reason_phrase": response
+    .reason_phrase()
+    .map_or(Json::null(), value => Json(value)),
   }
   let text = metadata.stringify() + "\n" + api_cache_hex(response.body())
   @fs.write_file(path, @utf8.encode(text), permission=0o600) catch {

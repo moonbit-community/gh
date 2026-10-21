@@ -1,18 +1,32 @@
 # Business command compatibility status
 
-As of 2026-10-19, the native GitHub command layer has fixture-backed request
+As of 2026-10-21, the native GitHub command layer has fixture-backed request
 coverage for the core repository, status, issue, pull request, release, run,
 search, workflow/actions, discussion, and ruleset families.  These commands
 share `native/github_business.mbt`: parsing, repository resolution, raw REST
 requests, response formatting, status handling, and trace operation names all
 run through the same provider-neutral client used by `gh api`.
 
+The [Mac repair record](../development/handoff-20261020-mac-repairs.md)
+supersedes the earlier speculative pin/develop/revert routes and the old
+`pr checks`/`pr status`/`issue status` behavior. The repair live matrix passed
+28 cases with zero failures; the two deploy-key success cases that were pending
+permission subsequently passed in the
+[2026-10-21 continuation](../development/handoff-20261021-oauth.md), with cleanup.
+The earlier matrix covers nonempty selected-field status JSON and pipe output,
+legacy commit check states and exit codes, issue pin/unpin and linked branches,
+rebase and revert state confirmation, deploy-key permission-denial output,
+and cleanup. It does not establish every
+flag, JSON field, TTY/watch behavior, or complete command parity.
+
 ## Implemented request boundaries
 
 - `repo`: list, create, view, edit/rename, delete, fork and sync.  Clone is a
   local argv-only Git workflow; archive/unarchive, deploy-key, gitignore,
   license and repository-content requests are handled by the additional
-  endpoint mappings in `native/github_business_extra.mbt`.
+  endpoint mappings in `native/github_business_extra.mbt`. Deploy-key add
+  reads a file or stdin and defaults to read-only in
+  `native/github_collaboration.mbt`.
 - `status`: assignment/review GraphQL queries, mention notifications and
   received-event aggregation, including organization and exclusion filters.
   Exact upstream terminal presentation remains incomplete.
@@ -20,11 +34,17 @@ run through the same provider-neutral client used by `gh api`.
   unlock, transfer and comments.  Close/reopen supply the operation's
   `state` explicitly, lock carries the requested lock reason, and delete
   resolves the node id before sending GitHub's GraphQL `deleteIssue` mutation.
+  Pin/unpin and linked branch creation use GraphQL mutations; status uses
+  separate assigned/mentioned/authored collections. Issue lists exclude PR
+  entries before counting the requested limit, including across pages.
 - `pr`: list, view/edit/close/reopen, ready, merge, lock/unlock, create,
   checks, review, comments and diff.  `ready` sends `draft=false`; diff uses
   the GitHub diff media type; checkout is a separate argv-only Git workflow.
   Merge maps `--merge`/`--squash`/`--rebase` and `--match-head-commit` to
   their REST fields and rejects conflicting strategies before HTTP.
+  Checks resolve the PR node and paginate its latest commit's contexts.
+  Status aggregates current-branch/authored/review-requested PRs. Update-branch
+  and revert use GraphQL with the expected head SHA for branch updates.
 - `release`: list, view latest/tag, create, edit, delete and delete-asset.
   Download resolves release metadata, filters assets by a bounded glob,
   fetches binary asset bytes, and writes them to a validated directory.

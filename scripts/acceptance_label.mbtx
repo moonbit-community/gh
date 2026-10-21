@@ -1,0 +1,418 @@
+///|
+/// Exact-ID label lifecycle is the first real exercise of the common scope
+/// gate. Other business families remain unavailable until they own receipts.
+fn acceptance_id(value : Json) -> String raise {
+  match value {
+    { "id": Number(_) as id, .. } => id.stringify()
+    _ => fail("response has no immutable ID")
+  }
+}
+
+///|
+async fn Acceptance::api(
+  self : Acceptance,
+  verb : String,
+  path : String,
+  body? : Json,
+  permits~ : Array[Permit] = [],
+) -> (Int32, Json) {
+  let read_only = permits.is_empty() &&
+    (
+      verb == "GET" ||
+      (
+        verb == "POST" &&
+        path == "/graphql" &&
+        body is Some({ "query": String(query), .. }) &&
+        query.has_prefix("query") &&
+        !query.contains("mutation") &&
+        !query.contains("subscription")
+      )
+    )
+  for attempt in 0..<3 {
+    try {
+      return self.api_once(verb, path, body?, permits~)
+    } catch {
+      error if @async.is_being_cancelled() => raise error
+      error => {
+        let message = error.to_string()
+        guard read_only &&
+          attempt < 2 &&
+          message.contains("API response missing status headers: gh: transport") else {
+          raise error
+        }
+        @fs.write_file(
+          self.config + "/read-retry-" + @env.now().to_string() + ".json",
+          Json::object({
+            "verb": verb,
+            "path": path.split_once("?").map_or(path, item => item.0.to_owned()),
+            "attempt": attempt + 1,
+            "reason": "transport_failure",
+            "remote_mutation_retried": false,
+          }).stringify() +
+          "\n",
+          create_mode=CreateNew,
+          permission=0o600,
+        )
+        @async.sleep((attempt + 1) * 400)
+      }
+    }
+  }
+  fail("read retry exhausted")
+}
+
+///|
+async fn Acceptance::api_once(
+  self : Acceptance,
+  verb : String,
+  path : String,
+  body? : Json,
+  permits~ : Array[Permit] = [],
+) -> (Int32, Json) {
+  let args = ["api", path, "--method", verb, "--include"]
+  if body is Some(_) {
+    args.append(["--input", "-"])
+  }
+  let (code, stdout, stderr) = self.invoke(
+    args,
+    permits~,
+    input?=body.map(value => value.stringify()),
+  )
+  guard stdout.split_once("\n\n") is Some((headers, content)) else {
+    fail("API response missing status headers: " + stderr)
+  }
+  let first = headers.split("\n").next().unwrap_or("").split(" ").collect()
+  guard first.get(0) == Some("HTTP/1.1") && first.get(1) is Some(status) else {
+    fail("API response missing HTTP status")
+  }
+  let status = @string.parse_int(status)
+  guard (status >= 200 && status < 300) || code != 0 else {
+    fail("failed HTTP status unexpectedly returned success")
+  }
+  let value = if content.trim().is_empty() {
+    Json::null()
+  } else {
+    @json.parse(content)
+  }
+  (status, value)
+}
+
+///|
+async fn Acceptance::cleanup_label(
+  self : Acceptance,
+  records : Array[Json],
+) -> Bool {
+  guard self.ledger.resources.get("label") is Some(resource) else {
+    return true
+  }
+  if resource.state is (Removed | Intended) {
+    return true
+  }
+  guard resource.remote_id is Some(id) else {
+    // A request may have reached GitHub without returning a receipt. Do not
+    // mistake a matching name for ownership and do not repeat the creation.
+    let path = "/repos/ZSeanYves/gh_test/labels/gh-acceptance-" +
+      self.ledger.run_id +
+      "-label"
+    let observation = try {
+      let (status, value) = self.api("GET", path)
+      Json::object({
+        "http_status": status,
+        "observed_id": if status == 200 {
+          Json(acceptance_id(value))
+        } else {
+          Json::null()
+        },
+      })
+    } catch {
+      _ => Json::null()
+    }
+    records.push({
+      "id": "label.cleanup",
+      "status": "blocked",
+      "reason": "creation_receipt_unknown",
+      "reconciliation_read": observation,
+    })
+    return false
+  }
+  try {
+    let (status, current) = self.api("GET", resource.locator)
+    if status == 404 {
+      self.ledger.confirm_removed("label", id)
+      self.persist([])
+      records.push({
+        "id": "label.cleanup",
+        "status": "pass",
+        "resource_id": id,
+        "readback_status": 404,
+      })
+      return true
+    }
+    guard status == 200 && acceptance_id(current) == id else {
+      fail("cleanup read-back did not match the creation receipt")
+    }
+    if resource.state == Uncertain {
+      self.ledger.confirm_created("label", id)
+    }
+    self.ledger.check_owned("label", id, resource.locator)
+    let permit = self.ledger.approve_mutation(
+      "label",
+      id,
+      "DELETE",
+      resource.locator,
+    )
+    let (status, _) = self.api("DELETE", resource.locator, permits=[permit])
+    guard status == 204 else { fail("label deletion did not return HTTP 204") }
+    let (status, _) = self.api("GET", resource.locator)
+    guard status == 404 else { fail("label still exists after deletion") }
+    self.ledger.confirm_removed("label", id)
+    self.persist([])
+    records.push({
+      "id": "label.cleanup",
+      "status": "pass",
+      "resource_id": id,
+      "readback_status": 404,
+    })
+    true
+  } catch {
+    error => {
+      records.push({
+        "id": "label.cleanup",
+        "status": "blocked",
+        "reason": error
+        .to_string()
+        .replace_all(old=self.token, new="<redacted>"),
+      })
+      false
+    }
+  }
+}
+
+///|
+async fn recover_label(
+  credential_path : String,
+  report_directory : String,
+) -> Unit {
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let directory = @fs.realpath(report_directory)
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("credential file has no GH_TOKEN")
+  }
+  let ledger = Ledger::from_json(
+    @json.parse(@fs.read_file(directory + "/ledger.json").text()),
+  )
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory + "/config",
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger,
+    verified_binary: Ref(None),
+  }
+  let (status, viewer) = acceptance.api("GET", "/user")
+  guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+    fail("credential does not identify the authorized account")
+  }
+  let (status, fixture) = acceptance.api("GET", "/repos/ZSeanYves/gh_test")
+  guard status == 200 &&
+    ledger.resource("fixture").remote_id == Some(acceptance_id(fixture)) else {
+    fail("fixture ID differs from the original run")
+  }
+  let records : Array[Json] = []
+  let cleaned = @async.protect_from_cancel(() => {
+    acceptance.cleanup_label(records)
+  })
+  let report = directory +
+    "/recovery-" +
+    @crypto.bytes_to_hex_string(@env.rand(8).unwrap()) +
+    ".json"
+  @fs.write_file(
+    report,
+    Json::object({
+      "schema": 1,
+      "run_id": ledger.run_id,
+      "source": "uncommitted-working-tree",
+      "binary_sha256": acceptance.verified_binary.val.map_or(Json::null(), value => {
+        Json(value)
+      }),
+      "status": if cleaned {
+        "pass"
+      } else {
+        "blocked"
+      },
+      "cases": records,
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  guard cleaned else {
+    fail("cleanup remains blocked; original receipts were preserved")
+  }
+}
+
+///|
+async fn run_label_lifecycle(
+  credential_path : String,
+  report_directory : String,
+) -> Unit {
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let directory = if report_directory.has_prefix("/") {
+    report_directory
+  } else {
+    root + "/" + report_directory
+  }
+  guard !@fs.exists(directory) else {
+    fail(
+      "report directory already exists; use the recorded ledger for recovery",
+    )
+  }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("credential file has no GH_TOKEN")
+  }
+  let run_id = @crypto.bytes_to_hex_string(@env.rand(12).unwrap())
+  @fs.mkdir(directory)
+  let config = directory + "/config"
+  @fs.mkdir(config)
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config,
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger: Ledger::new(run_id, "unverified"),
+    verified_binary: Ref(None),
+  }
+  let records : Array[Json] = []
+  let mut complete = false
+  defer @async.protect_from_cancel(() => {
+    let cleaned = acceptance.cleanup_label(records)
+    acceptance.persist([])
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "profile": "scope-label-lifecycle",
+        "oracle": "2.102.0",
+        "run_id": run_id,
+        "source": "uncommitted-working-tree",
+        "binary_sha256": acceptance.verified_binary.val.map_or(Json::null(), value => {
+          Json(value)
+        }),
+        "status": if complete && cleaned {
+          "pass"
+        } else {
+          "fail"
+        },
+        "cleanup": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "core_parity_verified": false,
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      permission=0o600,
+    )
+    guard cleaned else {
+      fail("cleanup incomplete; preserve ledger and report")
+    }
+  })
+  let (status, viewer) = acceptance.api("GET", "/user")
+  guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+    fail("credential does not identify the authorized account")
+  }
+  let (status, repository) = acceptance.api("GET", "/repos/ZSeanYves/gh_test")
+  guard status == 200 &&
+    repository
+    is {
+      "full_name": String("ZSeanYves/gh_test"),
+      "owner": { "login": String("ZSeanYves"), .. },
+      ..
+    } else {
+    fail("fixture repository identity differs")
+  }
+  acceptance.ledger = Ledger::new(run_id, acceptance_id(repository))
+  acceptance.persist([])
+  records.push({
+    "id": "scope.identity",
+    "status": "pass",
+    "repository_id": acceptance_id(repository),
+  })
+  acceptance.ledger.intend_resource("label", "fixture", "/labels", "label")
+  let name = "gh-acceptance-" + run_id + "-label"
+  let body : Json = {
+    "name": name,
+    "color": "102030",
+    "description": "temporary acceptance label",
+  }
+  let permit = acceptance.ledger.approve_creation("label", body)
+  let (status, created) = acceptance.api(
+    "POST",
+    "/repos/ZSeanYves/gh_test/labels",
+    body~,
+    permits=[permit],
+  )
+  guard status == 201 &&
+    created is { "name": String(actual), .. } &&
+    actual == name else {
+    fail("label creation did not return the intended resource")
+  }
+  let id = acceptance_id(created)
+  let locator = "/repos/ZSeanYves/gh_test/labels/" + name
+  acceptance.ledger.confirm_created("label", id, locator~)
+  acceptance.persist([])
+  let (status, current) = acceptance.api("GET", locator)
+  guard status == 200 &&
+    acceptance_id(current) == id &&
+    current is { "color": String("102030"), .. } else {
+    fail("label creation read-back differs")
+  }
+  records.push({
+    "id": "label.create-read",
+    "status": "pass",
+    "resource_id": id,
+  })
+  let change : Json = {
+    "color": "405060",
+    "description": "updated temporary acceptance label",
+  }
+  let permit = acceptance.ledger.approve_mutation(
+    "label",
+    id,
+    "PATCH",
+    locator,
+    body=@utf8.encode(change.stringify()),
+  )
+  let (status, updated) = acceptance.api("PATCH", locator, body=change, permits=[
+    permit,
+  ])
+  guard status == 200 && acceptance_id(updated) == id else {
+    fail("label update receipt differs")
+  }
+  let (status, current) = acceptance.api("GET", locator)
+  guard status == 200 &&
+    acceptance_id(current) == id &&
+    current
+    is {
+      "color": String("405060"),
+      "description": String("updated temporary acceptance label"),
+      ..
+    } else {
+    fail("label update read-back differs")
+  }
+  acceptance.ledger.confirm_created("label", id)
+  acceptance.persist([])
+  records.push({
+    "id": "label.update-read",
+    "status": "pass",
+    "resource_id": id,
+  })
+  complete = true
+  println(
+    "label creation and update passed; exact-ID cleanup runs before return",
+  )
+}

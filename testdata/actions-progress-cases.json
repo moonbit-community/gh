@@ -1,0 +1,476 @@
+[
+  {
+    "id": "spinner_text",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "GH_SPINNER_DISABLED": "yes"
+    }
+  },
+  {
+    "id": "spinner_false",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "GH_SPINNER_DISABLED": "false"
+    }
+  },
+  {
+    "id": "spinner_false_case_sensitive",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "GH_SPINNER_DISABLED": "False"
+    }
+  },
+  {
+    "id": "spinner_agent",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "CODEX_THREAD_ID": "synthetic-thread"
+    }
+  },
+  {
+    "id": "spinner_override_agent",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "CODEX_THREAD_ID": "synthetic-thread",
+      "GH_SPINNER_DISABLED": "0"
+    }
+  },
+  {
+    "id": "spinner_valid_agent",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "AI_AGENT": "fixture-bot"
+    }
+  },
+  {
+    "id": "spinner_invalid_agent",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "AI_AGENT": "invalid/name"
+    }
+  },
+  {
+    "id": "spinner_no_color",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "NO_COLOR": "1"
+    }
+  },
+  {
+    "id": "spinner_text_no_color",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "environment": {
+      "NO_COLOR": "1",
+      "GH_SPINNER_DISABLED": "1"
+    }
+  },
+  {
+    "id": "spinner_config_disabled",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "config": "spinner: disabled\n"
+  },
+  {
+    "id": "spinner_env_overrides_config",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    },
+    "config": "spinner: disabled\n",
+    "environment": {
+      "GH_SPINNER_DISABLED": "no"
+    }
+  }
+]

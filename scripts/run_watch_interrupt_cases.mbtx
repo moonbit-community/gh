@@ -1,0 +1,31 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn main {
+  guard @json.parse(@fs.read_file("testdata/run-watch-cases.json").text())
+    is Array(cases) &&
+    cases[0] is Object(fields) &&
+    fields.get("routes") is Some(Object(routes)) else {
+    fail("cases")
+  }
+  let path = "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true"
+  guard routes.get(path) is Some({ "sequence": Array(steps), .. }) else {
+    fail("sequence")
+  }
+  // The run remains active. Ctrl-C is delivered through the PTY only after its
+  // first complete frame, rather than racing an arbitrary wall-clock timeout.
+  routes[path] = Json::object({ "sequence": Json::array(steps[:2].to_owned()) })
+  fields["id"] = Json("watch_interrupt")
+  fields["args"] = Json::array(["run", "watch", "51", "-i60"])
+  fields["interrupt_on_progress"] = Json(true)
+  @fs.write_file(
+    "testdata/run-watch-interrupt-cases.json",
+    Json::array([Json::object(fields)]).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

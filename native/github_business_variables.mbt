@@ -69,7 +69,7 @@ async fn execute_variable_set(
       // may contain the variable value. The command reports only failures.
       return @github_cli.Output::new()
     }
-    return @github_cli.render_response(
+    return render_github_response(
       create_response.status(),
       create_response.headers(),
       create_response.body(),
@@ -108,7 +108,7 @@ async fn execute_variable_set(
   if response.status() >= 200 && response.status() < 300 {
     return @github_cli.Output::new()
   }
-  @github_cli.render_response(
+  render_github_response(
     response.status(),
     response.headers(),
     response.body(),

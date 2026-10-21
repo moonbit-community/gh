@@ -1,0 +1,327 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": "1",
+    "terminal": false,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 24,
+  "completed_cases": 24,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "number-conversions",
+      "input": [
+        12,
+        "12",
+        "-0",
+        "01",
+        "1e3",
+        "+1",
+        " 1 ",
+        "NaN",
+        "nan",
+        "inf",
+        "",
+        true,
+        null
+      ],
+      "expression": ".[] | try tonumber catch .",
+      "format": "jq",
+      "stdout": "12\n12\n0\n1\n1000\n1\ntonumber cannot be applied to \" 1 \": invalid number\ntonumber cannot be applied to \"NaN\": invalid number\ntonumber cannot be applied to \"nan\": invalid number\ntonumber cannot be applied to \"inf\": invalid number\ntonumber cannot be applied to \"\": invalid number\ntonumber cannot be applied to: boolean (true)\ntonumber cannot be applied to: null\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-filter-argument",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "def each(f): .[] | f; each(. + 1)",
+      "format": "jq",
+      "stdout": "2\n3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-value-argument",
+      "input": 3,
+      "expression": "def add($n): . + $n; add(2)",
+      "format": "jq",
+      "stdout": "5\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-filter-stream",
+      "input": 2,
+      "expression": "def collect(f): [f]; collect((., .+1))",
+      "format": "jq",
+      "stdout": "[2,3]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-lexical-variable",
+      "input": {
+        "x": 2
+      },
+      "expression": ".x as $x | def f: $x; 99 as $x | f",
+      "format": "jq",
+      "stdout": "2\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-overload",
+      "input": 3,
+      "expression": "def f: .+1; def f($x): .+$x; f, f(2)",
+      "format": "jq",
+      "stdout": "4\n5\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-value-streams",
+      "input": null,
+      "expression": "def combine($x;$y): [$x,$y]; combine((1,2);(3,4))",
+      "format": "jq",
+      "stdout": "[1,3]\n[1,4]\n[2,3]\n[2,4]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-recursion",
+      "input": null,
+      "expression": "def count($n): if $n>0 then $n,count($n-1) else empty end; count(3)",
+      "format": "jq",
+      "stdout": "3\n2\n1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "function-argument-closure",
+      "input": 2,
+      "expression": "def f(g): 10 as $x | g; 5 as $x | f(.+$x)",
+      "format": "jq",
+      "stdout": "7\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "variable-compile-error",
+      "input": null,
+      "expression": "1, $missing",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "variable not defined: $missing\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "label-optional-array",
+      "input": null,
+      "expression": "[label $out | (1, (break $out)?, 2)]",
+      "format": "jq",
+      "stdout": "[1]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "dynamic-index-string",
+      "input": {
+        "key": "foo",
+        "foo": 42
+      },
+      "expression": ".key as $key | .[$key]",
+      "format": "jq",
+      "stdout": "42\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "dynamic-index-array",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": ".[(0,2)]",
+      "format": "jq",
+      "stdout": "1\n3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "big-integer-literal",
+      "input": null,
+      "expression": "9007199254740993",
+      "format": "jq",
+      "stdout": "9007199254740993\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "big-integer-arithmetic",
+      "input": null,
+      "expression": "9007199254740993 + 2",
+      "format": "jq",
+      "stdout": "9007199254740995\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "big-integer-input-rounded",
+      "input": 9007199254740993,
+      "expression": ".",
+      "format": "jq",
+      "stdout": "9007199254740992\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "object-key-order-unicode",
+      "input": {
+        "z": 1,
+        "abc": 2,
+        "😀": 3,
+        "": 4
+      },
+      "expression": "., keys",
+      "format": "jq",
+      "stdout": "{\"abc\":2,\"z\":1,\"\":4,\"😀\":3}\n[\"abc\",\"z\",\"\",\"😀\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-key-order-unicode",
+      "input": {
+        "z": 1,
+        "abc": 2,
+        "😀": 3,
+        "": 4
+      },
+      "expression": "{{range $key,$value := .}}{{$key}}={{$value}};{{end}}",
+      "format": "template",
+      "stdout": "abc=2;z=1;=4;😀=3;",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-type-errors",
+      "input": [
+        null,
+        1,
+        true,
+        []
+      ],
+      "expression": ".[] | try test(\"a\") catch .",
+      "format": "jq",
+      "stdout": "test(\"a\"; null) cannot be applied to: null\ntest(\"a\"; null) cannot be applied to: number (1)\ntest(\"a\"; null) cannot be applied to: boolean (true)\ntest(\"a\"; null) cannot be applied to: array ([])\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-argument-errors",
+      "input": "abc",
+      "expression": "(try test(1) catch .), (try test(\"a\";1) catch .), (try sub(\"a\";1) catch .)",
+      "format": "jq",
+      "stdout": "test(1; null) cannot be applied to: string (\"abc\")\ntest(\"a\"; 1) cannot be applied to: string (\"abc\")\ncannot add: string (\"\") and number (1)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-backreference-rejected",
+      "input": "aa",
+      "expression": "test(\"(a)\\\\1\")",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "invalid regular expression \"(a)\\\\1\": error parsing regexp: invalid escape sequence: `\\1`\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-partial-error",
+      "input": "aa",
+      "expression": "match((\"a\",\"[\"))",
+      "format": "jq",
+      "stdout": "{\"captures\":[],\"length\":1,\"offset\":0,\"string\":\"a\"}\n",
+      "stderr": "invalid regular expression \"[\": error parsing regexp: missing closing ]: `[`\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-adjacent-empty",
+      "input": "aba",
+      "expression": "[match(\"a*\";\"g\")]",
+      "format": "jq",
+      "stdout": "[{\"captures\":[],\"length\":1,\"offset\":0,\"string\":\"a\"},{\"captures\":[],\"length\":1,\"offset\":2,\"string\":\"a\"}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-replacement-variable-streams",
+      "input": "ab",
+      "expression": "gsub(\"(?<x>.)\"; if .x == \"a\" then \"A\",\"AA\" else \"B\" end)",
+      "format": "jq",
+      "stdout": "AB\nAA\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

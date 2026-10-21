@@ -40,6 +40,7 @@ fn auth_native_transport(
         status=response.status(),
         headers=response.headers(),
         body=response.body(),
+        reason_phrase?=response.reason_phrase(),
       ),
     )
   })

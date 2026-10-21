@@ -1,0 +1,281 @@
+///|
+/// No repository checkout, personal secret, paid runner, or external write is
+/// required. Actions are pinned to verified upstream commits; every artifact
+/// and cache name is determined by this run's recorded dispatch intent.
+fn acceptance_workflow_source(
+  run_id : String,
+  include_artifacts~ : Bool = true,
+) -> String {
+  let source =
+    #|name: gh-acceptance-@@RUN@@
+    #|run-name: ${{ inputs.nonce }} / ${{ inputs.mode }}
+    #|on:
+    #|  workflow_dispatch:
+    #|    inputs:
+    #|      mode:
+    #|        type: choice
+    #|        required: true
+    #|        options: [success, failure, wait]
+    #|      nonce:
+    #|        type: string
+    #|        required: true
+    #|permissions:
+    #|  contents: read
+    #|concurrency:
+    #|  group: gh-acceptance-@@RUN@@
+    #|  cancel-in-progress: false
+    #|jobs:
+    #|  fixture:
+    #|    runs-on: ubuntu-latest
+    #|    timeout-minutes: 4
+    #|    steps:
+    #|      - name: Create known files
+    #|        shell: bash
+    #|        run: |
+    #|          mkdir -p payload/nested cache
+    #|          printf 'MoonBit gh acceptance\n' > payload/nested/proof.txt
+    #|          printf '\000\001\177\377' > payload/binary.bin
+    #|          printf 'gh-acceptance-@@RUN@@\n' > cache/proof.txt
+    #|      - name: Allow progress observer to attach
+    #|        if: inputs.mode != 'wait'
+    #|        shell: bash
+    #|        run: sleep 15
+    #|      - name: Save exact cache
+    #|        if: inputs.mode == 'success'
+    #|        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684
+    #|        with:
+    #|          path: cache
+    #|          key: ${{ inputs.nonce }}-cache-${{ github.run_attempt }}
+    #|      - name: Upload known artifact
+    #|        if: inputs.mode == 'success'
+    #|        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+    #|        with:
+    #|          path: payload
+    #|          name: ${{ inputs.nonce }}-artifact-${{ github.run_attempt }}
+    #|          if-no-files-found: error
+    #|          retention-days: 1
+    #|      - name: Expected failure
+    #|        if: inputs.mode == 'failure'
+    #|        shell: bash
+    #|        run: |
+    #|          printf 'GH_ACCEPTANCE_EXPECTED_FAILURE\n'
+    #|          exit 17
+    #|      - name: Wait for cancellation
+    #|        if: inputs.mode == 'wait'
+    #|        shell: bash
+    #|        run: |
+    #|          printf 'GH_ACCEPTANCE_WAITING\n'
+    #|          sleep 180
+  let source = if include_artifacts {
+    source
+  } else {
+    let (before, after) = source
+      .split_once("      - name: Upload known artifact\n")
+      .unwrap()
+    let (_, after) = after
+      .split_once("      - name: Expected failure\n")
+      .unwrap()
+    before.to_owned() + "      - name: Expected failure\n" + after.to_owned()
+  }
+  source.replace_all(old="@@RUN@@", new=run_id) + "\n"
+}
+
+///|
+async fn Acceptance::create_actions_fixture(
+  self : Acceptance,
+  directory : String,
+  records : Array[Json],
+  include_artifacts~ : Bool = true,
+) -> String {
+  let metadata = self.repository_metadata("repository")
+  guard metadata is { "default_branch": String(branch), "archived": False, .. } &&
+    identifier(branch) else {
+    fail("temporary repository default branch unavailable")
+  }
+  let repository = self.ledger.owned("repository")
+  let node_id = repository.node_id.unwrap_or_else(() => {
+    fail("repository node receipt missing")
+  })
+  let name = repository.locator
+    .strip_prefix("/repos/ZSeanYves/")
+    .unwrap()
+    .to_owned()
+  let (status, empty) = self.api("POST", "/graphql", body={
+    "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id isEmpty } }",
+    "variables": { "owner": "ZSeanYves", "name": name },
+  })
+  guard status == 200 &&
+    empty is Object(envelope) &&
+    !envelope.contains("errors") &&
+    envelope.get("data")
+    is Some({ "repository": { "id": String(actual), "isEmpty": True, .. }, .. }) &&
+    actual == node_id else {
+    fail("workflow initialization requires the receipt-backed empty repository")
+  }
+  let filename = "gh-acceptance-" + self.ledger.run_id + ".yml"
+  let file_path = ".github/workflows/" + filename
+  let source = acceptance_workflow_source(
+    self.ledger.run_id,
+    include_artifacts~,
+  )
+  let source_hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@utf8.encode(source)),
+  )
+  // The service will create a branch/workflow as a consequence of this one
+  // file creation. Record those intents before submitting the contents PUT.
+  self.ledger.intend_resource(
+    "actions-branch", "repository", "/git/refs", "git_ref",
+  )
+  self.ledger.intend_resource(
+    "workflow", "repository", "/actions/workflows", "workflow",
+  )
+  @fs.write_file(
+    directory + "/actions-intent.json",
+    Json::object({
+      "schema": 1,
+      "run_id": self.ledger.run_id,
+      "repository_id": repository.remote_id.unwrap(),
+      "branch": branch,
+      "workflow_path": file_path,
+      "workflow_sha256": source_hash,
+      "include_artifacts": include_artifacts,
+      "modes": ["success", "failure", "wait"],
+      "cache_name": "<recorded-dispatch-nonce>-cache-<attempt>",
+      "artifact_name": "<recorded-dispatch-nonce>-artifact-<attempt>",
+      "runner": "ubuntu-latest",
+      "maximum_job_minutes": 4,
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  @fs.write_file(
+    directory + "/workflow.yml",
+    source,
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  let path = repository.locator + "/contents/" + file_path
+  let body : Json = {
+    "message": "gh-acceptance-" + self.ledger.run_id + "-workflow",
+    "content": @base64.encode(@utf8.encode(source)),
+  }
+  let permit = self.ledger.approve_operation(
+    "repository",
+    repository.remote_id.unwrap(),
+    "PUT",
+    path,
+    body=@utf8.encode(body.stringify()),
+  )
+  let (status, created) = self.api("PUT", path, body~, permits=[permit])
+  guard status == 201 &&
+    created
+    is {
+      "content": { "path": String(actual_path), "sha": String(blob_sha), .. },
+      "commit": { "sha": String(commit_sha), "parents": Array([]), .. },
+      ..
+    } &&
+    actual_path == file_path &&
+    blob_sha.length() == 40 &&
+    commit_sha.length() == 40 else {
+    fail("workflow first-commit receipt unavailable; preserve original intents")
+  }
+  self.ledger.confirm_created("repository", repository.remote_id.unwrap())
+  self.persist([])
+  ignore(self.repository_metadata("repository"))
+  let (status, readback) = self.api("GET", path + "?ref=" + branch)
+  guard status == 200 &&
+    readback
+    is {
+      "path": String(actual_path),
+      "sha": String(actual_sha),
+      "encoding": String("base64"),
+      "content": String(content),
+      ..
+    } &&
+    actual_path == file_path &&
+    actual_sha == blob_sha &&
+    @base64.decode(content.replace_all(old="\n", new="")) ==
+    @utf8.encode(source) else {
+    fail("workflow file content read-back mismatch")
+  }
+  let ref_name = "refs/heads/" + branch
+  let (status, reference) = self.api(
+    "GET",
+    repository.locator + "/git/ref/heads/" + branch,
+  )
+  guard status == 200 &&
+    reference is { "object": { "sha": String(sha), .. }, .. } &&
+    sha == commit_sha else {
+    fail("workflow default branch does not match the created commit")
+  }
+  let item = acceptance_ref_item(reference, repository.locator, ref_name)
+  let ref_id = inventory_string(item, "id")
+  self.ledger.confirm_created(
+    "actions-branch",
+    ref_id,
+    locator=inventory_string(item, "locator"),
+  )
+  self.ledger.bind_node(
+    "actions-branch",
+    ref_id,
+    inventory_string(reference, "node_id"),
+  )
+  self.ledger.record_content_receipt(
+    "actions-branch",
+    ref_id,
+    inventory_string(item, "content_sha256"),
+  )
+  self.persist([])
+  let mut observed : Json? = None
+  for attempt in 0..<20 {
+    let (status, workflow) = self.api(
+      "GET",
+      repository.locator + "/actions/workflows/" + filename,
+    )
+    if status == 200 {
+      observed = Some(workflow)
+      break
+    }
+    guard status == 404 else { fail("workflow registration lookup failed") }
+    if attempt < 19 {
+      @async.sleep(1000)
+    }
+  }
+  guard observed is Some(workflow) &&
+    workflow
+    is {
+      "name": String(workflow_name),
+      "path": String(actual_path),
+      "state": String("active"),
+      ..
+    } &&
+    actual_path == file_path &&
+    workflow_name == "gh-acceptance-" + self.ledger.run_id else {
+    fail("workflow registration receipt unavailable")
+  }
+  let id = acceptance_id(workflow)
+  let item = inventory_item("workflow", workflow, repository.locator)
+  self.ledger.confirm_created(
+    "workflow",
+    id,
+    locator=inventory_string(item, "locator"),
+  )
+  self.ledger.record_content_receipt(
+    "workflow",
+    id,
+    inventory_string(item, "content_sha256"),
+  )
+  if workflow is { "node_id": String(node), .. } {
+    self.ledger.bind_node("workflow", id, node)
+  }
+  self.persist([])
+  records.push({
+    "id": "workflow.create-file-read",
+    "status": "pass",
+    "resource_id": id,
+    "source_sha256": source_hash,
+    "commit_sha": commit_sha,
+  })
+  branch
+}

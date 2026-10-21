@@ -1,0 +1,121 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "args": [
+        "check",
+        "--target",
+        "native",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "expected_success": false,
+      "exit_code": 255,
+      "passed": true
+    },
+    {
+      "args": [
+        "check",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "check",
+        "--target",
+        "native",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "test",
+        "--target",
+        "native",
+        "--frozen"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "check",
+        "--target",
+        "wasm",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "test",
+        "--target",
+        "wasm",
+        "--frozen"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "check",
+        "--target",
+        "wasm-gc",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "test",
+        "--target",
+        "wasm-gc",
+        "--frozen"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "check",
+        "--target",
+        "js",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "--frozen"
+      ],
+      "expected_success": true,
+      "exit_code": 0,
+      "passed": true
+    }
+  ],
+  "source_file_count": 696
+}

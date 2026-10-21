@@ -1,0 +1,650 @@
+{
+  "schema": 1,
+  "terminal": true,
+  "color": true,
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "candidate_sha256": null,
+  "expected_cases": 19,
+  "completed_cases": 19,
+  "failures": 0,
+  "cases_sha256": "31350d38a9e1f7126df4376f5d704cc5590a0a9b287e084b8699959bbb917792",
+  "cases": [
+    {
+      "id": "cache_id",
+      "args": [
+        "cache",
+        "delete",
+        "12"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches/12": {
+          "method": "DELETE",
+          "status": 204
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 1 cache from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches/12"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_id_normalized",
+      "args": [
+        "cache",
+        "delete",
+        "+00012"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches/12": {
+          "method": "DELETE",
+          "status": 204
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 1 cache from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches/12"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_key",
+      "args": [
+        "cache",
+        "delete",
+        "deps/main"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?key=deps%2Fmain": {
+          "method": "DELETE",
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "total_count": 2,
+            "actions_caches": [
+              {
+                "id": 12
+              },
+              {
+                "id": 13
+              }
+            ]
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 2 caches from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?key=deps%2Fmain"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches?key=deps%2Fmain",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_encoded_key_ref",
+      "args": [
+        "cache",
+        "delete",
+        "two words/缓存",
+        "--ref",
+        "refs/heads/feature+name"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?key=two+words%2F%E7%BC%93%E5%AD%98&ref=refs%2Fheads%2Ffeature%2Bname": {
+          "method": "DELETE",
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "total_count": 2,
+            "actions_caches": [
+              {
+                "id": 12
+              },
+              {
+                "id": 13
+              }
+            ]
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 2 caches from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?key=two+words%2F%E7%BC%93%E5%AD%98&ref=refs%2Fheads%2Ffeature%2Bname"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches?key=two+words%2F%E7%BC%93%E5%AD%98&ref=refs%2Fheads%2Ffeature%2Bname",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_large_numeric_key",
+      "args": [
+        "cache",
+        "delete",
+        "9223372036854775808"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?key=9223372036854775808": {
+          "method": "DELETE",
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "total_count": 2,
+            "actions_caches": [
+              {
+                "id": 12
+              },
+              {
+                "id": 13
+              }
+            ]
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 2 caches from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?key=9223372036854775808"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches?key=9223372036854775808",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_id_not_found",
+      "args": [
+        "cache",
+        "delete",
+        "12"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches/12": {
+          "method": "DELETE",
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "message": "cache permission denied"
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;31mX\u001b[0m Could not find a cache matching 12 in acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/caches/12"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_key_ref_not_found",
+      "args": [
+        "cache",
+        "delete",
+        "missing",
+        "-r",
+        "refs/heads/main"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?key=missing&ref=refs%2Fheads%2Fmain": {
+          "method": "DELETE",
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "message": "cache permission denied"
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;31mX\u001b[0m Could not find a cache matching missing (with ref refs/heads/main) in acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?key=missing&ref=refs%2Fheads%2Fmain"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches?key=missing&ref=refs%2Fheads%2Fmain",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_forbidden",
+      "args": [
+        "cache",
+        "delete",
+        "12"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches/12": {
+          "method": "DELETE",
+          "status": 403,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "message": "cache permission denied"
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;31mX\u001b[0m Failed to delete cache: HTTP 403: cache permission denied (http://api.github.localhost/repos/acme/widgets/actions/caches/12)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/caches/12"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_false_all",
+      "args": [
+        "cache",
+        "delete",
+        "12",
+        "--all=false"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches/12": {
+          "method": "DELETE",
+          "status": 204
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 1 cache from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches/12"
+      ],
+      "request_messages": [
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_missing",
+      "args": [
+        "cache",
+        "delete"
+      ],
+      "routes": {},
+      "stdout": "must provide either cache id, cache key, or use --all\r\n\r\nUsage:  gh cache delete [<cache-id> | <cache-key> | --all] [flags]\r\n\r\nFlags:\r\n  -a, --all                          Delete all caches, can be used with --ref to delete all caches for a specific ref\r\n  -r, --ref string                   Delete by cache key and ref, formatted as refs/heads/<branch name> or refs/pull/<number>/merge\r\n      --succeed-on-no-caches --all   Return exit code 0 if no caches found. Must be used in conjunction with --all\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_conflict",
+      "args": [
+        "cache",
+        "delete",
+        "12",
+        "--all"
+      ],
+      "routes": {},
+      "stdout": "specify only one of cache id, cache key, or --all\r\n\r\nUsage:  gh cache delete [<cache-id> | <cache-key> | --all] [flags]\r\n\r\nFlags:\r\n  -a, --all                          Delete all caches, can be used with --ref to delete all caches for a specific ref\r\n  -r, --ref string                   Delete by cache key and ref, formatted as refs/heads/<branch name> or refs/pull/<number>/merge\r\n      --succeed-on-no-caches --all   Return exit code 0 if no caches found. Must be used in conjunction with --all\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_id_ref",
+      "args": [
+        "cache",
+        "delete",
+        "12",
+        "--ref",
+        "refs/heads/main"
+      ],
+      "routes": {},
+      "stdout": "--ref cannot be used with cache ID\r\n\r\nUsage:  gh cache delete [<cache-id> | <cache-key> | --all] [flags]\r\n\r\nFlags:\r\n  -a, --all                          Delete all caches, can be used with --ref to delete all caches for a specific ref\r\n  -r, --ref string                   Delete by cache key and ref, formatted as refs/heads/<branch name> or refs/pull/<number>/merge\r\n      --succeed-on-no-caches --all   Return exit code 0 if no caches found. Must be used in conjunction with --all\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_ref_without_key",
+      "args": [
+        "cache",
+        "delete",
+        "--ref",
+        "refs/heads/main"
+      ],
+      "routes": {},
+      "stdout": "must provide a cache key\r\n\r\nUsage:  gh cache delete [<cache-id> | <cache-key> | --all] [flags]\r\n\r\nFlags:\r\n  -a, --all                          Delete all caches, can be used with --ref to delete all caches for a specific ref\r\n  -r, --ref string                   Delete by cache key and ref, formatted as refs/heads/<branch name> or refs/pull/<number>/merge\r\n      --succeed-on-no-caches --all   Return exit code 0 if no caches found. Must be used in conjunction with --all\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_succeed_without_all",
+      "args": [
+        "cache",
+        "delete",
+        "12",
+        "--succeed-on-no-caches"
+      ],
+      "routes": {},
+      "stdout": "--succeed-on-no-caches must be used in conjunction with --all\r\n\r\nUsage:  gh cache delete [<cache-id> | <cache-key> | --all] [flags]\r\n\r\nFlags:\r\n  -a, --all                          Delete all caches, can be used with --ref to delete all caches for a specific ref\r\n  -r, --ref string                   Delete by cache key and ref, formatted as refs/heads/<branch name> or refs/pull/<number>/merge\r\n      --succeed-on-no-caches --all   Return exit code 0 if no caches found. Must be used in conjunction with --all\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_too_many",
+      "args": [
+        "cache",
+        "delete",
+        "12",
+        "13"
+      ],
+      "routes": {},
+      "stdout": "accepts at most 1 arg(s), received 2\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_unknown_flag",
+      "args": [
+        "cache",
+        "delete",
+        "12",
+        "--nonesuch"
+      ],
+      "routes": {},
+      "stdout": "unknown flag: --nonesuch\r\n\r\nUsage:  gh cache delete [<cache-id> | <cache-key> | --all] [flags]\r\n\r\nFlags:\r\n  -a, --all                          Delete all caches, can be used with --ref to delete all caches for a specific ref\r\n  -r, --ref string                   Delete by cache key and ref, formatted as refs/heads/<branch name> or refs/pull/<number>/merge\r\n      --succeed-on-no-caches --all   Return exit code 0 if no caches found. Must be used in conjunction with --all\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_all_empty",
+      "args": [
+        "cache",
+        "delete",
+        "--all"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?per_page=100": {
+          "json": {
+            "total_count": 0,
+            "actions_caches": []
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;31mX\u001b[0m No caches to delete\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?per_page=100"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/caches?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_all_empty_ok",
+      "args": [
+        "cache",
+        "delete",
+        "--all",
+        "--succeed-on-no-caches"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?per_page=100": {
+          "json": {
+            "total_count": 0,
+            "actions_caches": []
+          }
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m No caches to delete\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?per_page=100"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/caches?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    },
+    {
+      "id": "cache_all_paginated_ref",
+      "args": [
+        "cache",
+        "delete",
+        "--all",
+        "--ref",
+        "refs/heads/main"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/caches?per_page=100&ref=refs%2Fheads%2Fmain": {
+          "json": {
+            "total_count": 2,
+            "actions_caches": [
+              {
+                "id": 12
+              }
+            ]
+          },
+          "headers": {
+            "Link": "<http://api.github.localhost/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain>; rel=\"next\""
+          }
+        },
+        "/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain": {
+          "json": {
+            "total_count": 2,
+            "actions_caches": [
+              {
+                "id": 13
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/actions/caches/12": {
+          "method": "DELETE",
+          "status": 204
+        },
+        "/repos/acme/widgets/actions/caches/13": {
+          "method": "DELETE",
+          "status": 204
+        }
+      },
+      "stdout": "\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[?25l\r\u001b[K\r\u001b[36m⣾\u001b[0m\u001b[?25h\r\u001b[K\u001b[0;32m✓\u001b[0m Deleted 2 caches from acme/widgets\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/caches?per_page=100&ref=refs%2Fheads%2Fmain",
+        "/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain",
+        "/repos/acme/widgets/actions/caches/12",
+        "/repos/acme/widgets/actions/caches/13"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/caches?per_page=100&ref=refs%2Fheads%2Fmain",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "DELETE",
+          "path": "/repos/acme/widgets/actions/caches/13",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": [],
+      "progress_before_completion": false,
+      "interrupt_sent": false
+    }
+  ],
+  "scope": "synthetic loopback; no live GitHub writes"
+}

@@ -1,0 +1,1180 @@
+{
+  "schema": 1,
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "candidate_sha256": null,
+  "expected_cases": 19,
+  "completed_cases": 19,
+  "failures": 0,
+  "cases_sha256": "d9fcb8bdc5cc71cc2664a082a41868f8ff099b1370c22a4159db6e2e3d2d0a05",
+  "cases": [
+    {
+      "id": "single_pattern",
+      "args": [
+        "release",
+        "download",
+        "--pattern",
+        "*.deb",
+        "-D",
+        "out"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/releases/assets/101"
+      ],
+      "files_hex": {
+        "out/package-1.deb": "6465622d646174610a"
+      },
+      "directories": [
+        "out"
+      ]
+    },
+    {
+      "id": "repeated_overlapping_pattern",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "missing*",
+        "-p",
+        "package-[1].d?b",
+        "-p",
+        "*.deb",
+        "-D",
+        "out"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/releases/assets/101"
+      ],
+      "files_hex": {
+        "out/package-1.deb": "6465622d646174610a"
+      },
+      "directories": [
+        "out"
+      ]
+    },
+    {
+      "id": "empty_pattern",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "",
+        "-D",
+        "out"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "no assets match the file pattern\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/releases/latest"
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "glob_middle_required",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "package*absent*deb",
+        "-D",
+        "out"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "no assets match the file pattern\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/releases/latest"
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "output_file",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*.rpm",
+        "-O",
+        "custom.bin"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/releases/assets/102"
+      ],
+      "files_hex": {
+        "custom.bin": "72706d2d646174610a"
+      },
+      "directories": []
+    },
+    {
+      "id": "output_stdout",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*.deb",
+        "-O",
+        "-"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "deb-data\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/releases/assets/101"
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "output_many",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*",
+        "-O",
+        "custom.bin"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "unable to write more than one asset with `--output`, got 2 assets\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/releases/latest"
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "skip_existing",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*.deb",
+        "--skip-existing"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest"
+      ],
+      "files_hex": {
+        "package-1.deb": "6578697374696e672d636f6e74656e74"
+      },
+      "directories": []
+    },
+    {
+      "id": "clobber_existing",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*.deb",
+        "--clobber"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/releases/assets/101"
+      ],
+      "files_hex": {
+        "package-1.deb": "6465622d646174610a"
+      },
+      "directories": []
+    },
+    {
+      "id": "reject_existing",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*.deb"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "package-1.deb already exists (use `--clobber` to overwrite file or `--skip-existing` to skip file)\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/releases/latest"
+      ],
+      "files_hex": {
+        "package-1.deb": "6578697374696e672d636f6e74656e74"
+      },
+      "directories": []
+    },
+    {
+      "id": "archive_zip",
+      "args": [
+        "release",
+        "download",
+        "--archive",
+        "zip",
+        "-D",
+        "out"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/zipball/v1"
+      ],
+      "files_hex": {
+        "out/widgets-v1.zip": "7a69702d736f757263652d64617461"
+      },
+      "directories": [
+        "out"
+      ]
+    },
+    {
+      "id": "archive_tar",
+      "args": [
+        "release",
+        "download",
+        "--archive=tar.gz",
+        "-O",
+        "source.tgz"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/tarball/v1"
+      ],
+      "files_hex": {
+        "source.tgz": "7461722d736f757263652d64617461"
+      },
+      "directories": []
+    },
+    {
+      "id": "archive_missing_filename",
+      "args": [
+        "release",
+        "download",
+        "-A",
+        "zip",
+        "-O",
+        "source.zip"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {}
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "unable to parse file name of archive: mime: no media type\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/releases/latest",
+        "/repos/acme/widgets/zipball/v1"
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "latest_requires_selector",
+      "args": [
+        "release",
+        "download"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "`--pattern` or `--archive` is required when downloading the latest release\n\nUsage:  gh release download [<tag>] [flags]\n\nFlags:\n      --allow-escape-sequences   Allow printing terminal escape sequences when writing an asset to standard output\n  -A, --archive format           Download the source code archive in the specified format (zip or tar.gz)\n      --clobber                  Overwrite existing files of the same name\n  -D, --dir directory            The directory to download files into (default \".\")\n  -O, --output file              The file to write a single asset to (use \"-\" to write to standard output)\n  -p, --pattern stringArray      Download only assets that match a glob pattern\n      --skip-existing            Skip downloading when files of the same name exist\n  \n",
+      "exit_code": 1,
+      "requests": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "clobber_conflict",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*",
+        "--clobber",
+        "--skip-existing"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "specify only one of `--clobber` or `--skip-existing`\n\nUsage:  gh release download [<tag>] [flags]\n\nFlags:\n      --allow-escape-sequences   Allow printing terminal escape sequences when writing an asset to standard output\n  -A, --archive format           Download the source code archive in the specified format (zip or tar.gz)\n      --clobber                  Overwrite existing files of the same name\n  -D, --dir directory            The directory to download files into (default \".\")\n  -O, --output file              The file to write a single asset to (use \"-\" to write to standard output)\n  -p, --pattern stringArray      Download only assets that match a glob pattern\n      --skip-existing            Skip downloading when files of the same name exist\n  \n",
+      "exit_code": 1,
+      "requests": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "destination_conflict",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*",
+        "-D",
+        "out",
+        "-O",
+        "file"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "specify only one of `--dir` or `--output`\n\nUsage:  gh release download [<tag>] [flags]\n\nFlags:\n      --allow-escape-sequences   Allow printing terminal escape sequences when writing an asset to standard output\n  -A, --archive format           Download the source code archive in the specified format (zip or tar.gz)\n      --clobber                  Overwrite existing files of the same name\n  -D, --dir directory            The directory to download files into (default \".\")\n  -O, --output file              The file to write a single asset to (use \"-\" to write to standard output)\n  -p, --pattern stringArray      Download only assets that match a glob pattern\n      --skip-existing            Skip downloading when files of the same name exist\n  \n",
+      "exit_code": 1,
+      "requests": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "archive_conflict",
+      "args": [
+        "release",
+        "download",
+        "-p",
+        "*",
+        "-A",
+        "zip"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "specify only one of '--pattern' or '--archive'\n\nUsage:  gh release download [<tag>] [flags]\n\nFlags:\n      --allow-escape-sequences   Allow printing terminal escape sequences when writing an asset to standard output\n  -A, --archive format           Download the source code archive in the specified format (zip or tar.gz)\n      --clobber                  Overwrite existing files of the same name\n  -D, --dir directory            The directory to download files into (default \".\")\n  -O, --output file              The file to write a single asset to (use \"-\" to write to standard output)\n  -p, --pattern stringArray      Download only assets that match a glob pattern\n      --skip-existing            Skip downloading when files of the same name exist\n  \n",
+      "exit_code": 1,
+      "requests": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "archive_bad_type",
+      "args": [
+        "release",
+        "download",
+        "-A",
+        "7z"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "the value for `--archive` must be one of \"zip\" or \"tar.gz\"\n\nUsage:  gh release download [<tag>] [flags]\n\nFlags:\n      --allow-escape-sequences   Allow printing terminal escape sequences when writing an asset to standard output\n  -A, --archive format           Download the source code archive in the specified format (zip or tar.gz)\n      --clobber                  Overwrite existing files of the same name\n  -D, --dir directory            The directory to download files into (default \".\")\n  -O, --output file              The file to write a single asset to (use \"-\" to write to standard output)\n  -p, --pattern stringArray      Download only assets that match a glob pattern\n      --skip-existing            Skip downloading when files of the same name exist\n  \n",
+      "exit_code": 1,
+      "requests": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "too_many_arguments",
+      "args": [
+        "release",
+        "download",
+        "v1",
+        "v2"
+      ],
+      "routes": {
+        "/repos/acme/widgets/releases/latest": {
+          "json": {
+            "id": 10,
+            "tag_name": "v1",
+            "name": "Version 1",
+            "draft": false,
+            "zipball_url": "http://api.github.localhost/repos/acme/widgets/zipball/v1",
+            "tarball_url": "http://api.github.localhost/repos/acme/widgets/tarball/v1",
+            "assets": [
+              {
+                "id": 101,
+                "name": "package-1.deb",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/101"
+              },
+              {
+                "id": 102,
+                "name": "package-2.rpm",
+                "url": "http://api.github.localhost/repos/acme/widgets/releases/assets/102"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/releases/assets/101": {
+          "text": "deb-data\n"
+        },
+        "/repos/acme/widgets/releases/assets/102": {
+          "text": "rpm-data\n"
+        },
+        "/repos/acme/widgets/zipball/v1": {
+          "text": "zip-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.zip\""
+          }
+        },
+        "/repos/acme/widgets/tarball/v1": {
+          "text": "tar-source-data",
+          "headers": {
+            "Content-Disposition": "attachment; filename=\"widgets-v1.tar.gz\""
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "accepts at most 1 arg(s), received 2\n",
+      "exit_code": 1,
+      "requests": [],
+      "files_hex": {},
+      "directories": []
+    }
+  ],
+  "scope": "synthetic loopback; no live GitHub writes"
+}

@@ -1,0 +1,238 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn main {
+  let oracle = @json.parse(
+    @fs.read_file("testdata/formatter-oracle-v2.102.0.json").text(),
+  )
+  guard oracle is { "cases": Array(cases), .. } else {
+    fail("invalid oracle corpus")
+  }
+  let regex = @json.parse(
+    @fs.read_file("testdata/formatter-regex-oracle-v2.102.0.json").text(),
+  )
+  guard regex is { "cases": Array(regex_cases), "failures": Number(0, ..), .. } else {
+    fail("incomplete regex corpus")
+  }
+  cases.append(regex_cases)
+  let language = @json.parse(
+    @fs.read_file("testdata/formatter-language-oracle-v2.102.0.json").text(),
+  )
+  guard language
+    is { "cases": Array(language_cases), "failures": Number(0, ..), .. } else {
+    fail("incomplete language corpus")
+  }
+  cases.append(language_cases)
+  let boundary = @json.parse(
+    @fs.read_file("testdata/formatter-boundary-oracle-v2.102.0.json").text(),
+  )
+  guard boundary
+    is { "cases": Array(boundary_cases), "failures": Number(0, ..), .. } else {
+    fail("incomplete boundary corpus")
+  }
+  cases.append(boundary_cases)
+  let stream = @json.parse(
+    @fs.read_file("testdata/formatter-stream-oracle-v2.102.0.json").text(),
+  )
+  guard stream
+    is { "cases": Array(stream_cases), "failures": Number(0, ..), .. } else {
+    fail("incomplete stream corpus")
+  }
+  cases.append(stream_cases)
+  let builtins = @json.parse(
+    @fs.read_file("testdata/formatter-builtins-oracle-v2.102.0.json").text(),
+  )
+  guard builtins
+    is { "cases": Array(builtin_cases), "failures": Number(0, ..), .. } else {
+    fail("incomplete builtin corpus")
+  }
+  cases.append(builtin_cases)
+  let jq_source = StringBuilder()
+  let template_source = StringBuilder()
+  for source in [jq_source, template_source] {
+    source.write_string(
+      "// Generated from the pinned oracle corpus by scripts/formatter_tests.mbtx.\n",
+    )
+  }
+  for case in cases {
+    guard case
+      is {
+        "id": String(id),
+        "input": input,
+        "expression": String(expression),
+        "format": String(format),
+        "stdout": String(stdout),
+        "stderr": String(stderr),
+        "exit_code": Number(code, ..),
+        ..
+      } else {
+      continue
+    }
+    let source = if format == "jq" { jq_source } else { template_source }
+    let function = if format == "jq" {
+      "@formatter_jq.render"
+    } else {
+      "@formatter_template.format"
+    }
+    source.write_string(
+      "\n///|\ntest " +
+      Json(id).stringify() +
+      " {\n" +
+      "  let (stdout, error) = " +
+      function +
+      "(\n" +
+      "    @json.parse(" +
+      Json(input.stringify()).stringify() +
+      "),\n" +
+      "    " +
+      Json(expression).stringify() +
+      ",\n" +
+      (if format == "jq" {
+        "    environment={\"LANG\": \"C\", \"TZ\": \"UTC\"},\n"
+      } else {
+        ""
+      }) +
+      "  )\n" +
+      "  assert_eq(error.map_or(\"\", message => message + \"\\n\"), " +
+      Json(stderr).stringify() +
+      ")\n" +
+      "  assert_eq(stdout, " +
+      Json(stdout).stringify() +
+      ")\n" +
+      "  assert_eq(if error is Some(_) { 1 } else { 0 }, " +
+      code.to_int().to_string() +
+      ")\n}\n",
+    )
+  }
+  @fs.write_file("internal/formatter_jq/oracle_test.mbt", jq_source.to_string())
+  @fs.write_file(
+    "internal/formatter_template/oracle_test.mbt",
+    template_source.to_string(),
+  )
+  let terminal = @json.parse(
+    @fs.read_file("testdata/formatter-terminal-oracle-v2.102.0.json").text(),
+  )
+  guard terminal
+    is { "cases": Array(terminal_cases), "failures": Number(0, ..), .. } else {
+    fail("terminal corpus must contain completed oracle results")
+  }
+  let source = StringBuilder()
+  source.write_string(
+    "// Generated from the pinned PTY corpus. The actual PTY runner compares raw CRLF;\n// these portable renderer tests account only for the terminal driver's LF to CRLF conversion.\n",
+  )
+  for case in terminal_cases {
+    guard case
+      is {
+        "id": String(id),
+        "input": input,
+        "expression": String(expression),
+        "format": String(format),
+        "stdout": String(stdout),
+        "exit_code": Number(code, ..),
+        ..
+      } else {
+      fail("incomplete terminal case")
+    }
+    source.write_string(
+      "\n///|\ntest " +
+      Json("PTY oracle " + id).stringify() +
+      " {\n" +
+      "  let result = @github_cli.render_response(\n" +
+      "    200, [(\"Content-Type\", \"application/json\")],\n" +
+      "    @utf8.encode(" +
+      Json(input.stringify()).stringify() +
+      "),\n" +
+      "    " +
+      format +
+      "=" +
+      Json(expression).stringify() +
+      ",\n" +
+      "    format_context=@github_cli.FormatContext::new(terminal=true, color=true, width=40),\n" +
+      "  )\n" +
+      "  assert_eq(result.stdout() + result.stderr(), " +
+      Json(stdout.replace_all(old="\r\n", new="\n")).stringify() +
+      ")\n" +
+      "  assert_eq(result.exit_code(), " +
+      code.to_int().to_string() +
+      ")\n}\n",
+    )
+  }
+  @fs.write_file("github_cli/terminal_oracle_test.mbt", source.to_string())
+  let source = StringBuilder()
+  source.write_string(
+    "// Generated from fixed gh HTTP-response formatter captures.\n",
+  )
+  for
+    path in [
+      "testdata/formatter-http-oracle-v2.102.0.json", "testdata/formatter-http-pty-oracle-v2.102.0.json",
+    ] {
+    let corpus = @json.parse(@fs.read_file(path).text())
+    guard corpus is { "cases": Array(cases), "failures": Number(0, ..), .. } else {
+      fail("incomplete HTTP formatter corpus")
+    }
+    let terminal = corpus is { "environment": { "terminal": True, .. }, .. }
+    for case in cases {
+      guard case
+        is {
+          "id": String(id),
+          "input": input,
+          "expression": String(expression),
+          "format": String(format),
+          "stdout": String(stdout),
+          "stderr": String(stderr),
+          "response_status": Number(status, ..),
+          "exit_code": Number(code, ..),
+          ..
+        } else {
+        fail("incomplete HTTP formatter case")
+      }
+      source.write_string(
+        "\n///|\ntest " +
+        Json((if terminal { "PTY " } else { "pipe " }) + id).stringify() +
+        " {\n" +
+        "  let result = @github_cli.render_response(\n" +
+        "    " +
+        status.to_int().to_string() +
+        ", [(\"Content-Type\", \"application/json\")],\n" +
+        "    @utf8.encode(" +
+        Json(input.stringify()).stringify() +
+        "),\n" +
+        "    " +
+        format +
+        "=" +
+        Json(expression).stringify() +
+        ",\n" +
+        "    format_context=@github_cli.FormatContext::new(terminal=" +
+        terminal.to_string() +
+        ", color=" +
+        terminal.to_string() +
+        ", width=40),\n" +
+        "  )\n" +
+        (if terminal {
+          "  assert_eq(result.stdout() + result.stderr(), " +
+          Json(stdout.replace_all(old="\r\n", new="\n")).stringify() +
+          ")\n"
+        } else {
+          "  assert_eq(result.stdout(), " +
+          Json(stdout).stringify() +
+          ")\n" +
+          "  assert_eq(result.stderr(), " +
+          Json(stderr).stringify() +
+          ")\n"
+        }) +
+        "  assert_eq(result.exit_code(), " +
+        code.to_int().to_string() +
+        ")\n}\n",
+      )
+    }
+  }
+  @fs.write_file(
+    "github_cli/http_formatter_oracle_test.mbt",
+    source.to_string(),
+  )
+}

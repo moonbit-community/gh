@@ -1,0 +1,44 @@
+///|
+/// Lex a number
+fn Lexer::lex_number(self : Lexer) -> Unit raise LexError {
+  let start = self.pos
+  if start >= self.input.length() {
+    raise InvalidNumber(start, "")
+  }
+  if self.current() == Some('-') {
+    self.advance()
+  }
+  let mut has_dot = false
+  while true {
+    match self.current() {
+      Some(c) if is_digit(c) => {
+        self.advance()
+        continue
+      }
+      Some('.') if !has_dot && self.peek().map(is_digit).unwrap_or(false) => {
+        self.advance()
+        has_dot = true
+        continue
+      }
+      _ => break
+    }
+  }
+  if self.current() is Some('e' | 'E') {
+    self.advance()
+    if self.current() is Some('+' | '-') {
+      self.advance()
+    }
+    let exponent = self.pos
+    while self.current().map(is_digit).unwrap_or(false) {
+      self.advance()
+    }
+    if exponent == self.pos {
+      raise InvalidNumber(start, self.input[start:self.pos].to_owned())
+    }
+  }
+  let text = self.input[start:self.pos].to_owned()
+  let n = @string.parse_double(text) catch {
+    _ => raise InvalidNumber(start, text)
+  }
+  self.add_token(TNumber(n, text~))
+}

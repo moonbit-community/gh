@@ -14,10 +14,13 @@ snapshot `da3ef15`. They are not part of the current GitHub release process.
 ## Development gates
 
 Use the [CI-pinned toolchain](ci.md) and exact dependencies in `moon.mod`.
-Fetch dependencies with `moon update` when preparing an environment, then
-keep validation reproducible with `--frozen`. From the repository root:
+Refresh the registry with `moon update` when preparing an environment. On a
+clean checkout, run one non-frozen check to resolve/install the pinned
+dependencies; `moon update` alone does not populate the checkout's dependency
+directory. Then keep validation reproducible with `--frozen`:
 
 ```text
+moon check --target native --deny-warn
 moon check --target native --frozen --deny-warn
 moon test --target native --frozen
 moon check --target wasm --frozen --deny-warn
@@ -29,9 +32,12 @@ moon test --target js --frozen
 moon run --target native scripts/live_github_fixture.mbtx -- --self-test
 moon check --target native --deny-warn scripts/live_github_write_fixture.mbtx
 moon run --target native scripts/live_github_write_fixture.mbtx -- --self-test
+moon check --target native --deny-warn scripts/live_github_repair_fixture.mbtx
+moon run --target native scripts/live_github_repair_fixture.mbtx -- --self-test
 moon build --target native --release --frozen --deny-warn cmd/main
 moon info
-moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx scripts/live_github_write_fixture.mbtx
+moon fmt --check
+moon fmt --check scripts/*.mbtx
 ```
 
 Run these sequentially. Inspect generated public-interface and formatting

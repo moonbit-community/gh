@@ -1,0 +1,5 @@
+members = [
+  ".",
+  "third_party/moonjq",
+  "third_party/regexp",
+]

@@ -1,0 +1,105 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
+}
+
+///|
+async fn main {
+  let fixture = "testdata/attestation/"
+  let bundle = @json.parse(
+    @fs.read_file(fixture + "github-release-bundle.json").text(),
+  )
+  let trust = @utf8.encode(
+    @json.parse(
+      @fs.read_file(
+        fixture +
+        "targets__484cdfe1a7c65479c5ba2a22193d1be90f0020db1997de696ab207434c62fbb7.trusted_root.json",
+      ).text(),
+    ).stringify() +
+    "\n",
+  )
+  let asset = @fs.read_file(fixture + "github-release-artifact.zip").binary()
+  let ref_hash = "c5e17a62e06a1d201570249c61fae531e9244e1b"
+  let cases : Array[Json] = []
+  for
+    (id, arguments) in [
+      ("release_verify", ["release", "verify", "v6"]),
+      ("release_verify_json", ["release", "verify", "v6", "--format", "json"]),
+      ("release_verify_asset", ["release", "verify-asset", "v6", "asset.zip"]),
+      (
+        "release_verify_asset_json",
+        ["release", "verify-asset", "v6", "asset.zip", "--format", "json"],
+      ),
+      ("release_verify_no_tag", ["release", "verify"]),
+      (
+        "release_verify_asset_bad_digest",
+        ["release", "verify-asset", "v6", "changed.zip"],
+      ),
+      ("release_verify_retry_recovery", ["release", "verify", "v6"]),
+      ("release_verify_retry_exhausted", ["release", "verify", "v6"]),
+      ("release_verify_no_retry_rate_limit", ["release", "verify", "v6"]),
+      ("release_verify_meta_retry", ["release", "verify", "v6"]),
+      ("release_verify_meta_forbidden", ["release", "verify", "v6"]),
+    ] {
+    let routes : Map[String, Json] = {
+      "/repos/acme/widgets/git/ref/tags%2Fv6": {
+        "json": { "object": { "sha": ref_hash } },
+      },
+      "/meta": { "json": {} },
+      "/repos/acme/widgets/releases/latest": { "json": { "tag_name": "v6" } },
+    }
+    let attestation_path = "/repos/acme/widgets/attestations/sha1:" +
+      ref_hash +
+      "?per_page=100&predicate_type=release"
+    routes[attestation_path] = {
+      "json": { "attestations": [{ "bundle": bundle, "initiator": "github" }] },
+    }
+    match id {
+      "release_verify_retry_recovery" =>
+        routes[attestation_path] = {
+          "sequence": [
+            { "status": 503, "json": { "message": "busy" } },
+            routes[attestation_path],
+          ],
+        }
+      "release_verify_retry_exhausted" =>
+        routes[attestation_path] = {
+          "status": 503,
+          "json": { "message": "busy" },
+        }
+      "release_verify_no_retry_rate_limit" =>
+        routes[attestation_path] = {
+          "status": 429,
+          "json": { "message": "slow down" },
+        }
+      "release_verify_meta_retry" =>
+        routes["/meta"] = {
+          "sequence": [
+            { "status": 503, "json": { "message": "busy" } },
+            { "json": {} },
+          ],
+        }
+      "release_verify_meta_forbidden" =>
+        routes["/meta"] = { "status": 403, "json": { "message": "forbidden" } }
+      _ => ()
+    }
+    cases.push({
+      "id": id,
+      "args": arguments + ["--custom-trusted-root", "trust.json"],
+      "routes": Json::object(routes),
+      "input_files_base64": {
+        "trust.json": @base64.encode(trust),
+        "asset.zip": @base64.encode(asset),
+        "changed.zip": @base64.encode(asset + b"changed"),
+      },
+    })
+  }
+  @fs.write_file(
+    "testdata/release-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+  )
+}

@@ -1,0 +1,415 @@
+{
+  "schema": 1,
+  "family": "private-repository-lifecycle",
+  "actions_requested": true,
+  "storage_independent": true,
+  "actions_profile_verified": false,
+  "run_id": "0b9776bb6fda047d514a7696",
+  "repository": "ZSeanYves/gh-acceptance-0b9776bb6fda047d514a7696-repository",
+  "source_build": {
+    "schema": 1,
+    "family": "native-acceptance-build",
+    "source_base": "c1b8712ab01fa9debd5d8d4bdba643371bb5bd15",
+    "source_files_sha256": "c001dc266d7630fb4637907b18eb61ad37e3e45ce9caacb78dd816100818679b",
+    "source_unchanged": true,
+    "toolchain": "moon 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moon\nmoonc v0.10.16+b1a0e846e (2026-10-16) ~/.moon/bin/moonc\nmoonrun 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+    "dependencies_sha256": "f2ae545ec274b7abae73567e759228d4a04f214f9f163fa1bbeaba90a45a5856",
+    "selection": [],
+    "status": "pass",
+    "core_parity_verified": false,
+    "cases": [
+      {
+        "id": "native-check",
+        "argv": [
+          "check",
+          "--target",
+          "native",
+          "--frozen",
+          "--deny-warn"
+        ],
+        "exit_code": 0,
+        "status": "pass"
+      },
+      {
+        "id": "native-build",
+        "argv": [
+          "build",
+          "--target",
+          "native",
+          "--release",
+          "--frozen",
+          "--deny-warn",
+          "cmd/main"
+        ],
+        "exit_code": 0,
+        "status": "pass"
+      }
+    ],
+    "binary_sha256": "199c05831e3e48020dee050b69421db3ab03012c4dc69649444e750df0fb0a77"
+  },
+  "binary_sha256": "199c05831e3e48020dee050b69421db3ab03012c4dc69649444e750df0fb0a77",
+  "status": "blocked",
+  "cleanup": "pass",
+  "core_parity_verified": false,
+  "cases": [
+    {
+      "id": "repository.create-read",
+      "status": "pass",
+      "resource_id": "1427871145"
+    },
+    {
+      "id": "repository.edit-read",
+      "status": "pass",
+      "resource_id": "1427871145"
+    },
+    {
+      "id": "repository.bootstrap-receipts",
+      "status": "pass"
+    },
+    {
+      "id": "workflow.create-file-read",
+      "status": "pass",
+      "resource_id": "391295596",
+      "source_sha256": "48aea6171d69b74a08f6a6d9587d892bcec0f4a6db82647ddd53a3ce4cc0b573",
+      "commit_sha": "2159be75d5cf18e5c134413bf9b73ca815270a6d"
+    },
+    {
+      "id": "workflow.disable-read",
+      "status": "pass",
+      "resource_id": "391295596"
+    },
+    {
+      "id": "workflow.enable-read",
+      "status": "pass",
+      "resource_id": "391295596"
+    },
+    {
+      "id": "run.download-bytes-and-paths",
+      "status": "blocked",
+      "reason": "account_artifact_storage_quota; user will restore quota; private repository retained as visibility requirement"
+    },
+    {
+      "id": "workflow.dispatch-failure",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "outcome_reconciled": true
+    },
+    {
+      "id": "run-failure.observed-states",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "states": [
+        "queued",
+        "in_progress"
+      ],
+      "conclusion": null
+    },
+    {
+      "id": "run.watch-failure",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "argv": [
+        "run",
+        "watch",
+        "39543782184",
+        "--exit-status",
+        "-i2",
+        "-R",
+        "ZSeanYves/gh-acceptance-0b9776bb6fda047d514a7696-repository"
+      ],
+      "exit_code": 1,
+      "first_progress_after_ms": 13970,
+      "elapsed_ms": 24221,
+      "cancellation_issued_after_progress": false,
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/watch-failure.trace.jsonl",
+      "output_sha256": "2e52a012ec8d6f2e401874fa7cd7ee53c11ba1bd8fac4673833602357d29a701",
+      "reason": "failed to get jobs: transport\n"
+    },
+    {
+      "id": "run-failure.observed-states",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "states": [
+        "completed"
+      ],
+      "conclusion": "failure"
+    },
+    {
+      "id": "run-failure.conclusion",
+      "status": "pass",
+      "conclusion": "failure"
+    },
+    {
+      "id": "run.logs-failure-attempt-1",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/logs-failure-1792556660320.trace.jsonl",
+      "attempt": 1,
+      "exit_code": 0,
+      "reason": "",
+      "output_sha256": "a8a1da69c7783203f9cd1e7b433a3f11e7940cb722ad00e0440c198d0d56c525"
+    },
+    {
+      "id": "run-failure.observed-states",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "states": [
+        "queued",
+        "in_progress",
+        "completed"
+      ],
+      "conclusion": "failure"
+    },
+    {
+      "id": "run.logs-failure-attempt-2",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/logs-failure-1792556705698.trace.jsonl",
+      "attempt": 2,
+      "exit_code": 0,
+      "reason": "",
+      "output_sha256": "e4c1f20a94fe87c3737e09c66e1d57255b8610aefb4b7be1b917387f216c6d87"
+    },
+    {
+      "id": "run.rerun",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "attempt": 2,
+      "debug_logging": true,
+      "job_id": null,
+      "conclusion": "failure"
+    },
+    {
+      "id": "run-failure.observed-states",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "states": [
+        "in_progress",
+        "completed"
+      ],
+      "conclusion": "failure"
+    },
+    {
+      "id": "run.logs-failure-attempt-3",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/logs-failure-1792556756691.trace.jsonl",
+      "attempt": 3,
+      "exit_code": 0,
+      "reason": "",
+      "output_sha256": "716a30d592d176f72f228b20e9dcc4bad438afab63813a722c6ac2397b3a9a59"
+    },
+    {
+      "id": "run.rerun-failed-jobs",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "attempt": 3,
+      "debug_logging": false,
+      "job_id": null,
+      "conclusion": "failure"
+    },
+    {
+      "id": "run-failure.observed-states",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "states": [
+        "in_progress",
+        "completed"
+      ],
+      "conclusion": "failure"
+    },
+    {
+      "id": "run.logs-failure-attempt-4",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/logs-failure-1792556807045.trace.jsonl",
+      "attempt": 4,
+      "exit_code": 0,
+      "reason": "",
+      "output_sha256": "f26791fd9ebb6d69718dfafeba7b7ae2c503cfcc9832033c22000014d281ac36"
+    },
+    {
+      "id": "run.rerun-job",
+      "status": "pass",
+      "resource_id": "39543782184",
+      "attempt": 4,
+      "debug_logging": false,
+      "job_id": "119037789309",
+      "conclusion": "failure"
+    },
+    {
+      "id": "job.cleanup",
+      "status": "pass",
+      "resource_id": "119037789309",
+      "run_id": "39543782184",
+      "readback_status": 404
+    },
+    {
+      "id": "run.cleanup",
+      "status": "pass",
+      "resource_id": "39543782184"
+    },
+    {
+      "id": "workflow.dispatch-wait",
+      "status": "pass",
+      "resource_id": "39544114866",
+      "outcome_reconciled": true
+    },
+    {
+      "id": "run-wait.observed-states",
+      "status": "pass",
+      "resource_id": "39544114866",
+      "states": [
+        "in_progress"
+      ],
+      "conclusion": null
+    },
+    {
+      "id": "run-wait.cancel-command",
+      "status": "pass",
+      "resource_id": "39544114866"
+    },
+    {
+      "id": "run.watch-wait",
+      "status": "pass",
+      "resource_id": "39544114866",
+      "argv": [
+        "run",
+        "watch",
+        "39544114866",
+        "--exit-status",
+        "-i2",
+        "-R",
+        "ZSeanYves/gh-acceptance-0b9776bb6fda047d514a7696-repository"
+      ],
+      "exit_code": 1,
+      "first_progress_after_ms": 13106,
+      "elapsed_ms": 94053,
+      "cancellation_issued_after_progress": true,
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/watch-wait.trace.jsonl",
+      "output_sha256": "8f79cd47b094fdebc03bb96a380cdb1a81c143f008403bca2e2da8b86420b265",
+      "reason": ""
+    },
+    {
+      "id": "run-wait.observed-states",
+      "status": "pass",
+      "resource_id": "39544114866",
+      "states": [
+        "completed"
+      ],
+      "conclusion": "cancelled"
+    },
+    {
+      "id": "run-wait.conclusion",
+      "status": "pass",
+      "conclusion": "cancelled"
+    },
+    {
+      "id": "run.cleanup",
+      "status": "pass",
+      "resource_id": "39544114866"
+    },
+    {
+      "id": "workflow.dispatch-success",
+      "status": "pass",
+      "resource_id": "39544297312",
+      "outcome_reconciled": true
+    },
+    {
+      "id": "run-success.observed-states",
+      "status": "pass",
+      "resource_id": "39544297312",
+      "states": [
+        "in_progress"
+      ],
+      "conclusion": null
+    },
+    {
+      "id": "run.watch-success",
+      "status": "pass",
+      "resource_id": "39544297312",
+      "argv": [
+        "run",
+        "watch",
+        "39544297312",
+        "--exit-status",
+        "-i2",
+        "-R",
+        "ZSeanYves/gh-acceptance-0b9776bb6fda047d514a7696-repository"
+      ],
+      "exit_code": 0,
+      "first_progress_after_ms": 14368,
+      "elapsed_ms": 24110,
+      "cancellation_issued_after_progress": false,
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/watch-success.trace.jsonl",
+      "output_sha256": "23b8f877617f14173679946d5d14b458135af6dd63cc5bcd24a89e648f2b5a1c",
+      "reason": ""
+    },
+    {
+      "id": "run-success.observed-states",
+      "status": "pass",
+      "resource_id": "39544297312",
+      "states": [
+        "completed"
+      ],
+      "conclusion": "success"
+    },
+    {
+      "id": "actions.output-receipts",
+      "status": "pass",
+      "run_id": "39544297312",
+      "artifact_id": null,
+      "cache_id": "9255969173",
+      "required_outputs_present": true
+    },
+    {
+      "id": "run-success.conclusion",
+      "status": "pass",
+      "conclusion": "success"
+    },
+    {
+      "id": "run.logs-success-attempt-1",
+      "status": "pass",
+      "resource_id": "39544297312",
+      "trace": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/logs-success-1792557007098.trace.jsonl",
+      "attempt": 1,
+      "exit_code": 0,
+      "reason": "",
+      "output_sha256": "30eb26590fe0c1bcf507746e3a122fc6e4b1b03b0c8f5e6dc9cea4ed8afa1a4b"
+    },
+    {
+      "id": "cache.delete-command",
+      "status": "pass",
+      "resource_id": "9255969173"
+    },
+    {
+      "id": "cache.cleanup",
+      "status": "pass",
+      "resource_id": "9255969173"
+    },
+    {
+      "id": "run.cleanup",
+      "status": "pass",
+      "resource_id": "39544297312"
+    },
+    {
+      "id": "repository.archive-read",
+      "status": "pass",
+      "resource_id": "1427871145"
+    },
+    {
+      "id": "repository.inventory",
+      "status": "pass",
+      "report": "/Users/winter/Documents/Moonbit/gh/_build/actions-live-20261021-07/repository-inventory-1792557038507.json",
+      "resource_id": "1427871145"
+    },
+    {
+      "id": "repository.cleanup",
+      "status": "pass",
+      "resource_id": "1427871145",
+      "readback_status": 404,
+      "id_readback_status": 404,
+      "history_claim": "repository deletion confirmed; service audit history not erased"
+    }
+  ]
+}

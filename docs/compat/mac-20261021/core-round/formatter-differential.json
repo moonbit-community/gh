@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "family": "formatter",
+  "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47",
+  "status": "pass",
+  "core_parity_verified": false,
+  "expected_profiles": 12,
+  "profiles": [
+    {
+      "profile": "core",
+      "status": "pass",
+      "cases": 100,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-oracle-v2.102.0.json",
+      "report": "core.json",
+      "corpus_sha256": "7c1ff7391085ebb8cd5d87f00e72b740543f05bcd2ba75049f5c15166042ffbd"
+    },
+    {
+      "profile": "regex",
+      "status": "pass",
+      "cases": 23,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-regex-oracle-v2.102.0.json",
+      "report": "regex.json",
+      "corpus_sha256": "ef8523281960d1b0db90f2b7b48fc5352492c50fa2949745d877dc0b2f1c299b"
+    },
+    {
+      "profile": "language",
+      "status": "pass",
+      "cases": 24,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-language-oracle-v2.102.0.json",
+      "report": "language.json",
+      "corpus_sha256": "79c639f226183639b91819e63820d7ebc50bb73838e0cb0b47bbd22eb8119a77"
+    },
+    {
+      "profile": "boundary",
+      "status": "pass",
+      "cases": 20,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-boundary-oracle-v2.102.0.json",
+      "report": "boundary.json",
+      "corpus_sha256": "476f2596b4119a3c40d485454525205d234efc9806199ac1984a36cd6ffccd8d"
+    },
+    {
+      "profile": "stream",
+      "status": "pass",
+      "cases": 22,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-stream-oracle-v2.102.0.json",
+      "report": "stream.json",
+      "corpus_sha256": "18e0bac6edaf4dec39c3af330dbfdd3bde640db21ba2f271a6f77633c8b431f7"
+    },
+    {
+      "profile": "builtins",
+      "status": "pass",
+      "cases": 25,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-builtins-oracle-v2.102.0.json",
+      "report": "builtins.json",
+      "corpus_sha256": "b2a376fd68ce7d32e051d7550076f395ce039e07072e655f95ba367a31f9f982"
+    },
+    {
+      "profile": "terminal-pipe",
+      "status": "pass",
+      "cases": 14,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-terminal-pipe-oracle-v2.102.0.json",
+      "report": "terminal-pipe.json",
+      "corpus_sha256": "4013df99bac2f7d9658fa1081639b8b9f21bba7a9ff04c100745239eac219b03"
+    },
+    {
+      "profile": "terminal-pty",
+      "status": "pass",
+      "cases": 14,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-terminal-pty-oracle-v2.102.0.json",
+      "report": "terminal-pty.json",
+      "corpus_sha256": "4b546ee6e9b344e7526490570f20ba64576a6841fda281d721d9a18e11c9c029"
+    },
+    {
+      "profile": "terminal-pipe-color",
+      "status": "pass",
+      "cases": 14,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-terminal-pipe-color-oracle-v2.102.0.json",
+      "report": "terminal-pipe-color.json",
+      "corpus_sha256": "911bf56f565b52b2fa437c2ed1e6b036927750eb6521bf6f9b2eb4bbccf25b5e"
+    },
+    {
+      "profile": "terminal-pty-color",
+      "status": "pass",
+      "cases": 14,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-terminal-oracle-v2.102.0.json",
+      "report": "terminal-pty-color.json",
+      "corpus_sha256": "38351747701526c28f8935324febeeb76f871a1592fab21e36d52a1c64244488"
+    },
+    {
+      "profile": "http-pipe",
+      "status": "pass",
+      "cases": 8,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-http-oracle-v2.102.0.json",
+      "report": "http-pipe.json",
+      "corpus_sha256": "a4efb4bfc0ad3d82b74384f9e0e7862fa988d6a3581480230a49f52f48475344"
+    },
+    {
+      "profile": "http-pty-color",
+      "status": "pass",
+      "cases": 8,
+      "exit_code": 0,
+      "corpus": "testdata/formatter-http-pty-oracle-v2.102.0.json",
+      "report": "http-pty-color.json",
+      "corpus_sha256": "2579131d16849f335b109a6d28fe3c44f19e11dea509edc795f6cf20e432d528"
+    }
+  ]
+}

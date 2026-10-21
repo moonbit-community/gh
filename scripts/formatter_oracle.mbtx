@@ -1,0 +1,243 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/http",
+  "moonbitlang/async@0.22.5/socket",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbit-community/pty@0.4.3",
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() >= 4 &&
+    args.length() <= 7 &&
+    args[4:].iter().all(value => value is ("--compare" | "--pty" | "--color")) else {
+    fail(
+      "usage: formatter_oracle.mbtx BINARY CASES_OR_ORACLE_JSON REPORT_JSON [--compare] [--pty] [--color]",
+    )
+  }
+  let compare = args.contains("--compare")
+  let terminal = args.contains("--pty")
+  let color = args.contains("--color")
+  let binary = @fs.realpath(args[1])
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  guard compare ||
+    hash == "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6" else {
+    fail("expected the verified v2.102.0 macOS arm64 oracle")
+  }
+  guard !@fs.exists(args[3]) else { fail("report already exists") }
+  let data = @json.parse(@fs.read_file(args[2]).text())
+  let cases = match data {
+    Array(cases) if !compare => cases
+    {
+      "oracle_sha256": String(
+        "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6"
+      ),
+      "cases": Array(cases),
+      ..
+    } if compare => cases
+    _ => fail("expected a case array or pinned oracle corpus")
+  }
+  let directory = @fs.tmpdir(prefix="gh-formatter-oracle-")
+  defer @fs.rmdir(directory, recursive=true)
+  let records : Array[Json] = []
+  let mut failures = 0
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      args[3],
+      Json::object({
+        "schema": 1,
+        "oracle_version": "2.102.0",
+        "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+        "binary_sha256": Json(hash),
+        "mode": if compare {
+          Json("compare")
+        } else {
+          Json("capture")
+        },
+        "environment": {
+          "TZ": "UTC",
+          "LANG": "C",
+          "LC_ALL": "C",
+          "GLAMOUR_STYLE": "dark",
+          "NO_COLOR": if color {
+            Json::null()
+          } else {
+            Json("1")
+          },
+          "terminal": Json(terminal),
+          "columns": 40,
+          "rows": 24,
+        },
+        "expected_cases": cases.length(),
+        "completed_cases": records.length(),
+        "failures": failures,
+        "cases": Json::array(records),
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+    )
+  })
+  for case in cases {
+    guard case
+      is {
+        "id": String(id),
+        "input": input,
+        "expression": String(expression),
+        "format": String(format),
+        ..
+      } &&
+      format is ("jq" | "template") else {
+      fail("invalid formatter case")
+    }
+    let response_status = match case {
+      { "response_status": Number(status, ..), .. } => status.to_int()
+      _ => 200
+    }
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    let partial = Ref(b"")
+    try
+      @async.with_task_group() <| group => {
+        group.spawn_bg() <| () => {
+          let (conn, _) = server.accept()
+          defer conn.close()
+          let request = conn.read_request()
+          guard request.meth == @http.Get && request.path == "/fixture" else {
+            fail("formatter oracle attempted an unexpected request")
+          }
+          if compare {
+            guard !request.headers.contains("Authorization") else {
+              fail(
+                "candidate leaked its GitHub credential to the loopback origin",
+              )
+            }
+          }
+          conn.send_response(response_status, "Fixture", extra_headers={
+            "Content-Type": "application/json",
+          })
+          conn..write(input.stringify()).end_response()
+        }
+        let command_args = [
+          "api",
+          "http://127.0.0.1:\{server.addr.port()}/fixture",
+          "--" + format,
+          expression,
+        ]
+        let environment = {
+          "HOME": directory,
+          "GH_CONFIG_DIR": directory,
+          "GH_TOKEN": "synthetic-formatter-fixture",
+          "GH_NO_UPDATE_NOTIFIER": "1",
+          "GH_PROMPT_DISABLED": "1",
+          "LC_ALL": "C",
+          "LANG": "C",
+          "NO_COLOR": "1",
+          "TZ": "UTC",
+          "TERM": "xterm-256color",
+          "COLORFGBG": "15;0",
+          // Pin the theme; otherwise gh probes OSC 11 / DSR and waits for an
+          // interactive terminal emulator, which this raw PTY does not provide.
+          "GLAMOUR_STYLE": "dark",
+          "PATH": "/usr/bin:/bin",
+          "GH_PAGER": "cat",
+        }
+        if color {
+          environment.remove("NO_COLOR")
+        }
+        let (actual_stdout, actual_stderr, actual_code) = if terminal {
+          @async.with_timeout(5000) <| () => {
+            let process = @pty.spawn(
+              group,
+              binary,
+              command_args.map(value => value[:])[:],
+              inherit_env=false,
+              extra_env=environment,
+              cwd=directory,
+              rows=24,
+              cols=40,
+            )
+            while process.read_some() is Some(bytes) {
+              partial.val = Bytes::add(partial.val, bytes)
+              guard partial.val.length() < 1048576 else {
+                fail("PTY output limit exceeded")
+              }
+            }
+            (@utf8.decode_lossy(partial.val), "", process.wait())
+          }
+        } else {
+          let result = @shell.Cmd(
+            binary,
+            command_args,
+            inherit_env=false,
+            cwd=directory,
+            env=environment,
+          ).output(timeout_ms=5000, max_output_bytes=1048576)
+          (result.stdout(), result.stderr(), result.exit_code())
+        }
+        let status = if compare {
+          let matched = case
+            is {
+              "stdout": String(stdout),
+              "stderr": String(stderr),
+              "exit_code": Number(code, ..),
+              ..
+            } &&
+            actual_stdout == stdout &&
+            actual_stderr == stderr &&
+            actual_code == code.to_int()
+          if !matched {
+            failures += 1
+            println("formatter mismatch: " + id)
+          }
+          if matched {
+            "pass"
+          } else {
+            "fail"
+          }
+        } else {
+          "recorded"
+        }
+        records.push({
+          "id": id,
+          "input": input,
+          "expression": expression,
+          "format": format,
+          "stdout": actual_stdout,
+          "stderr": actual_stderr,
+          "exit_code": actual_code,
+          "response_status": response_status,
+          "status": status,
+        })
+        group.return_immediately(())
+      }
+    catch {
+      error => {
+        failures += 1
+        println("formatter execution failed: " + id)
+        records.push({
+          "id": id,
+          "input": input,
+          "expression": expression,
+          "format": format,
+          "stdout": @utf8.decode_lossy(partial.val),
+          "stderr": "",
+          "exit_code": Json::null(),
+          "status": "fail",
+          "execution_error": error.to_string(),
+          "response_status": response_status,
+        })
+      }
+    }
+  }
+  println("\{records.length()} formatter cases, \{failures} mismatches")
+  guard failures == 0 else { fail("formatter differential failed; see report") }
+}

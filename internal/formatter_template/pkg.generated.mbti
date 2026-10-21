@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/formatter_template"
+
+import {
+  "moonbitlang/x/time",
+}
+
+// Values
+pub fn command_table(Array[Array[String]], Int32, color? : Bool, column_styles? : Array[String]) -> String
+
+pub fn format(Json, String, terminal? : Bool, width? : Int32, now_unix? : Int64, local_zone? : @time.Zone) -> (String, String?)
+
+pub fn render(String, Value) -> String raise TemplateError
+
+// Errors
+pub suberror TemplateError {
+  ParseError(String)
+  ExecError(String)
+  LocatedExec(String)
+  LocatedParse(Int32, String)
+  LoopControl(Bool)
+  CommandError(Int32, String, String)
+}
+
+// Types and methods
+pub struct Template {
+  mut renderer : (Value, StringBuilder) -> Unit raise TemplateError
+  funcs : Map[String, (Array[Value]) -> Value raise TemplateError]
+}
+pub fn Template::func(Self, String, (Array[Value]) -> Value raise TemplateError) -> Self
+pub fn Template::new() -> Self
+pub fn Template::parse(Self, String) -> Self raise TemplateError
+pub fn Template::render(Self, Value) -> String raise TemplateError
+
+pub(all) enum Value {
+  Null
+  Bool(Bool)
+  Int(Int64)
+  Float(Double)
+  Str(String)
+  List(Array[Value])
+  Dict(Map[String, Value])
+}
+
+// Type aliases
+pub type FuncFn = (Array[Value]) -> Value raise TemplateError
+
+// Traits

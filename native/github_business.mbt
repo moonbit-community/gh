@@ -56,6 +56,8 @@ fn business_value_option(name : String) -> Bool {
   | "head"
   | "title"
   | "body"
+  | "body_file"
+  | "branch_repo"
   | "homepage"
   | "has_issues"
   | "has_projects"
@@ -94,6 +96,8 @@ fn business_value_option(name : String) -> Bool {
   | "interval"
   | "timeout"
   | "workflow_id"
+  | "job"
+  | "attempt"
   | "event"
   | "workflow"
   | "branch"
@@ -157,6 +161,7 @@ fn business_value_option(name : String) -> Bool {
   | "subject"
   | "user"
   | "format"
+  | "custom_trusted_root"
   | "field"
   | "sort"
   | "order"
@@ -199,6 +204,9 @@ fn business_boolean_option(name : String) -> Bool {
   | "clobber"
   | "skip_existing"
   | "read_only"
+  | "allow_write"
+  | "list"
+  | "fail_fast"
   | "archive"
   | "unarchive"
   | "fill"
@@ -280,6 +288,11 @@ fn parse_business(options : @github_cli.BusinessOptions) -> ParsedBusiness {
       index += 1
       continue
     }
+    if arg.has_prefix("-R") && arg.length() > 2 {
+      repository = Some(arg[2:].strip_prefix("=").unwrap_or(arg[2:]).to_owned())
+      index += 1
+      continue
+    }
     if arg == "-" {
       positionals.push(arg)
       index += 1
@@ -294,6 +307,15 @@ fn parse_business(options : @github_cli.BusinessOptions) -> ParsedBusiness {
         flags[name] = true
         index += 1
       }
+      continue
+    }
+    // workflow run uses --json as a boolean stdin switch. Treating it as the
+    // usual JSON output field list consumes a following -R before repository
+    // resolution, even though the dedicated workflow parser is correct.
+    if options.command() == "workflow" &&
+      subcommand == "run" &&
+      (arg == "--json" || arg.has_prefix("--json=")) {
+      index += 1
       continue
     }
     if arg == "--jq" ||
@@ -800,7 +822,7 @@ fn business_validate_json_fields(
 fn business_collection_command(parsed : ParsedBusiness) -> Bool {
   match (parsed.command, parsed.subcommand) {
     ("repo", "list")
-    | ("issue", "list" | "status" | "comments")
+    | ("issue", "list" | "comments")
     | ("pr", "list")
     | ("release", "list")
     | ("run", "list")
@@ -937,11 +959,16 @@ async fn execute_business_collection(
   client : @github.Client,
   base_url : String,
 ) -> Result[(@github.RawResponse, Bytes?), @github_cli.Output] {
-  let limit = business_requested_limit(parsed)
+  let issues_only = parsed.command == "issue" && parsed.subcommand == "list"
+  let limit = if issues_only {
+    Some(business_requested_limit(parsed).unwrap_or(30))
+  } else {
+    business_requested_limit(parsed)
+  }
   let should_page = request.verb == "GET" &&
     business_collection_command(parsed) &&
     limit is Some(value) &&
-    value > 100
+    (value > 100 || issues_only)
   let first_query = if should_page {
     business_page_query(request.query, 1)
   } else {
@@ -988,11 +1015,22 @@ async fn execute_business_collection(
     _ => return Ok((first, None))
   }
   let (field, first_items) = business_collection_field(parsed, first_json)
-  if field is None && first_items.is_empty() {
+  if field is None && first_items.is_empty() && !issues_only {
     return Ok((first, None))
   }
   let target = limit.unwrap()
-  let merged : Array[Json] = first_items.copy()
+  // GitHub's REST issues endpoint includes pull requests. Apply the resource
+  // filter before counting toward --limit, and keep following Link even when
+  // a page consists entirely of PRs.
+  let merged : Array[Json] = []
+  for item in first_items {
+    if merged.length() >= target {
+      break
+    }
+    if !issues_only || graphql_object_field(item, "pull_request") is None {
+      merged.push(item)
+    }
+  }
   let mut page = 2
   let mut current_path = request.path
   let mut current_query = first_query
@@ -1071,10 +1109,9 @@ async fn execute_business_collection(
       if merged.length() >= target {
         break
       }
-      merged.push(item)
-    }
-    if page_items.length() < 100 {
-      break
+      if !issues_only || graphql_object_field(item, "pull_request") is None {
+        merged.push(item)
+      }
     }
     page += 1
   }
@@ -1458,15 +1495,6 @@ fn business_project_response(
 }
 
 ///|
-/// Release assets are intentionally parsed only at the native boundary.  The
-/// raw GitHub client keeps their bytes opaque, while these small records let
-/// `gh release download/upload` perform their required second request.
-priv struct BusinessReleaseAsset {
-  id : String
-  name : String
-}
-
-///|
 fn business_release_id(value : Json) -> String? {
   match value {
     Object(fields) =>
@@ -1519,60 +1547,6 @@ fn business_release_upload_target(value : Json) -> (String, String)? {
 }
 
 ///|
-fn business_release_assets(value : Json) -> Array[BusinessReleaseAsset] {
-  match value {
-    Object(fields) =>
-      match fields.get("assets") {
-        Some(Array(items)) => {
-          let output : Array[BusinessReleaseAsset] = []
-          for item in items {
-            match item {
-              Object(asset) => {
-                let id = match asset.get("id") {
-                  Some(Number(number, ..)) => number.to_int().to_string()
-                  Some(String(value)) => value
-                  _ => ""
-                }
-                let name = match asset.get("name") {
-                  Some(String(value)) => value
-                  _ => ""
-                }
-                if !id.is_empty() && !name.is_empty() {
-                  output.push({ id, name, })
-                }
-              }
-              _ => ()
-            }
-          }
-          output
-        }
-        _ => []
-      }
-    _ => []
-  }
-}
-
-///|
-fn business_asset_matches(name : String, pattern : String?) -> Bool {
-  match pattern {
-    None => true
-    Some(pattern) if pattern == "" || pattern == "*" => true
-    Some(pattern) if !pattern.contains("*") => name == pattern
-    Some(pattern) => {
-      // Support the glob form used by gh's release downloader.  Multiple
-      // stars are treated as one wildcard, which is sufficient for fixture
-      // and normal asset names without introducing a shell matcher.
-      let pieces = pattern.split("*").map(x => x.to_owned()).collect()
-      let prefix = pieces.get(0).unwrap_or("")
-      let suffix = pieces.last().unwrap_or("")
-      name.has_prefix(prefix) &&
-      name.has_suffix(suffix) &&
-      name.length() >= prefix.length() + suffix.length()
-    }
-  }
-}
-
-///|
 fn business_asset_filename(name : String) -> Bool {
   !name.is_empty() &&
   name != "." &&
@@ -1601,91 +1575,6 @@ fn business_release_metadata(
       )
   }
   Ok(value)
-}
-
-///|
-async fn execute_release_download(
-  options : @github_cli.BusinessOptions,
-  parsed : ParsedBusiness,
-  request : BusinessRequest,
-  metadata_response : @github.RawResponse,
-  client : @github.Client,
-  repository : @github_cli.RepositoryContext?,
-) -> @github_cli.Output {
-  guard repository is Some(repo) else {
-    return @github_cli.failure(message="a repository is required")
-  }
-  let metadata = match business_release_metadata(metadata_response) {
-    Ok(value) => value
-    Err(error) => return error
-  }
-  let assets = business_release_assets(metadata)
-  let pattern = parsed.values.get("pattern")
-  let selected = assets.filter(asset => {
-    business_asset_matches(asset.name, pattern)
-  })
-  guard !selected.is_empty() else {
-    return @github_cli.failure(message="no release assets matched the pattern")
-  }
-  let directory = parsed.values.get("dir").unwrap_or(".")
-  guard valid_local_git_value(directory) else {
-    return @github_cli.failure(message="invalid download directory")
-  }
-  if !@fs.exists(directory) {
-    @fs.mkdir(directory, recursive=true) catch {
-      error if @async.is_being_cancelled() => raise error
-      _ =>
-        return @github_cli.failure(message="cannot create download directory")
-    }
-  } else {
-    guard @fs.kind(directory) == @fs.Directory else {
-      return @github_cli.failure(message="download path is not a directory")
-    }
-  }
-  let clobber = parsed_flag(parsed, "clobber")
-  for asset in selected {
-    guard business_asset_filename(asset.name) else {
-      return @github_cli.failure(
-        message="release asset has an invalid filename",
-      )
-    }
-    let target = if directory == "." {
-      asset.name
-    } else {
-      directory + "/" + asset.name
-    }
-    if @fs.exists(target) && !clobber {
-      return @github_cli.failure(message="file already exists: " + target)
-    }
-    let asset_response = match
-      client.download_release_asset(
-        repo_api_path(repo) + "/releases/assets/" + asset.id,
-      ) {
-      Ok(value) => value
-      Err(@github.Cancelled) =>
-        return @github_cli.failure(message="cancelled", exit_code=2)
-      Err(error) =>
-        match error.response() {
-          Some(value) => value
-          None => return @github_cli.failure(message=error.code())
-        }
-    }
-    guard asset_response.status() >= 200 && asset_response.status() < 300 else {
-      return @github_cli.failure(
-        message="could not download release asset " + asset.name,
-      )
-    }
-    @fs.write_file(target, asset_response.body()) catch {
-      error if @async.is_being_cancelled() => raise error
-      _ =>
-        return @github_cli.failure(
-          message="cannot write release asset " + target,
-        )
-    }
-  }
-  ignore(options)
-  ignore(request)
-  @github_cli.success(stdout="")
 }
 
 ///|
@@ -1817,14 +1706,14 @@ async fn execute_release_edit_delete(
     if response.status() >= 200 && response.status() < 300 {
       return @github_cli.success(stdout="")
     }
-    return @github_cli.render_response(
+    return render_github_response(
       response.status(),
       response.headers(),
       response.body(),
     )
   }
   ignore(options)
-  @github_cli.render_response(
+  render_github_response(
     response.status(),
     response.headers(),
     response.body(),
@@ -1839,120 +1728,6 @@ async fn execute_release_edit_delete(
 ///|
 fn repo_api_path(repository : @github_cli.RepositoryContext) -> String {
   "/repos/" + repository.owner() + "/" + repository.name()
-}
-
-///|
-fn business_run_state(body : Bytes) -> (String, String) {
-  let value : Json = @json.parse(@utf8.decode(body)) catch { _ => Json::null() }
-  match value {
-    Object(fields) => {
-      let status = match fields.get("status") {
-        Some(String(value)) => value
-        _ => ""
-      }
-      let conclusion = match fields.get("conclusion") {
-        Some(String(value)) => value
-        _ => ""
-      }
-      (status, conclusion)
-    }
-    _ => ("", "")
-  }
-}
-
-///|
-async fn execute_run_watch(
-  parsed : ParsedBusiness,
-  request : BusinessRequest,
-  client : @github.Client,
-) -> @github_cli.Output {
-  let interval = match parsed.values.get("interval") {
-    Some(value) =>
-      @string.parse_int(value) catch {
-        _ => return @github_cli.failure(message="interval must be an integer")
-      }
-    None => 3
-  }
-  guard interval >= 0 && interval <= 3600 else {
-    return @github_cli.failure(
-      message="interval must be between 0 and 3600 seconds",
-    )
-  }
-  let max_attempts = match parsed.values.get("timeout") {
-    Some(value) =>
-      @string.parse_int(value) catch {
-        _ => return @github_cli.failure(message="timeout must be an integer")
-      }
-    None => 1200
-  }
-  guard max_attempts > 0 && max_attempts <= 100000 else {
-    return @github_cli.failure(
-      message="timeout must be between 1 and 100000 polls",
-    )
-  }
-  let mut attempts = 0
-  let mut final_response : @github.RawResponse? = None
-  let mut final_conclusion = ""
-  while attempts < max_attempts {
-    let response = match
-      client.request(
-        @github.Request::new(
-          verb=request.verb,
-          path=request.path,
-          query=request.query,
-          headers=request.headers,
-          body?=request.body,
-        ),
-        operation_id="run-watch",
-        operation_name="run.watch",
-      ) {
-      Ok(value) => value
-      Err(error) =>
-        match error.response() {
-          Some(value) => value
-          None => return @github_cli.failure(message=error.code())
-        }
-    }
-    final_response = Some(response)
-    let (status, conclusion) = business_run_state(response.body())
-    final_conclusion = conclusion
-    if status == "completed" ||
-      conclusion
-      is ("success" | "failure" | "cancelled" | "timed_out" | "action_required") {
-      break
-    }
-    attempts += 1
-    if interval > 0 {
-      @async.sleep(interval * 1000)
-    }
-  }
-  guard final_response is Some(response) else {
-    return @github_cli.failure(message="workflow run watch timed out")
-  }
-  guard attempts < max_attempts else {
-    return @github_cli.failure(message="workflow run watch timed out")
-  }
-  let output = @github_cli.render_response(
-    response.status(),
-    response.headers(),
-    response.body(),
-    jq?=request.jq,
-    template?=request.template,
-    include_headers=request.include_headers,
-    silent=request.silent,
-    verbose=request.verbose,
-  )
-  if parsed_flag(parsed, "exit_status") &&
-    final_conclusion != "" &&
-    final_conclusion != "success" {
-    @github_cli.Output::from_bytes(
-      output.stdout_bytes(),
-      stderr=output.stderr(),
-      exit_code=1,
-    )
-  } else {
-    output
-  }
 }
 
 ///|
@@ -2481,15 +2256,6 @@ fn business_request(
           "since", "per_page", "limit",
         ])
       }
-      // `gh issue status` presents a repository's open issues grouped by
-      // assignee.  The grouping is an output concern; the REST collection is
-      // still the stable source of records and keeps this request fixture
-      // compatible with GitHub installations that do not expose a bespoke
-      // status endpoint.
-      "status" => {
-        path = Some(repo_path + "/issues")
-        query = [("state", "open"), ("per_page", "100")]
-      }
       "view"
       | "edit"
       | "close"
@@ -2652,19 +2418,6 @@ fn business_request(
           "title", "body", "head", "base", "maintainer_can_modify", "draft",
         ])
       }
-      "checks" => {
-        guard parsed.positionals.get(0) is Some(number) else {
-          return Err(
-            @github_cli.failure(message="pull request number is required"),
-          )
-        }
-        let reference = parsed.values.get("ref").unwrap_or(number)
-        let number = match business_segment(reference) {
-          Ok(value) => value
-          Err(error) => return Err(error)
-        }
-        path = Some(repo_path + "/commits/" + number + "/check-runs")
-      }
       "review" => {
         guard parsed.positionals.get(0) is Some(number) else {
           return Err(
@@ -2705,19 +2458,6 @@ fn business_request(
         path = Some(repo_path + "/issues/" + number + "/comments")
         verb = "POST"
         body = business_json_body(parsed, ["body"])
-      }
-      "status" => {
-        guard parsed.positionals.get(0) is Some(number) else {
-          return Err(
-            @github_cli.failure(message="pull request number is required"),
-          )
-        }
-        let number = match business_segment(number) {
-          Ok(value) => value
-          Err(error) => return Err(error)
-        }
-        path = Some(repo_path + "/pulls/" + number)
-        headers.push(("Accept", "application/vnd.github.raw+json"))
       }
       "diff" => {
         guard parsed.positionals.get(0) is Some(number) else {
@@ -2943,15 +2683,89 @@ pub async fn execute_github_business(
   client~ : @github.Client,
   base_url~ : String,
   repository? : @github_cli.RepositoryContext,
+  cache_directory? : String,
+  public_fetch? : async (String) -> @gh.RawHttpResponse,
+  verification_time? : Int64,
+  stdout_writer? : async (Bytes) -> Unit,
+  stderr_writer? : async (Bytes) -> Unit,
+  format_context? : @github_cli.FormatContext,
 ) -> @github_cli.Output {
   // Keep the configured origin explicit in the fixture seam even though the
   // Client owns URL preparation and the injected transport only sees paths.
   ignore(base_url)
+  if options.command() == "run" && options.args().get(0) == Some("watch") {
+    return execute_actions_watch(
+      options,
+      client,
+      repository,
+      stdout_writer?,
+      format_context?,
+    )
+  }
+  if options.command() == "release" && options.args().get(0) == Some("download") {
+    return execute_release_download_command(options, client, repository)
+  }
+  if options.command() == "workflow" && options.args().get(0) == Some("run") {
+    return execute_workflow_run(options, client, repository)
+  }
+  if options.command() == "workflow" &&
+    options.args().get(0) is Some("list" | "ls" | "enable" | "disable") {
+    return execute_workflow_manage(
+      options,
+      client,
+      repository,
+      stderr_writer?,
+      format_context?,
+    )
+  }
+  if options.command() == "run" && options.args().get(0) == Some("rerun") {
+    return execute_actions_rerun(
+      options,
+      client,
+      repository,
+      stderr_writer?,
+      format_context?,
+    )
+  }
+  if options.command() == "cache" && options.args().get(0) == Some("delete") {
+    return execute_cache_delete(
+      options,
+      client,
+      repository,
+      stderr_writer?,
+      format_context?,
+    )
+  }
+  if business_unknown_option(options) is Some(option) {
+    return @github_cli.failure(message="unknown flag: " + option)
+  }
+  if options.command() == "run" &&
+    parse_business(options).subcommand == "download" {
+    return execute_actions_download(options, client, repository)
+  }
+  let parsed = parse_business(options)
+  if options.command() == "release" &&
+    parsed.subcommand is ("verify" | "verify-asset") {
+    return execute_release_verify(
+      parsed,
+      client,
+      repository,
+      cache_directory,
+      public_fetch.unwrap_or(attestation_public_fetch),
+      verification_time.unwrap_or(@env.now().reinterpret_as_int64() / 1000L),
+    )
+  }
+  if options.command() == "run" &&
+    parsed.subcommand == "view" &&
+    parsed.json_fields is None &&
+    (parsed_flag(parsed, "log") || parsed_flag(parsed, "log_failed")) {
+    return execute_actions_logs(parsed, client, repository, cache_directory)
+  }
+  if execute_collaboration_business(parsed, client, repository, base_url)
+    is Some(output) {
+    return output
+  }
   if business_account_command(options.command()) {
-    if business_unknown_option(options) is Some(option) {
-      return @github_cli.failure(message="unknown flag: " + option)
-    }
-    let parsed = parse_business(options)
     if execute_account_business(parsed, client, base_url) is Some(output) {
       return output
     }
@@ -2960,7 +2774,6 @@ pub async fn execute_github_business(
     Ok(value) => value
     Err(error) => return error
   }
-  let parsed = parse_business(options)
   if options.command() == "secret" && parsed.subcommand == "set" {
     return execute_secret_set(parsed, request, client, repository?)
   }
@@ -2969,9 +2782,6 @@ pub async fn execute_github_business(
   }
   if options.command() == "issue" && parsed.subcommand == "delete" {
     return execute_issue_delete(parsed, repository, client)
-  }
-  if options.command() == "run" && parsed.subcommand == "watch" {
-    return execute_run_watch(parsed, request, client)
   }
   let graphql_limit = business_requested_limit(parsed)
   let (response, paged_body) = match
@@ -2994,11 +2804,6 @@ pub async fn execute_github_business(
   }
   if options.command() == "release" && parsed.subcommand is ("edit" | "delete") {
     return execute_release_edit_delete(
-      options, parsed, request, response, client, repository,
-    )
-  }
-  if options.command() == "release" && parsed.subcommand == "download" {
-    return execute_release_download(
       options, parsed, request, response, client, repository,
     )
   }
@@ -3103,7 +2908,7 @@ pub async fn execute_github_business(
       }
     None => response_body
   }
-  @github_cli.render_response(
+  render_github_response(
     response.status(),
     response.headers(),
     body,

@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": "1",
+    "terminal": false,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 8,
+  "completed_cases": 8,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "http-401-jq",
+      "input": {
+        "message": "Bad credentials",
+        "status": "401"
+      },
+      "expression": ".message",
+      "format": "jq",
+      "stdout": "{\"message\":\"Bad credentials\",\"status\":\"401\"}",
+      "stderr": "gh: Bad credentials (HTTP 401)\n",
+      "exit_code": 1,
+      "response_status": 401,
+      "status": "recorded"
+    },
+    {
+      "id": "http-403-template",
+      "input": {
+        "message": "Resource not accessible",
+        "status": "403"
+      },
+      "expression": "{{.message}}",
+      "format": "template",
+      "stdout": "{\"message\":\"Resource not accessible\",\"status\":\"403\"}",
+      "stderr": "gh: Resource not accessible (HTTP 403)\n",
+      "exit_code": 1,
+      "response_status": 403,
+      "status": "recorded"
+    },
+    {
+      "id": "http-404-invalid-jq",
+      "input": {
+        "message": "Not Found"
+      },
+      "expression": ".[",
+      "format": "jq",
+      "stdout": "{\"message\":\"Not Found\"}",
+      "stderr": "gh: Not Found (HTTP 404)\n",
+      "exit_code": 1,
+      "response_status": 404,
+      "status": "recorded"
+    },
+    {
+      "id": "http-422-errors",
+      "input": {
+        "message": "Validation Failed",
+        "errors": [
+          {
+            "resource": "Issue",
+            "field": "title",
+            "code": "missing_field"
+          }
+        ]
+      },
+      "expression": ".message",
+      "format": "jq",
+      "stdout": "{\"message\":\"Validation Failed\",\"errors\":[{\"resource\":\"Issue\",\"field\":\"title\",\"code\":\"missing_field\"}]}",
+      "stderr": "gh: Validation Failed (HTTP 422)\n",
+      "exit_code": 1,
+      "response_status": 422,
+      "status": "recorded"
+    },
+    {
+      "id": "http-500-missing-message",
+      "input": {
+        "error": "oops"
+      },
+      "expression": "{{.error}}",
+      "format": "template",
+      "stdout": "oops",
+      "stderr": "gh: HTTP 500\n",
+      "exit_code": 1,
+      "response_status": 500,
+      "status": "recorded"
+    },
+    {
+      "id": "http-403-control",
+      "input": {
+        "message": "No\u001b[31m access"
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "{\"message\":\"No^[[31m access\"}",
+      "stderr": "gh: No^[[31m access (HTTP 403)\n",
+      "exit_code": 1,
+      "response_status": 403,
+      "status": "recorded"
+    },
+    {
+      "id": "http-success-empty-jq",
+      "input": {
+        "a": "x",
+        "b": null
+      },
+      "expression": "",
+      "format": "jq",
+      "stdout": "{\"a\":\"x\",\"b\":null}",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "http-success-empty-template",
+      "input": {
+        "a": "x",
+        "b": null
+      },
+      "expression": "",
+      "format": "template",
+      "stdout": "{\"a\":\"x\",\"b\":null}",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/download"
+
+import {
+  "ZSeanYves/gh",
+}
+
+// Values
+pub async fn extract_zip(String, String, max_package_bytes? : Int32, max_entry_bytes? : Int32, max_total_bytes? : Int32) -> Array[String]
+
+pub async fn extract_zip_new(String, String, max_package_bytes? : Int32, max_entry_bytes? : Int32, max_total_bytes? : Int32) -> Array[String]
+
+pub async fn to_file(String, async (@gh.RawResponseSink) -> @gh.RawDownloadResult, replace? : Bool, permission? : Int32) -> @gh.RawDownloadResult
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,256 @@
+///|
+/// This shared source is composed by run_acceptance.mbtx; it has no entrypoint.
+struct Acceptance {
+  binary : String
+  config : String
+  ledger_path : String
+  policy_path : String
+  token : String
+  mut ledger : Ledger
+  verified_binary : Ref[String?]
+}
+
+///|
+/// Diagnostic URLs can contain signed storage parameters or OAuth callbacks.
+/// Persist their origin/path only; API response bodies remain available to the
+/// in-memory reconciliation code and are not treated as diagnostics.
+fn acceptance_diagnostic(text : String, secret : String) -> String {
+  let result = StringBuilder()
+  let token = StringBuilder()
+  fn flush() -> Unit {
+    let value = token.to_string()
+    if (value.contains("https://") || value.contains("http://")) &&
+      value.split_once("?") is Some((path, _)) {
+      result.write_string(path.to_owned() + "?<redacted>")
+    } else {
+      result.write_string(value)
+    }
+    token.reset()
+  }
+  for char in text.replace_all(old=secret, new="<redacted>") {
+    if char is (' ' | '\n' | '\r' | '\t') {
+      flush()
+      result.write_char(char)
+    } else {
+      token.write_char(char)
+    }
+  }
+  flush()
+  result.to_string()
+}
+
+///|
+async fn Acceptance::verify_binary(self : Acceptance) -> Unit {
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(self.binary).binary()),
+  )
+  ignore(acceptance_build_evidence(hash))
+  if self.verified_binary.val == Some(hash) {
+    return
+  }
+  guard self.verified_binary.val is None else {
+    fail(
+      "acceptance binary changed during this run; preserve the ledger and start a new run",
+    )
+  }
+  self.persist([])
+  let challenge = @crypto.bytes_to_hex_string(@env.rand(16).unwrap())
+  let environment = self.environment()
+  environment["GH_TOKEN"] = "synthetic-acceptance-probe"
+  environment["GH_ACCEPTANCE_PROBE"] = challenge
+  let result = @shell.Cmd(
+    self.binary,
+    ["--version"],
+    cwd=self.config,
+    inherit_env=false,
+    env=environment,
+  ).output(timeout_ms=10000, max_output_bytes=4096)
+  let response = @json.parse(result.stdout()) catch { _ => Json::null() }
+  guard result.exit_code() == 0 &&
+    response
+    is { "scope_protocol": Number(1, ..), "challenge": String(echo), .. } &&
+    echo == challenge else {
+    fail(
+      "candidate lacks the live scope protocol; real credentials were not provided",
+    )
+  }
+  self.verified_binary.val = Some(hash)
+}
+
+///|
+/// Historical runs may have no build manifest. New acceptance runs can bind
+/// the executable to an immutable source fingerprint, toolchain and dependency
+/// graph by setting GH_ACCEPTANCE_BUILD_MANIFEST to a successful --build report.
+async fn acceptance_build_evidence(binary_hash : String) -> Json {
+  guard @env.get_env_var("GH_ACCEPTANCE_BUILD_MANIFEST") is Some(path) else {
+    return Json::null()
+  }
+  acceptance_build_evidence_at(path, binary_hash)
+}
+
+///|
+async fn acceptance_build_evidence_at(
+  path : String,
+  binary_hash : String,
+) -> Json {
+  guard @fs.kind(path, follow_symlink=false) == @fs.Regular &&
+    @fs.file_size(path) <= 262144L else {
+    fail("invalid acceptance build manifest")
+  }
+  let manifest = @json.parse(@fs.read_file(path).text())
+  guard manifest
+    is {
+      "family": String("native-acceptance-build"),
+      "status": String("pass"),
+      "source_unchanged": True,
+      "binary_sha256": String(hash),
+      "source_files_sha256": String(source_hash),
+      "dependencies_sha256": String(dependencies_hash),
+      "toolchain": String(toolchain),
+      ..
+    } &&
+    hash == binary_hash &&
+    content_digest(source_hash) else {
+    fail("acceptance binary is not bound to a successful source build")
+  }
+  guard @fs.realpath(path).rev_split_once("/") is Some((directory, _)) else {
+    fail("build manifest directory")
+  }
+  let source = directory.to_owned() + "/source-files.json"
+  guard @fs.kind(source, follow_symlink=false) == @fs.Regular &&
+    @fs.file_size(source) <= 16777216L else {
+    fail("build source fingerprint missing")
+  }
+  let files = @json.parse(@fs.read_file(source).text())
+  guard @crypto.bytes_to_hex_string(
+      @crypto.sha256(@utf8.encode(files.stringify())),
+    ) ==
+    source_hash else {
+    fail("build source fingerprint changed")
+  }
+  let dependencies = directory.to_owned() + "/dependencies.json"
+  let compiler = directory.to_owned() + "/toolchain.txt"
+  guard @fs.kind(dependencies, follow_symlink=false) == @fs.Regular &&
+    @fs.file_size(dependencies) <= 1048576L &&
+    @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(dependencies).binary()),
+    ) ==
+    dependencies_hash &&
+    @fs.kind(compiler, follow_symlink=false) == @fs.Regular &&
+    @fs.file_size(compiler) <= 65536L &&
+    @fs.read_file(compiler).text() == toolchain else {
+    fail("build dependency or toolchain evidence changed")
+  }
+  manifest
+}
+
+///|
+async fn Acceptance::persist(
+  self : Acceptance,
+  permits : Array[Permit],
+) -> Unit {
+  // Never truncate the last durable receipt. Rename within one directory gives
+  // readers either the previous complete policy or the new complete policy.
+  let ledger_json = self.ledger.to_json()
+  @fs.write_file(
+    self.ledger_path + ".tmp",
+    ledger_json.stringify(indent=2),
+    permission=0o600,
+  )
+  @fs.rename(self.ledger_path + ".tmp", self.ledger_path)
+  let policy : Json = {
+    "schema": 1,
+    "ledger": ledger_json,
+    "request_id": @crypto.bytes_to_hex_string(@env.rand(16).unwrap()),
+    "permits": permits.map(permit => permit.to_json()),
+  }
+  @fs.write_file(
+    self.policy_path + ".tmp",
+    policy.stringify(indent=2),
+    permission=0o600,
+  )
+  @fs.rename(self.policy_path + ".tmp", self.policy_path)
+}
+
+///|
+fn Acceptance::environment(self : Acceptance) -> Map[String, String] {
+  let values = {
+    "GH_TOKEN": self.token,
+    "GH_HOST": "github.com",
+    "GH_CONFIG_DIR": self.config,
+    "HOME": self.config,
+    "USERPROFILE": self.config,
+    "XDG_CONFIG_HOME": self.config,
+    "XDG_CACHE_HOME": self.config,
+    "GIT_CONFIG_GLOBAL": self.config + "/gitconfig",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_TERMINAL_PROMPT": "0",
+    "PATH": "/usr/bin:/bin",
+    "LC_ALL": "C",
+    "LANG": "C",
+    "GH_PROMPT_DISABLED": "1",
+    "GH_NO_UPDATE_NOTIFIER": "1",
+    "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+    "GH_TELEMETRY": "0",
+    "DO_NOT_TRACK": "1",
+    "NO_COLOR": "1",
+    "GH_PAGER": "cat",
+    "PAGER": "cat",
+    "GH_LIVE_ACCEPTANCE": "1",
+    "GH_ACCEPTANCE_POLICY": self.policy_path,
+  }
+  for
+    name in ["SystemRoot", "HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "NO_PROXY"] {
+    if @env.get_env_var(name) is Some(value) {
+      values[name] = value
+    }
+  }
+  values
+}
+
+///|
+async fn Acceptance::invoke(
+  self : Acceptance,
+  args : Array[String],
+  permits~ : Array[Permit] = [],
+  input? : String,
+  trace? : String,
+) -> (Int32, String, String) {
+  self.verify_binary()
+  self.persist(permits)
+  defer @async.protect_from_cancel(() => self.persist([]))
+  if !permits.is_empty() {
+    let keys : Map[String, Unit] = Map([])
+    for permit in permits {
+      keys[permit.resource_key()] = ()
+    }
+    for key in keys.keys() {
+      self.ledger.mark_uncertain(key)
+    }
+    @async.protect_from_cancel(() => {
+      @fs.write_file(
+        self.ledger_path + ".tmp",
+        self.ledger.to_json().stringify(indent=2),
+        permission=0o600,
+      )
+      @fs.rename(self.ledger_path + ".tmp", self.ledger_path)
+    })
+  }
+  let environment = self.environment()
+  if trace is Some(path) {
+    environment["GH_TRACE_FILE"] = path
+  }
+  let result = @shell.Cmd(
+    self.binary,
+    args,
+    cwd=self.config,
+    inherit_env=false,
+    env=environment,
+    stdin?=input.map(value => @shell.Stdin::Text(value)),
+  ).output(timeout_ms=120000, max_output_bytes=4194304)
+  (
+    result.exit_code(),
+    result.stdout().replace_all(old=self.token, new="<redacted>"),
+    acceptance_diagnostic(result.stderr(), self.token),
+  )
+}

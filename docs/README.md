@@ -20,6 +20,8 @@ the recorded live read-only matrix do not establish complete command parity.
 
 ## Development and delivery
 
+- [2026-10-21 Mac OAuth, Keychain and deploy-key acceptance (中文)](development/handoff-20261021-oauth.md)
+- [2026-10-20 Mac defect repairs and live differential (中文)](development/handoff-20261020-mac-repairs.md)
 - [2026-10-19 Mac continuation handoff (中文)](development/handoff-20261019-mac.md)
 - [Cross-platform CI](development/ci.md)
 - [OAuth, keyring and account acceptance setup](development/auth-acceptance.md)

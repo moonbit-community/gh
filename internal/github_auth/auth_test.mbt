@@ -15,6 +15,32 @@ test "github.com token precedence and URL defaults" {
 }
 
 ///|
+test "fixed gh local instance endpoints and token precedence remain scoped to exact hostname" {
+  let config = expect_config(
+    @github_auth.resolve(
+      @github_auth.Environment::new(
+        gh_host="GITHUB.LOCALHOST",
+        gh_token="local-only",
+        gh_enterprise_token="wrong-scope",
+      ),
+    ),
+  )
+  assert_eq(config.rest_base_url(), "http://api.github.localhost")
+  assert_eq(config.graphql_url(), "http://api.github.localhost/graphql")
+  assert_eq(config.token(), Some("local-only"))
+  let other = expect_config(
+    @github_auth.resolve(
+      @github_auth.Environment::new(
+        gh_host="github.localhost.invalid",
+        gh_token="must-not-leak",
+      ),
+    ),
+  )
+  assert_eq(other.token(), None)
+  assert_eq(other.rest_base_url(), "https://github.localhost.invalid/api/v3")
+}
+
+///|
 test "github.com falls through to GITHUB_TOKEN and stored token" {
   let from_github = expect_config(
     @github_auth.resolve(

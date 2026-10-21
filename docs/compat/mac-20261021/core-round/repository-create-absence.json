@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "run_id": "d01852a5a33a736a441c2624",
+  "repository": "ZSeanYves/gh-acceptance-d01852a5a33a736a441c2624-repository",
+  "original_report": "_build/actions-live-20261021-09/report.json",
+  "status": "pass",
+  "cleanup": "no_remote_resource_observed",
+  "authenticated_owner": "ZSeanYves",
+  "observations": [
+    {
+      "at_unix_ms": "1792557801423",
+      "http_status": 404
+    },
+    {
+      "at_unix_ms": "1792557806972",
+      "http_status": 404
+    }
+  ],
+  "remote_mutations": 0,
+  "ledger_note": "Original uncertain creation receipt is preserved; no resource was adopted or deleted without an immutable ID."
+}

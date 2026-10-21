@@ -1,0 +1,16 @@
+[
+  {"id":"terminal-object","format":"jq","input":{"z":[1,2],"a":true},"expression":"."},
+  {"id":"terminal-json-types","format":"jq","input":{"empty":null,"f":false,"s":"a\"b\n😀","n":-1.25,"arr":[null,"s"]},"expression":"."},
+  {"id":"terminal-color-styles","format":"template","input":"x","expression":"{{color \"cyan+bud:blue+h\" .}}|{{color \"202:17\" .}}|{{color \"off\" .}}|{{color \"reset\" .}}|{{color \"unknown\" .}}"},
+  {"id":"terminal-scalar-stream","format":"jq","input":["中文😀",1.005,null],"expression":".[]"},
+  {"id":"terminal-partial-error","format":"jq","input":[{"x":"ok"},3],"expression":".[] | .x"},
+  {"id":"terminal-color","format":"template","input":"Moon","expression":"{{color \"red+b\" .}}"},
+  {"id":"terminal-autocolor","format":"template","input":"Moon","expression":"{{autocolor \"red\" .}}"},
+  {"id":"terminal-hyperlink","format":"template","input":"Moon","expression":"{{hyperlink \"https://example.com/\" .}}"},
+  {"id":"terminal-narrow-table","format":"template","input":[["one-very-long-value-in-first-column","another-long-value-in-second-column"],["short","tail"]],"expression":"{{range .}}{{tablerow (index . 0) (index . 1)}}{{end}}"},
+  {"id":"terminal-three-columns","format":"template","input":[["name","012345678901234567890123456789","end"],["中文测试","abc","last"]],"expression":"{{range .}}{{tablerow (index . 0) (index . 1) (index . 2)}}{{end}}"},
+  {"id":"terminal-uneven-rows","format":"template","input":{},"expression":"{{tablerow \"a\" \"b\"}}{{tablerow \"long\"}}{{tablerender}}"},
+  {"id":"terminal-untrusted-escape","format":"jq","input":"a\u001b[31mb\u001b[0m","expression":"."},
+  {"id":"terminal-template-escape","format":"template","input":"a\u001b[31mb\u001b[0m","expression":"{{.}}"},
+  {"id":"terminal-error-location","format":"template","input":[],"expression":"ok\n{{printf \"%s\" (index . 1)}}"}
+]

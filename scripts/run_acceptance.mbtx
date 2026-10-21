@@ -1,0 +1,77 @@
+///|
+/// Standalone MoonBit scripts currently resolve imports only from the registry.
+/// Compose the tested local scope sources into a temporary .mbtx, so runners
+/// and the native transport execute the same implementation without publishing
+/// this project or copying a second policy implementation into the scripts.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() >= 2 && ["core_acceptance"].contains(args[1]) else {
+    fail("usage: run_acceptance.mbtx core_acceptance [runner arguments]")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let directory = @fs.tmpdir(prefix="gh-acceptance-source-")
+  defer @fs.rmdir(directory, recursive=true)
+  let source = StringBuilder()
+  let imports =
+    #|import {
+    #|  "moonbitlang/async@0.22.5",
+    #|  "moonbitlang/async@0.22.5/fs",
+    #|  "moonbitlang/async@0.22.5/shell",
+    #|  "moonbitlang/async@0.22.5/process",
+    #|  "moonbitlang/core/env",
+    #|  "moonbitlang/core/json",
+    #|  "moonbitlang/core/string",
+    #|  "moonbitlang/x@0.5.5/time",
+    #|  "moonbitlang/core/encoding/utf8",
+    #|  "moonbitlang/core/encoding/percent",
+    #|  "moonbitlang/core/encoding/base64",
+    #|  "moonbitlang/x@0.5.5/crypto",
+    #|}
+    #|
+  source.write_string(imports)
+  for
+    file in [
+      "internal/live_scope/ledger.mbt",
+      "internal/live_scope/permit.mbt",
+      "internal/live_scope/actions.mbt",
+      "internal/live_scope/repository_inventory.mbt",
+      "internal/live_scope/graphql.mbt",
+      "internal/live_scope/process.mbt",
+      "internal/live_scope/policy.mbt",
+      "scripts/acceptance_support.mbtx",
+      "scripts/acceptance_label.mbtx",
+      "scripts/acceptance_public_release.mbtx",
+      "scripts/acceptance_inventory.mbtx",
+      "scripts/acceptance_preflight.mbtx",
+      "scripts/acceptance_trace.mbtx",
+      "scripts/acceptance_authorize.mbtx",
+      "scripts/acceptance_repository.mbtx",
+      "scripts/acceptance_branch.mbtx",
+      "scripts/acceptance_actions_fixture.mbtx",
+      "scripts/acceptance_actions.mbtx",
+      "scripts/acceptance_actions_watch.mbtx",
+      "scripts/acceptance_actions_observe.mbtx",
+      "scripts/acceptance_empty_workflow.mbtx",
+      "scripts/" + args[1] + ".mbtx",
+    ] {
+    source.write_string("\n///|\n// Source: " + file + "\n")
+    source.write_string(@fs.read_file(root + "/" + file).text())
+  }
+  let generated = directory + "/runner.mbtx"
+  @fs.write_file(generated, source.to_string(), permission=0o600)
+  let result = @shell.Cmd(
+    "moon",
+    ["run", "--target", "native", generated, "--", ..args[2:]],
+    cwd=root,
+    inherit_env=true,
+  ).status()
+  guard result == 0 else { fail("acceptance runner failed") }
+}

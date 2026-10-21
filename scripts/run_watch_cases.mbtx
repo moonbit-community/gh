@@ -1,0 +1,207 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+fn run(status : String, conclusion : Json) -> Json {
+  {
+    "id": 51,
+    "workflow_id": 12,
+    "name": "API name differs",
+    "status": status,
+    "conclusion": conclusion,
+    "head_branch": "feature/watch",
+    "head_repository": { "owner": { "login": "acme" }, "name": "widgets" },
+    "event": "workflow_dispatch",
+    "created_at": "2099-01-01T00:00:00Z",
+    "run_started_at": "2099-01-01T00:00:00Z",
+    "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs",
+  }
+}
+
+///|
+fn jobs(status : String, conclusion : Json) -> Json {
+  let done = status == "completed"
+  {
+    "jobs": [
+      {
+        "id": 23,
+        "run_id": 51,
+        "name": "test / 中文",
+        "status": status,
+        "conclusion": conclusion,
+        "started_at": "2099-01-01T00:00:01Z",
+        "completed_at": if done {
+          Json("2099-01-01T00:01:02.125Z")
+        } else {
+          Json::null()
+        },
+        "steps": [
+          {
+            "number": 1,
+            "name": "Setup",
+            "status": "completed",
+            "conclusion": "success",
+          },
+          {
+            "number": 2,
+            "name": "Test",
+            "status": status,
+            "conclusion": conclusion,
+          },
+          {
+            "number": 3,
+            "name": "Skipped",
+            "status": "completed",
+            "conclusion": "skipped",
+          },
+        ],
+      },
+    ],
+  }
+}
+
+///|
+fn fixture(
+  id : String,
+  flags : Array[String],
+  conclusion~ : String = "success",
+  initial_done~ : Bool = false,
+  annotations~ : Int32 = 200,
+  empty_jobs~ : Bool = false,
+  pull_request~ : Bool = false,
+) -> Json {
+  let root = "/repos/acme/widgets/"
+  let routes : Map[String, Json] = Map([])
+  routes[root + "actions/runs/51?exclude_pull_requests=true"] = {
+    "sequence": if initial_done {
+      [{ "json": run("completed", Json(conclusion)) }]
+    } else {
+      [
+        { "json": run("queued", Json::null()) },
+        { "json": run("in_progress", Json::null()) },
+        { "json": run("completed", Json(conclusion)) },
+      ]
+    },
+  }
+  routes[root + "actions/workflows/12"] = { "json": { "id": 12, "name": "CI" } }
+  routes[root + "actions/runs/51/jobs?per_page=100"] = {
+    "sequence": [
+      {
+        "json": if empty_jobs {
+          Json::object({ "jobs": [] })
+        } else {
+          jobs("in_progress", Json::null())
+        },
+      },
+      {
+        "json": if empty_jobs {
+          Json::object({ "jobs": [] })
+        } else {
+          jobs("completed", Json(conclusion))
+        },
+      },
+    ],
+  }
+  routes["/graphql"] = {
+    "method": "POST",
+    "json": {
+      "data": {
+        "repository": {
+          "pullRequests": {
+            "nodes": if pull_request {
+              [
+                {
+                  "number": 7,
+                  "headRepository": {
+                    "owner": { "login": "acme" },
+                    "name": "widgets",
+                  },
+                },
+              ]
+            } else {
+              []
+            },
+          },
+        },
+      },
+    },
+  }
+  routes[root + "check-runs/23/annotations"] = {
+    "status": annotations,
+    "headers": { "Content-Type": "application/json" },
+    "json": if annotations == 200 {
+      if conclusion == "failure" {
+        Json::array([
+          {
+            "message": "assertion failed\nsecond line",
+            "path": "src/test.mbt",
+            "start_line": 7,
+            "annotation_level": "failure",
+          },
+          {
+            "message": "warning",
+            "path": "src/test.mbt",
+            "start_line": 8,
+            "annotation_level": "warning",
+          },
+        ])
+      } else {
+        Json::array([])
+      }
+    } else {
+      Json::object({ "message": "Forbidden" })
+    },
+  }
+  let args = ["run", "watch", "51", "-i", "0", ..flags]
+  { "id": id, "args": args, "routes": Json::object(routes) }
+}
+
+///|
+async fn main {
+  let cases : Array[Json] = [
+    fixture("watch_success", []),
+    fixture("watch_failure_exit", ["--exit-status"], conclusion="failure"),
+    fixture("watch_failure_default_exit", [], conclusion="failure"),
+    fixture("watch_cancelled_exit", ["--exit-status"], conclusion="cancelled"),
+    fixture("watch_compact_failure", ["--compact"], conclusion="failure"),
+    fixture("watch_compact_success", ["--compact"]),
+    fixture("watch_annotations_forbidden", [], annotations=403),
+    fixture("watch_annotations_missing", [], annotations=404),
+    fixture("watch_annotations_error", [], annotations=422),
+    fixture("watch_no_jobs", [], empty_jobs=true),
+    fixture("watch_pull_request", [], pull_request=true),
+    fixture("watch_already_success", [], initial_done=true),
+    fixture(
+      "watch_already_neutral_exit",
+      ["--exit-status"],
+      initial_done=true,
+      conclusion="neutral",
+    ),
+    fixture(
+      "watch_boolean_false",
+      ["--exit-status=false", "--compact=0"],
+      conclusion="failure",
+    ),
+    fixture("watch_negative_interval", ["--interval=-1"]),
+    fixture("watch_extra_positional", ["ignored"]),
+  ]
+  for
+    (id, args) in [
+      ("watch_missing_id", ["run", "watch"]),
+      ("watch_unknown_timeout", ["run", "watch", "51", "--timeout", "1"]),
+      ("watch_invalid_interval", ["run", "watch", "51", "-i", "oops"]),
+      ("watch_invalid_bool", ["run", "watch", "51", "--compact=oops"]),
+      ("watch_unknown_short", ["run", "watch", "51", "-x"]),
+    ] {
+    cases.push({ "id": id, "args": args, "routes": Json::empty_object() })
+  }
+  @fs.write_file(
+    "testdata/run-watch-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

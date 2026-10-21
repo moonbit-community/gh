@@ -7,12 +7,20 @@ import {
   "ZSeanYves/MoonbitHTTP/core/types" @http_types,
   "moonbitlang/core/buffer",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "ZSeanYves/gh/internal/live_scope",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/json",
+  "moonbitlang/x/crypto",
 }
 
 import {
   "moonbitlang/async/socket",
-  "moonbitlang/async/fs",
 } for "test"
+
+import {
+  "moonbitlang/async/socket",
+} for "wbtest"
 
 options(
   supported_targets: "native",

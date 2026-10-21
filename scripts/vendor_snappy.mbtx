@@ -1,0 +1,54 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/env",
+  "moonbit-community/flate@0.8.4/zip",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 else {
+    fail("usage: vendor_snappy.mbtx REGISTRY_ARCHIVE")
+  }
+  let destination = "internal/snappy"
+  guard !@fs.exists(destination) else { fail("snappy vendor already exists") }
+  let bytes = @fs.read_file(args[1]).binary()
+  guard @crypto.bytes_to_hex_string(@crypto.sha256(bytes)) ==
+    "5ff3d353ec33356c22f889c737105c9f4a654067d49bdd52d1866768712bce00" else {
+    fail("registry archive hash mismatch")
+  }
+  let archive = @zip.read(bytes)
+  let source = archive
+    .entries()
+    .iter()
+    .filter(entry => entry.name() == "snappy/decompress.mbt")
+    .next()
+    .unwrap()
+    .data()
+    .to_owned()
+  @fs.mkdir(destination)
+  @fs.write_file(destination + "/decompress.mbt", source)
+  @fs.write_file(
+    destination + "/LICENSE",
+    @fs.read_file("internal/pkix_verify/LICENSE").binary(),
+  )
+  @fs.write_file(
+    destination + "/upstream.json",
+    Json::object({
+      "module": "bikallem/compress",
+      "version": "0.3.4",
+      "package": "snappy",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/bikallem/compress",
+      "registry_archive_sha256": @crypto.bytes_to_hex_string(
+        @crypto.sha256(bytes),
+      ),
+      "source_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(source)),
+      "reason": "Use the existing raw Snappy decoder with bounded output. The published module uses unsupported legacy metadata; the streaming wrapper allocates from an unbounded length prefix. Local changes reject integer overflow and trailing data and bound allocations before decoding.",
+    }).stringify(indent=2) +
+    "\n",
+  )
+}

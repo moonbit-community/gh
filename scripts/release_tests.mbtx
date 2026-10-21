@@ -1,0 +1,64 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn main {
+  let data = @json.parse(
+    @fs.read_file("testdata/release-oracle-v2.102.0.json").text(),
+  )
+  guard data
+    is {
+      "oracle_sha256": String(
+        "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6"
+      ),
+      "cases_sha256": String(cases_hash),
+      "failures": Number(0, ..),
+      "expected_cases": Number(expected, ..),
+      "completed_cases": Number(completed, ..),
+      "cases": Array(cases),
+      ..
+    } &&
+    completed == expected &&
+    completed == cases.length().to_double() else {
+    fail("incomplete oracle evidence")
+  }
+  let inputs = @fs.read_file("testdata/release-cases.json").binary()
+  guard @crypto.bytes_to_hex_string(@crypto.sha256(inputs)) == cases_hash else {
+    fail("release cases changed after oracle capture")
+  }
+  guard @json.parse(@utf8.decode(inputs)) is Array(inputs) else {
+    fail("invalid cases")
+  }
+  let source = StringBuilder()
+  source.write_string(
+    "// Generated from the pinned oracle by scripts/release_tests.mbtx.\n",
+  )
+  for index in 0..<cases.length() {
+    guard cases[index] is Object(fields) &&
+      fields.get("id") is Some(String(id)) &&
+      inputs[index]
+      is { "id": String(input_id), "input_files_base64": files, .. } &&
+      id == input_id else {
+      fail("case ID missing or changed")
+    }
+    let retained = fields.copy()
+    retained.remove("files_hex")
+    retained.remove("directories")
+    retained["input_files_base64"] = files
+    source.write_string(
+      "///|\nasync test " + Json("Release oracle " + id).stringify() + " {\n",
+    )
+    source.write_string(
+      "  check_release_oracle(" +
+      Json(Json::object(retained).stringify()).stringify() +
+      ")\n}\n",
+    )
+  }
+  @fs.write_file("native/release_oracle_cases_test.mbt", source.to_string())
+}

@@ -2,13 +2,23 @@
 package "ZSeanYves/gh/github_cli"
 
 import {
+  "ZSeanYves/gh/github/operations",
   "moonbitlang/core/debug",
+  "moonbitlang/x/time",
 }
 
 // Values
+pub fn actions_failure_icon(FormatContext) -> String
+
+pub fn actions_success_icon(FormatContext) -> String
+
 pub fn build_fields(Array[(String, Json)], Array[String]) -> Result[Map[String, Json], String]
 
-pub fn failure(message~ : String, exit_code? : Int) -> Output
+pub fn cache_identifier_id(String) -> String?
+
+pub fn download_name_matches(String, String) -> Bool
+
+pub fn failure(message~ : String, exit_code? : Int32) -> Output
 
 pub fn graphql_payload(Map[String, Json]) -> Json
 
@@ -16,13 +26,51 @@ pub fn help_text() -> String
 
 pub fn parse(Array[String]) -> Invocation raise ParseError
 
+pub fn parse_cache_delete(BusinessOptions) -> Result[CacheDeleteOptions, Output]
+
+pub fn parse_release_download(BusinessOptions) -> Result[ReleaseDownloadOptions, Output]
+
+pub fn parse_run_download(BusinessOptions) -> Result[RunDownloadOptions, Output]
+
+pub fn parse_run_rerun(BusinessOptions) -> Result[RunRerunOptions, Output]
+
+pub fn parse_run_watch(BusinessOptions) -> Result[RunWatchOptions, Output]
+
+pub fn parse_workflow_manage(BusinessOptions) -> Result[WorkflowManageOptions, Output]
+
+pub fn parse_workflow_run(BusinessOptions) -> Result[WorkflowRunOptions, Output]
+
 pub fn query_fields(Array[(String, Json)]) -> Array[(String, String)]
 
-pub fn render_response(Int, Array[(String, String)], Bytes, jq? : String, template? : String, include_headers? : Bool, silent? : Bool, verbose? : Bool, allow_escape_sequences? : Bool) -> Output
+pub fn render_cache_deleted(Int32, String, FormatContext) -> String
+
+pub fn render_rerun_requested(String, String, Bool, Bool, FormatContext) -> String
+
+pub fn render_response(Int32, Array[(String, String)], Bytes, jq? : String, template? : String, include_headers? : Bool, silent? : Bool, verbose? : Bool, allow_escape_sequences? : Bool, format_context? : FormatContext) -> Output
+
+pub fn render_run_log(String, String?, BytesView) -> Bytes
+
+pub fn render_watch_completed(@operations.WorkflowRun, FormatContext, already? : Bool) -> String
+
+pub fn render_watch_frame(@operations.WorkflowRun, Array[@operations.WorkflowJob], Array[@operations.WorkflowAnnotation]?, RunWatchOptions, FormatContext, pull_request? : String) -> String
+
+pub fn render_watch_refresh(Int64, FormatContext) -> String
+
+pub fn render_workflow_state(String, Bool, FormatContext) -> String
+
+pub fn render_workflows(Array[@operations.Workflow], WorkflowManageOptions, FormatContext) -> Output
+
+pub fn rest_error_message(Int32, Array[(String, String)], Bytes, String, reason_phrase? : String) -> String
 
 pub fn success(stdout~ : String, stderr? : String) -> Output
 
 pub fn typed_field(String) -> Json
+
+pub fn workflow_input_pair(String) -> Result[(String, String), Output]
+
+pub fn workflow_json_inputs(Json) -> Result[Json, Output]
+
+pub fn workflow_symbol(String, String, FormatContext) -> String
 
 // Errors
 pub suberror ParseError {
@@ -80,6 +128,25 @@ pub struct BusinessOptions {
 pub fn BusinessOptions::args(Self) -> Array[String]
 pub fn BusinessOptions::command(Self) -> String
 
+pub struct CacheDeleteOptions {
+  identifier : String
+  cache_id : String?
+  ref_name : String
+  all : Bool
+  succeed_on_empty : Bool
+}
+
+pub struct FormatContext {
+  terminal : Bool
+  progress_enabled : Bool
+  color : Bool
+  width : Int32
+  now_unix : Int64
+  local_zone : @time.Zone?
+  environment : Map[String, String]
+}
+pub fn FormatContext::new(terminal? : Bool, progress_enabled? : Bool, color? : Bool, width? : Int32, now_unix? : Int64, local_zone? : @time.Zone, environment? : Map[String, String]) -> Self
+
 pub enum Invocation {
   Help
   HelpTopic(String)
@@ -96,15 +163,26 @@ pub enum Invocation {
 pub struct Output {
   stdout : String
   stderr : String
-  exit_code : Int
+  exit_code : Int32
   // private fields
 }
-pub fn Output::exit_code(Self) -> Int
-pub fn Output::from_bytes(Bytes, stderr? : String, exit_code? : Int) -> Self
-pub fn Output::new(stdout? : String, stderr? : String, exit_code? : Int) -> Self
+pub fn Output::exit_code(Self) -> Int32
+pub fn Output::from_bytes(Bytes, stderr? : String, exit_code? : Int32) -> Self
+pub fn Output::new(stdout? : String, stderr? : String, exit_code? : Int32) -> Self
 pub fn Output::stderr(Self) -> String
 pub fn Output::stdout(Self) -> String
 pub fn Output::stdout_bytes(Self) -> Bytes
+
+pub struct ReleaseDownloadOptions {
+  tag : String?
+  patterns : Array[String]
+  archive : String
+  directory : String
+  output : String
+  clobber : Bool
+  skip_existing : Bool
+  allow_escapes : Bool
+}
 
 pub struct RepositoryContext {
   host : String
@@ -133,6 +211,47 @@ pub(all) enum RepositoryError {
 pub fn RepositoryError::equal(Self, Self) -> Bool
 pub fn RepositoryError::not_equal(Self, Self) -> Bool
 pub fn RepositoryError::to_repr(Self) -> @debug.Repr
+
+pub struct RunDownloadOptions {
+  run_id : String?
+  directory : String
+  names : Array[String]
+  patterns : Array[String]
+}
+pub fn RunDownloadOptions::isolated(Self) -> Bool
+pub fn RunDownloadOptions::matches(Self, String) -> Bool
+
+pub struct RunRerunOptions {
+  run_id : String
+  job_id : String
+  only_failed : Bool
+  debug_logging : Bool
+}
+
+pub struct RunWatchOptions {
+  run_id : String
+  interval : Int64
+  exit_status : Bool
+  compact : Bool
+}
+
+pub struct WorkflowManageOptions {
+  action : String
+  selector : String
+  all : Bool
+  limit : Int32
+  fields : Array[String]?
+  jq : String?
+  template : String?
+}
+
+pub struct WorkflowRunOptions {
+  selector : String
+  ref_name : String
+  raw_fields : Array[String]
+  file_fields : Array[String]
+  json_input : Bool
+}
 
 // Type aliases
 

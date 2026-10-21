@@ -231,7 +231,10 @@ async test "OAuth web rejects invalid configuration and transport origin before 
 
 ///|
 async test "OAuth web rejects malformed scopes before browser presentation" {
-  for scopes in ["repo\nbad", "repo&evil=1", "repo?bad", "repo%20gist", "repo\tgist"] {
+  for
+    scopes in [
+      "repo\nbad", "repo&evil=1", "repo?bad", "repo%20gist", "repo\tgist",
+    ] {
     let adapter = @native.web_oauth_adapter(
       client_id="fixture-app",
       client_secret="fixture-secret",

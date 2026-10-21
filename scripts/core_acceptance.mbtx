@@ -1,0 +1,556 @@
+///|
+/// Run through scripts/run_acceptance.mbtx so the scope library is shared.
+async fn main {
+  let args = @env.args()
+  if args.length() == 4 && args[1] == "--trace-readonly" {
+    verify_live_trace(args[2], args[3])
+    return
+  }
+  if args.length() == 5 && args[1] == "--recover-empty-workflow-write" {
+    recover_empty_workflow_write(args[2], args[3], args[4])
+    return
+  }
+  if args.length() == 5 && args[1] == "--actions-storage-independent" {
+    run_repository_lifecycle(
+      args[2],
+      args[3],
+      args[4],
+      actions=true,
+      storage_independent=true,
+    )
+    return
+  }
+  if args.length() == 5 && args[1] == "--recover-actions-cache" {
+    recover_actions_cache(args[2], args[3], args[4])
+    return
+  }
+  if args.length() == 5 && args[1] == "--actions-observe" {
+    observe_actions(args[2], args[3], args[4])
+    return
+  }
+  if args.length() == 5 && args[1] == "--actions-lifecycle" {
+    run_repository_lifecycle(args[2], args[3], args[4], actions=true)
+    return
+  }
+  if args.length() == 5 && args[1] == "--recover-repository" {
+    recover_repository(args[2], args[3], args[4])
+    return
+  }
+  if args.length() == 4 && args[1] == "--branch-lifecycle" {
+    run_branch_lifecycle(args[2], args[3])
+    return
+  }
+  if args.length() == 4 && args[1] == "--ruleset-probe" {
+    run_repository_preflight(args[2], args[3], ruleset_probe_only=true)
+    return
+  }
+  if args.length() == 5 && args[1] == "--repository-lifecycle" {
+    run_repository_lifecycle(args[2], args[3], args[4])
+    return
+  }
+  if args.length() == 4 && args[1] == "--authorize-test-app" {
+    authorize_acceptance_app(args[2], args[3])
+    return
+  }
+  if args.length() == 4 && args[1] == "--repository-preflight" {
+    run_repository_preflight(args[2], args[3])
+    return
+  }
+  if args.length() == 6 && args[1] == "--audit-repository" {
+    run_repository_inventory(args[2], args[3], args[4], args[5])
+    return
+  }
+  if args.length() == 3 && args[1] == "--verify-binary" {
+    let directory = @fs.tmpdir(prefix="gh-acceptance-probe-")
+    defer @fs.rmdir(directory, recursive=true)
+    let acceptance : Acceptance = {
+      binary: @fs.realpath(args[2]),
+      config: directory,
+      ledger_path: directory + "/ledger.json",
+      policy_path: directory + "/policy.json",
+      token: "synthetic-probe",
+      ledger: Ledger::new("probe", "fixture-id"),
+      verified_binary: Ref(None),
+    }
+    acceptance.verify_binary()
+    println(
+      Json::object({
+        "scope_protocol": 1,
+        "binary_sha256": acceptance.verified_binary.val.unwrap(),
+      }).stringify(),
+    )
+    return
+  }
+  if args.length() == 4 && args[1] == "--label-lifecycle" {
+    run_label_lifecycle(args[2], args[3])
+    return
+  }
+  if args.length() == 4 && args[1] == "--recover-label" {
+    recover_label(args[2], args[3])
+    return
+  }
+  if args.length() == 4 && args[1] == "--public-release-proof" {
+    run_public_release_proof(args[2], args[3])
+    return
+  }
+  if args.length() == 4 && args[1] == "--public-release-downloads" {
+    run_public_release_proof(args[2], args[3], downloads_only=true)
+    return
+  }
+  guard args.length() == 2 && args[1] == "--self-test" else {
+    fail(
+      "usage: --self-test | --verify-binary BINARY | --label-lifecycle CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --recover-label CREDENTIAL_FILE REPORT_DIRECTORY | --branch-lifecycle CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --repository-preflight CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --ruleset-probe CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --authorize-test-app APP_FILE NEW_CREDENTIAL_DIRECTORY | --repository-lifecycle CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-lifecycle CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-storage-independent CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-observe CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --recover-actions-cache CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --recover-repository CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --audit-repository CREDENTIAL_FILE LEDGER RESOURCE_KEY NEW_REPORT_FILE | --public-release-proof CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --public-release-downloads CREDENTIAL_FILE NEW_REPORT_DIRECTORY",
+    )
+  }
+  let ledger = Ledger::new("offline", "fixture-id")
+  assert_eq(
+    actions_cache_time("2026-10-21T01:55:48.690231Z"),
+    actions_cache_time("2026-10-21T01:55:48Z"),
+  )
+  for
+    invalid_time in [
+      "2026-10-21T01:55:48+08:00", "2026-10-21T01:55:48..1Z", "2026-10-21T01:55:48.Z",
+      "not-a-date",
+    ] {
+    try actions_cache_time(invalid_time) catch {
+      _ => ()
+    } noraise {
+      _ => fail("invalid cache timestamp accepted")
+    }
+  }
+  let run_fields : Map[String, Json] = {
+    "id": 71,
+    "repository": { "id": 51 },
+    "head_repository": { "id": 51 },
+    "workflow_id": 61,
+    "head_branch": "main",
+    "head_sha": "exact-sha",
+    "event": "workflow_dispatch",
+    "display_title": "nonce / success",
+    "actor": { "login": "ZSeanYves" },
+    "run_attempt": 1,
+  }
+  actions_validate_run(
+    Json::object(run_fields),
+    "51",
+    "61",
+    "main",
+    "exact-sha",
+    "nonce",
+    "success",
+  )
+  for
+    (field, value) in [
+      ("repository", Json::object({ "id": 52 })),
+      ("head_repository", Json::object({ "id": 52 })),
+      ("workflow_id", Json(62)),
+      ("head_branch", Json("other")),
+      ("head_sha", Json("other")),
+      ("event", Json("push")),
+      ("display_title", Json("nonce / failure")),
+      ("actor", Json::object({ "login": "someone-else" })),
+      ("run_attempt", Json(0)),
+    ] {
+    let changed = run_fields.copy()
+    changed[field] = value
+    try
+      actions_validate_run(
+        Json::object(changed),
+        "51",
+        "61",
+        "main",
+        "exact-sha",
+        "nonce",
+        "success",
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("foreign run accepted by " + field)
+    }
+  }
+  let workflow = acceptance_workflow_source("offline")
+  assert_true(workflow.contains("timeout-minutes: 4"))
+  assert_true(workflow.contains("name: gh-acceptance-offline"))
+  assert_true(!workflow.contains("@@RUN@@"))
+  let without_artifacts = acceptance_workflow_source(
+    "offline",
+    include_artifacts=false,
+  )
+  assert_true(without_artifacts.contains("actions/cache/save@"))
+  assert_true(without_artifacts.contains("      - name: Expected failure\n"))
+  assert_true(!without_artifacts.contains("upload-artifact"))
+  assert_eq(
+    inventory_failure("private-query: EOF"),
+    (true, "connection_closed"),
+  )
+  assert_eq(
+    inventory_failure("private-response (HTTP 403)"),
+    (false, "HTTP 403"),
+  )
+  assert_eq(
+    inventory_failure("private-response (HTTP 503)"),
+    (true, "HTTP 503"),
+  )
+  assert_eq(
+    inventory_failure("private-token GraphQL: denied"),
+    (false, "graphql_response_error"),
+  )
+  let observed = 1792544203134L
+  let preflight_fields : Map[String, Json] = {
+    "family": "repository-permission-preflight",
+    "repository": "ZSeanYves/gh_test",
+    "identity_verified": true,
+    "inventory_ready": true,
+    "credential_sha256": "test-hash",
+    "expected_cases": 15,
+    "completed_cases": 15,
+    "observed_at_ms": observed.to_double(),
+  }
+  let preflight = @json.parse(Json::object(preflight_fields).stringify())
+  repository_require_preflight(preflight, "test-hash", observed + 600000L)
+  for
+    failure in [
+      "string-time", "stale", "future", "credential", "incomplete", "blocked",
+    ] {
+    let changed = preflight_fields.copy()
+    match failure {
+      "string-time" => changed["observed_at_ms"] = Json(observed)
+      "stale" =>
+        changed["observed_at_ms"] = Json((observed - 600001L).to_double())
+      "future" => changed["observed_at_ms"] = Json((observed + 1L).to_double())
+      "credential" => changed["credential_sha256"] = Json("different")
+      "incomplete" => changed["completed_cases"] = Json(14)
+      _ => changed["inventory_ready"] = Json(false)
+    }
+    try
+      repository_require_preflight(
+        @json.parse(Json::object(changed).stringify()),
+        "test-hash",
+        observed,
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("invalid preflight accepted: " + failure)
+    }
+  }
+  // Two branches at one commit are distinct resources. Moving a branch changes
+  // its content receipt, never its immutable ownership identity.
+  let repository = "/repos/ZSeanYves/gh_test"
+  fn ref_receipt(node : String, name : String, sha : String) -> Json raise {
+    acceptance_ref_item(
+      {
+        "node_id": node,
+        "ref": name,
+        "object": { "type": "commit", "sha": sha },
+      },
+      repository,
+      name,
+    )
+  }
+  let first = ref_receipt(
+    "REF-first", "refs/heads/one", "1111111111111111111111111111111111111111",
+  )
+  let second = ref_receipt(
+    "REF-second", "refs/heads/two", "1111111111111111111111111111111111111111",
+  )
+  let moved = ref_receipt(
+    "REF-first", "refs/heads/one", "2222222222222222222222222222222222222222",
+  )
+  assert_true(inventory_string(first, "id") != inventory_string(second, "id"))
+  assert_eq(inventory_string(first, "id"), inventory_string(moved, "id"))
+  assert_true(
+    inventory_string(first, "content_sha256") !=
+    inventory_string(moved, "content_sha256"),
+  )
+  let empty_connection : Json = [
+    {
+      "data": {
+        "repository": {
+          "id": "repository-node",
+          "rulesets": {
+            "totalCount": 0,
+            "nodes": [],
+            "pageInfo": { "hasNextPage": false, "endCursor": Json::null() },
+          },
+        },
+      },
+    },
+  ]
+  inventory_require_empty_connection(
+    empty_connection, "repository-node", "rulesets",
+  )
+  for
+    failure in [
+      "null", "foreign-id", "count", "next-page", "node", "errors", "extra-page",
+    ] {
+    let connection : Json = {
+      "totalCount": if failure == "count" {
+        1
+      } else {
+        0
+      },
+      "nodes": if failure == "node" {
+        [{ "id": "unowned" }]
+      } else {
+        []
+      },
+      "pageInfo": { "hasNextPage": failure == "next-page" },
+    }
+    let envelope : Map[String, Json] = {
+      "data": {
+        "repository": {
+          "id": if failure == "foreign-id" {
+            "another-repository"
+          } else {
+            "repository-node"
+          },
+          "rulesets": if failure == "null" {
+            Json::null()
+          } else {
+            connection
+          },
+        },
+      },
+    }
+    if failure == "errors" {
+      envelope["errors"] = Json::array([])
+    }
+    let pages = [Json::object(envelope)]
+    if failure == "extra-page" {
+      pages.push(Json::object(envelope))
+    }
+    try
+      inventory_require_empty_connection(
+        Json::array(pages),
+        "repository-node",
+        "rulesets",
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("unsafe empty connection accepted: " + failure)
+    }
+  }
+  let bootstrap = Ledger::new("bootstrap", "fixture-id")
+  bootstrap.intend_repository("repo", "gh-acceptance-bootstrap-repository")
+  bootstrap.confirm_created("repo", "repo-id")
+  repository_bootstrap_labels(bootstrap, "repo", Json::array([]))
+  assert_eq(bootstrap.resources.length(), 2)
+  let defaults : Array[Json] = []
+  for index, (name, color, description) in repository_default_labels() {
+    defaults.push({
+      "id": index + 1,
+      "name": name,
+      "color": color,
+      "description": description,
+      "default": true,
+    })
+  }
+  for failure in ["extra", "edited", "duplicate-id", "not-default"] {
+    let invalid = defaults.copy()
+    if failure == "extra" {
+      invalid.push({ "id": 500, "name": "unowned" })
+    } else {
+      guard invalid[0] is Object(original) else { fail("bootstrap fixture") }
+      let changed = original.copy()
+      match failure {
+        "edited" => changed["description"] = Json("changed by someone else")
+        "duplicate-id" => changed["id"] = Json(2)
+        _ => changed["default"] = Json(false)
+      }
+      invalid[0] = Json::object(changed)
+    }
+    try
+      repository_bootstrap_labels(bootstrap, "repo", Json::array(invalid))
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("bootstrap accepted foreign content: " + failure)
+    }
+    assert_eq(bootstrap.resources.length(), 2)
+  }
+  repository_bootstrap_labels(bootstrap, "repo", Json::array(defaults))
+  ignore(Ledger::from_json(bootstrap.to_json()))
+  assert_eq(
+    bootstrap.resources.length(),
+    2 + repository_default_labels().length(),
+  )
+  let metadata : Json = {
+    "id": 1,
+    "private": true,
+    "archived": false,
+    "description": "fixture",
+  }
+  ignore(
+    repository_changed_receipt(metadata, { "archived": true }, {
+      "id": 1,
+      "private": true,
+      "archived": true,
+      "description": "fixture",
+    }),
+  )
+  try
+    repository_changed_receipt(metadata, { "archived": true }, {
+      "id": 1,
+      "private": true,
+      "archived": true,
+      "description": "foreign edit",
+    })
+  catch {
+    _ => ()
+  } noraise {
+    _ => fail("repository PATCH adopted an unrelated change")
+  }
+  let label : Json = {
+    "id": 1,
+    "name": "label",
+    "color": "112233",
+    "description": "fixture",
+  }
+  let reordered : Json = {
+    "description": "fixture",
+    "color": "112233",
+    "name": "label",
+    "id": 1,
+  }
+  assert_eq(
+    inventory_content_hash("label", label),
+    inventory_content_hash("label", reordered),
+  )
+  ignore(
+    inventory_pages(
+      "label",
+      Json::array([Json::array([label])]),
+      "/repos/ZSeanYves/gh-acceptance-offline-test",
+    ),
+  )
+  try
+    inventory_pages(
+      "run",
+      [{ "total_count": 2, "workflow_runs": [] }],
+      "/repos/ZSeanYves/gh-acceptance-offline-test",
+      collection_field="workflow_runs",
+    )
+  catch {
+    _ => ()
+  } noraise {
+    _ => fail("cleanup page count mismatch accepted")
+  }
+  assert_eq(
+    acceptance_diagnostic(
+      "GET https://storage.example/blob?sig=private failed; token=synthetic-secret",
+      "synthetic-secret",
+    ),
+    "GET https://storage.example/blob?<redacted> failed; token=<redacted>",
+  )
+  ledger.intend_resource("issue", "fixture", "/issues", "issue")
+  let body : Json = { "title": "gh-acceptance-offline-issue" }
+  let permit = ledger.approve_creation("issue", body)
+  let policy = Policy::from_json({
+    "schema": 1,
+    "ledger": ledger.to_json(),
+    "permits": [permit.to_json()],
+  })
+  assert_true(
+    policy.allows(
+      "https://api.github.com",
+      "POST",
+      "/repos/ZSeanYves/gh_test/issues",
+      Some(@utf8.encode(body.stringify())),
+    ),
+  )
+  assert_false(
+    policy.allows(
+      "https://api.github.com",
+      "POST",
+      "/repos/moonbit-community/gh/issues",
+      Some(@utf8.encode(body.stringify())),
+    ),
+  )
+  let directory = @fs.tmpdir(prefix="gh-acceptance-selftest-")
+  defer @fs.rmdir(directory, recursive=true)
+  let digest = fn(text : String) {
+    @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(text)))
+  }
+  let files : Json = [{ "path": "fixture.mbt", "sha256": digest("fixture") }]
+  let manifest : Json = {
+    "family": "native-acceptance-build",
+    "status": "pass",
+    "source_unchanged": true,
+    "binary_sha256": digest("binary"),
+    "source_files_sha256": digest(files.stringify()),
+    "dependencies_sha256": digest("[]\n"),
+    "toolchain": "test-toolchain\n",
+  }
+  let manifest_path = directory + "/report.json"
+  @fs.write_file(manifest_path, manifest.stringify())
+  @fs.write_file(directory + "/source-files.json", files.stringify(indent=2))
+  @fs.write_file(directory + "/dependencies.json", "[]\n")
+  @fs.write_file(directory + "/toolchain.txt", "test-toolchain\n")
+  ignore(acceptance_build_evidence_at(manifest_path, digest("binary")))
+  try
+    acceptance_build_evidence_at(manifest_path, digest("other-binary"))
+  catch {
+    _ => ()
+  } noraise {
+    _ => fail("build accepted another executable")
+  }
+  @fs.write_file(directory + "/source-files.json", "[]")
+  try acceptance_build_evidence_at(manifest_path, digest("binary")) catch {
+    _ => ()
+  } noraise {
+    _ => fail("build accepted changed source fingerprint")
+  }
+  @fs.write_file(directory + "/source-files.json", files.stringify())
+  @fs.write_file(directory + "/dependencies.json", "{}")
+  try acceptance_build_evidence_at(manifest_path, digest("binary")) catch {
+    _ => ()
+  } noraise {
+    _ => fail("build accepted changed dependencies")
+  }
+  let acceptance : Acceptance = {
+    binary: @env.current_dir().unwrap_or(".") +
+    "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory,
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token: "synthetic-secret",
+    ledger,
+    verified_binary: Ref(None),
+  }
+  acceptance.persist([permit])
+  ignore(
+    Policy::from_json(@json.parse(@fs.read_file(acceptance.policy_path).text())),
+  )
+  acceptance.persist([])
+  assert_false(
+    @fs.read_file(acceptance.ledger_path).text().contains(acceptance.token),
+  )
+  assert_eq(
+    acceptance.environment()["GIT_CONFIG_GLOBAL"],
+    directory + "/gitconfig",
+  )
+  let (code, out, _) = acceptance.invoke(["--version"])
+  assert_eq(code, 0)
+  assert_true(out.contains("gh"))
+  // Even a child that exits successfully is not an ownership receipt. The
+  // pending intent remains uncertain until a separate API read-back confirms it.
+  let (code, _, _) = acceptance.invoke(["--version"], permits=[permit])
+  assert_eq(code, 0)
+  let persisted = @json.parse(@fs.read_file(acceptance.ledger_path).text())
+  guard persisted is { "resources": Array(resources), .. } else {
+    fail("missing ledger")
+  }
+  assert_true(
+    resources.any(value => {
+      value is { "key": String("issue"), "state": String("uncertain"), .. }
+    }),
+  )
+  let cleared = @json.parse(@fs.read_file(acceptance.policy_path).text())
+  assert_true(cleared is { "permits": Array([]), .. })
+  println(
+    "shared scope source, exact request authorization and durable ledger self-test passed",
+  )
+}

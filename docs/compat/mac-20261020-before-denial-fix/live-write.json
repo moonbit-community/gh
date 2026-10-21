@@ -1,0 +1,493 @@
+{
+  "schema": 3,
+  "mode": "write-lifecycle",
+  "repository": "ZSeanYves/gh_test",
+  "marker": "codex-write-1792503380143-1390aacc9906b40a",
+  "write_operations_verified": true,
+  "verification_scope": "executed_lifecycle_only",
+  "permission_gated": [],
+  "core_parity_verified": false,
+  "cleanup_passed": true,
+  "residual_resources": [],
+  "cases": [
+    {
+      "name": "issue-create",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 2340,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-view-created",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 82,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-comment",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1703,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-edit",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 2348,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-close",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 3310,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-view-closed",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 91,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-reopen",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 2354,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-view-reopened",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 89,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-lock",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-unlock",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "issue-delete",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "repo-description-read",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 21,
+      "stderr_characters": 0
+    },
+    {
+      "name": "repo-description-edit",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:description_is_null_or_missing"
+    },
+    {
+      "name": "secret-set",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 2,
+      "stderr_characters": 0
+    },
+    {
+      "name": "secret-list",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 63,
+      "stderr_characters": 0
+    },
+    {
+      "name": "secret-delete",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "secret-list-deleted",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 3,
+      "stderr_characters": 0
+    },
+    {
+      "name": "variable-set",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "variable-read-created",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "name": "variable-update",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "variable-read-updated",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "name": "variable-list",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 65,
+      "stderr_characters": 0
+    },
+    {
+      "name": "variable-delete",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "variable-list-deleted",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 3,
+      "stderr_characters": 0
+    },
+    {
+      "name": "actions-workflow-list",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "actions-run-list",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 3,
+      "stderr_characters": 0
+    },
+    {
+      "name": "actions-cache-list",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 3,
+      "stderr_characters": 0
+    },
+    {
+      "name": "actions-workflow-dispatch",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_workflow_not_created"
+    },
+    {
+      "name": "actions-run-view",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "actions-run-logs",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "actions-run-artifacts",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "actions-run-cancel",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "actions-run-rerun",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "actions-run-watch",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "actions-run-exit-status",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:marker_run_not_created"
+    },
+    {
+      "name": "cache-safe-skip",
+      "exit_code": 0,
+      "passed": true,
+      "skipped": true,
+      "diagnostic": "safe_skip:cache_creation_requires_marker_workflow_run"
+    },
+    {
+      "name": "branch-read-base",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 332,
+      "stderr_characters": 0
+    },
+    {
+      "name": "branch-create-base",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 478,
+      "stderr_characters": 0
+    },
+    {
+      "name": "branch-create",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 485,
+      "stderr_characters": 0
+    },
+    {
+      "name": "contents-create",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 2379,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-create",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 15303,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-view",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 95,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-comment",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1714,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-review-comment",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1609,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-edit",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 15353,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-view-edited",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 102,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-close",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 15373,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-view-closed",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 104,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-reopen",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 15317,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-view-reopened",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 102,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-merge",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 109,
+      "stderr_characters": 0
+    },
+    {
+      "name": "pr-view-merged",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 16327,
+      "stderr_characters": 0
+    },
+    {
+      "name": "branch-view-merged",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 478,
+      "stderr_characters": 0
+    },
+    {
+      "name": "contents-view-merged",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1348,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-create",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1962,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-view",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 29,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-edit",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1969,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-upload",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-view-assets",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1588,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-download",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-delete-asset",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-view-asset-deleted",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 14,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-delete",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "release-delete-tag",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "cleanup-contents",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1144,
+      "stderr_characters": 0
+    },
+    {
+      "name": "cleanup-merged-contents",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 1144,
+      "stderr_characters": 0
+    },
+    {
+      "name": "cleanup-branch",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "cleanup-merge-base-branch",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 0,
+      "stderr_characters": 0
+    },
+    {
+      "name": "branch-default-unchanged",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_characters": 332,
+      "stderr_characters": 0
+    }
+  ]
+}

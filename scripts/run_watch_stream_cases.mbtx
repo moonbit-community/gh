@@ -1,0 +1,33 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn main {
+  guard @json.parse(@fs.read_file("testdata/run-watch-cases.json").text())
+    is Array(cases) else {
+    fail("cases")
+  }
+  let output : Array[Json] = []
+  for case in cases {
+    guard case is Object(fields) && fields.get("id") is Some(String(id)) else {
+      fail("case")
+    }
+    if ["watch_success", "watch_failure_exit", "watch_no_jobs"].contains(id) {
+      let changed = fields.copy()
+      changed["id"] = Json(id + "_stream")
+      changed["progress_path"] = Json(
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+      )
+      output.push(Json::object(changed))
+    }
+  }
+  @fs.write_file(
+    "testdata/run-watch-stream-cases.json",
+    Json::array(output).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

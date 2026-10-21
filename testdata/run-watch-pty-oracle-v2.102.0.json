@@ -1,0 +1,4142 @@
+{
+  "schema": 1,
+  "terminal": true,
+  "color": true,
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "candidate_sha256": null,
+  "expected_cases": 21,
+  "completed_cases": 21,
+  "failures": 0,
+  "cases_sha256": "e8ea858a807aea260d2990e7c8512960449ac70333c70180377da79a6bc14fb7",
+  "cases": [
+    {
+      "id": "watch_success",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;32m✓\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_failure_exit",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--exit-status"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "failure",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "failure"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": [
+            {
+              "message": "assertion failed\nsecond line",
+              "path": "src/test.mbt",
+              "start_line": 7,
+              "annotation_level": "failure"
+            },
+            {
+              "message": "warning",
+              "path": "src/test.mbt",
+              "start_line": 8,
+              "annotation_level": "warning"
+            }
+          ]
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\u001b[?1049l\u001b[0;31mX\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;31mX\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;31mX\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\r\n\u001b[0;31mX\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'failure'\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_failure_default_exit",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "failure",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "failure"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": [
+            {
+              "message": "assertion failed\nsecond line",
+              "path": "src/test.mbt",
+              "start_line": 7,
+              "annotation_level": "failure"
+            },
+            {
+              "message": "warning",
+              "path": "src/test.mbt",
+              "start_line": 8,
+              "annotation_level": "warning"
+            }
+          ]
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\u001b[?1049l\u001b[0;31mX\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;31mX\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;31mX\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\r\n\u001b[0;31mX\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'failure'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_cancelled_exit",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--exit-status"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "cancelled",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "cancelled",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "cancelled"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\u001b[?1049l\u001b[0;31mX\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;31mX\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;31mX\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;31mX\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'cancelled'\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_compact_failure",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--compact"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "failure",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "failure"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": [
+            {
+              "message": "assertion failed\nsecond line",
+              "path": "src/test.mbt",
+              "start_line": 7,
+              "annotation_level": "failure"
+            },
+            {
+              "message": "warning",
+              "path": "src/test.mbt",
+              "start_line": 8,
+              "annotation_level": "warning"
+            }
+          ]
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;33m*\u001b[0m Test\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\u001b[?1049l\u001b[0;31mX\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;31mX\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;31mX\u001b[0m Test\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\r\n\u001b[0;31mX\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'failure'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_compact_success",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--compact"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;33m*\u001b[0m Test\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_annotations_forbidden",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 403,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "message": "Forbidden"
+          }
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\nrequesting annotations returned 403 Forbidden as the token does not have sufficient permissions. Note that it is not currently possible to create a fine-grained PAT with the `checks:read` permission.\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;32m✓\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\nrequesting annotations returned 403 Forbidden as the token does not have sufficient permissions. Note that it is not currently possible to create a fine-grained PAT with the `checks:read` permission.\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_annotations_missing",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "message": "Forbidden"
+          }
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;32m✓\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_annotations_error",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 422,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": {
+            "message": "Forbidden"
+          }
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[?1049lfailed to get annotations: HTTP 422: Forbidden (http://api.github.localhost/repos/acme/widgets/check-runs/23/annotations)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_no_jobs",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": []
+              }
+            },
+            {
+              "json": {
+                "jobs": []
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_pull_request",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": [
+                    {
+                      "number": 7,
+                      "headRepository": {
+                        "owner": {
+                          "login": "acme"
+                        },
+                        "name": "widgets"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI acme/widgets#7 · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI acme/widgets#7 · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;32m✓\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_already_success",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) has already completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_already_neutral_exit",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--exit-status"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "neutral",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "neutral",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "neutral"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) has already completed with 'neutral'\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_boolean_false",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--exit-status=false",
+        "--compact=0"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "failure",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "failure",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "failure"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": [
+            {
+              "message": "assertion failed\nsecond line",
+              "path": "src/test.mbt",
+              "start_line": 7,
+              "annotation_level": "failure"
+            },
+            {
+              "message": "warning",
+              "path": "src/test.mbt",
+              "start_line": 8,
+              "annotation_level": "warning"
+            }
+          ]
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\u001b[?1049l\u001b[0;31mX\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;31mX\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;31mX\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;1;39mANNOTATIONS\u001b[0m\r\n\u001b[0;31mX\u001b[0m assertion failed\r\nsecond line\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#7\r\n\u001b[0m\r\n\u001b[0;33m!\u001b[0m warning\r\n\u001b[38;5;242mtest / 中文: src/test.mbt#8\r\n\u001b[0m\r\n\r\n\u001b[0;31mX\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'failure'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_negative_interval",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "--interval=-1"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every -1 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;32m✓\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_extra_positional",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "0",
+        "ignored"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+          "sequence": [
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "queued",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "in_progress",
+                "conclusion": null,
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            },
+            {
+              "json": {
+                "id": 51,
+                "workflow_id": 12,
+                "name": "API name differs",
+                "status": "completed",
+                "conclusion": "success",
+                "head_branch": "feature/watch",
+                "head_repository": {
+                  "owner": {
+                    "login": "acme"
+                  },
+                  "name": "widgets"
+                },
+                "event": "workflow_dispatch",
+                "created_at": "2099-01-01T00:00:00Z",
+                "run_started_at": "2099-01-01T00:00:00Z",
+                "jobs_url": "http://api.github.localhost/repos/acme/widgets/actions/runs/51/jobs"
+              }
+            }
+          ]
+        },
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI"
+          }
+        },
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100": {
+          "sequence": [
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "in_progress",
+                    "conclusion": null,
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": null,
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "in_progress",
+                        "conclusion": null
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "json": {
+                "jobs": [
+                  {
+                    "id": 23,
+                    "run_id": 51,
+                    "name": "test / 中文",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2099-01-01T00:00:01Z",
+                    "completed_at": "2099-01-01T00:01:02.125Z",
+                    "steps": [
+                      {
+                        "number": 1,
+                        "name": "Setup",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 2,
+                        "name": "Test",
+                        "status": "completed",
+                        "conclusion": "success"
+                      },
+                      {
+                        "number": 3,
+                        "name": "Skipped",
+                        "status": "completed",
+                        "conclusion": "skipped"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "/graphql": {
+          "method": "POST",
+          "json": {
+            "data": {
+              "repository": {
+                "pullRequests": {
+                  "nodes": []
+                }
+              }
+            }
+          }
+        },
+        "/repos/acme/widgets/check-runs/23/annotations": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "json": []
+        }
+      },
+      "stdout": "\u001b[?1049h\u001b[0;0H\u001b[J\u001b[0;1;39mRefreshing run status every 0 seconds. Press Ctrl+C to quit.\u001b[0m\r\n\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;33m*\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;33m*\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\u001b[?1049l\u001b[0;32m✓\u001b[0m \u001b[0;1;39mfeature/watch\u001b[0m CI · \u001b[0;36m51\u001b[0m\r\nTriggered via workflow_dispatch less than a minute ago\r\n\r\n\u001b[0;1;39mJOBS\u001b[0m\r\n\u001b[0;32m✓\u001b[0m \u001b[0;1;39mtest / 中文\u001b[0m in 1m1.125s (ID \u001b[0;36m23\u001b[0m)\r\n  \u001b[0;32m✓\u001b[0m Setup\r\n  \u001b[0;32m✓\u001b[0m Test\r\n  \u001b[38;5;242m-\u001b[0m Skipped\r\n\r\n\u001b[0;32m✓\u001b[0m Run \u001b[0;1;39mCI\u001b[0m (\u001b[0;36m51\u001b[0m) completed with 'success'\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/graphql",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations",
+        "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+        "/repos/acme/widgets/check-runs/23/annotations"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "raw_body": "{\"query\":\"\\n\\t\\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\\n\\t\\t\\trepository(owner: $owner, name: $repo) {\\n\\t\\t\\t\\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\\n\\t\\t\\t\\t\\tnodes {\\n\\t\\t\\t\\t\\t\\tnumber\\n\\t\\t\\t\\t\\t\\theadRepository {\\n\\t\\t\\t\\t\\t\\t\\towner {\\n\\t\\t\\t\\t\\t\\t\\t\\tlogin\\n\\t\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t\\t\\tname\\n\\t\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\",\"variables\":{\"headRefName\":\"feature/watch\",\"owner\":\"acme\",\"repo\":\"widgets\"}}",
+          "json_body": {
+            "query": "\n\t\tquery PullRequestForRun($owner: String!, $repo: String!, $headRefName: String!) {\n\t\t\trepository(owner: $owner, name: $repo) {\n\t\t\t\tpullRequests(headRefName: $headRefName, first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {\n\t\t\t\t\tnodes {\n\t\t\t\t\t\tnumber\n\t\t\t\t\t\theadRepository {\n\t\t\t\t\t\t\towner {\n\t\t\t\t\t\t\t\tlogin\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tname\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}",
+            "variables": {
+              "headRefName": "feature/watch",
+              "owner": "acme",
+              "repo": "widgets"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/runs/51/jobs?per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/check-runs/23/annotations",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_missing_id",
+      "args": [
+        "run",
+        "watch"
+      ],
+      "routes": {},
+      "stdout": "run ID required when not running interactively\r\n\r\nUsage:  gh run watch <run-id> [flags]\r\n\r\nFlags:\r\n      --compact        Show only relevant/failed steps\r\n      --exit-status    Exit with non-zero status if run fails\r\n  -i, --interval int   Refresh interval in seconds (default 3)\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_unknown_timeout",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "--timeout",
+        "1"
+      ],
+      "routes": {},
+      "stdout": "unknown flag: --timeout\r\n\r\nUsage:  gh run watch <run-id> [flags]\r\n\r\nFlags:\r\n      --compact        Show only relevant/failed steps\r\n      --exit-status    Exit with non-zero status if run fails\r\n  -i, --interval int   Refresh interval in seconds (default 3)\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_invalid_interval",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-i",
+        "oops"
+      ],
+      "routes": {},
+      "stdout": "invalid argument \"oops\" for \"-i, --interval\" flag: strconv.ParseInt: parsing \"oops\": invalid syntax\r\n\r\nUsage:  gh run watch <run-id> [flags]\r\n\r\nFlags:\r\n      --compact        Show only relevant/failed steps\r\n      --exit-status    Exit with non-zero status if run fails\r\n  -i, --interval int   Refresh interval in seconds (default 3)\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_invalid_bool",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "--compact=oops"
+      ],
+      "routes": {},
+      "stdout": "invalid argument \"oops\" for \"--compact\" flag: strconv.ParseBool: parsing \"oops\": invalid syntax\r\n\r\nUsage:  gh run watch <run-id> [flags]\r\n\r\nFlags:\r\n      --compact        Show only relevant/failed steps\r\n      --exit-status    Exit with non-zero status if run fails\r\n  -i, --interval int   Refresh interval in seconds (default 3)\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "watch_unknown_short",
+      "args": [
+        "run",
+        "watch",
+        "51",
+        "-x"
+      ],
+      "routes": {},
+      "stdout": "unknown shorthand flag: 'x' in -x\r\n\r\nUsage:  gh run watch <run-id> [flags]\r\n\r\nFlags:\r\n      --compact        Show only relevant/failed steps\r\n      --exit-status    Exit with non-zero status if run fails\r\n  -i, --interval int   Refresh interval in seconds (default 3)\r\n  \r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "requests": [],
+      "request_messages": [],
+      "files_hex": {},
+      "directories": []
+    }
+  ],
+  "scope": "synthetic loopback; no live GitHub writes"
+}

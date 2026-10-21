@@ -1,0 +1,129 @@
+{
+  "upstream": "https://github.com/cli/cli/tree/v2.102.0/pkg/cmd/attestation",
+  "license": "MIT",
+  "capture": {
+    "schema": 1,
+    "trust_verified": false,
+    "files": [
+      {
+        "url": "https://tuf-repo.github.com/4.root.json",
+        "file": "4.root.json",
+        "sha256": "a9fdd07ba2dfc9cc603e6250ea210356f5a5cf06028f329f527abc055af34fd3",
+        "bytes": 6537
+      },
+      {
+        "url": "https://tuf-repo.github.com/5.root.json",
+        "file": "5.root.json",
+        "sha256": "546470a4aa294c76c75039d87ccca20b9e7e3494bfc89026afcd3b83c2d1541e",
+        "bytes": 7482
+      },
+      {
+        "url": "https://tuf-repo.github.com/6.root.json",
+        "file": "6.root.json",
+        "sha256": "42e225b5eaed55755a637fb5150135d2930ecdf0b291c615fcd54a52a3fd2522",
+        "bytes": 7376
+      },
+      {
+        "url": "https://tuf-repo.github.com/7.root.json",
+        "file": "7.root.json",
+        "sha256": "5f14db09da4f13783f2e25778f0f02685a5b5d3270cfca2763b720acc020db8b",
+        "bytes": 6679
+      },
+      {
+        "url": "https://tuf-repo.github.com/8.root.json",
+        "file": "8.root.json",
+        "sha256": "87a67338159679a4e3f7b5c8cdc302cb364fd5e1d7d37ee2531a1cd8eb782999",
+        "bytes": 6976
+      },
+      {
+        "url": "https://tuf-repo.github.com/9.root.json",
+        "file": "9.root.json",
+        "sha256": "eb303461e0109458144b6ebcbfd62aaa6f6d7481e9ca77504b85f17761661462",
+        "bytes": 6734
+      },
+      {
+        "url": "https://tuf-repo.github.com/timestamp.json",
+        "file": "timestamp.json",
+        "sha256": "ea045659ae9b745a52284761b564a179ab0fed5d195dc8937b55f8a4116289ba",
+        "bytes": 451
+      },
+      {
+        "url": "https://tuf-repo.github.com/81.snapshot.json",
+        "file": "81.snapshot.json",
+        "sha256": "0616b7436c6a0f29e6bbf3b41b065c3b2aaaf88f1f805f99570cdeb222f39038",
+        "bytes": 450
+      },
+      {
+        "url": "https://tuf-repo.github.com/10.targets.json",
+        "file": "10.targets.json",
+        "sha256": "0fa9dec2a92ff98570d611080ae334b6f0db4af42551d957de0fc447a18acc9c",
+        "bytes": 2974
+      },
+      {
+        "url": "https://tuf-repo.github.com/targets/484cdfe1a7c65479c5ba2a22193d1be90f0020db1997de696ab207434c62fbb7.trusted_root.json",
+        "file": "targets__484cdfe1a7c65479c5ba2a22193d1be90f0020db1997de696ab207434c62fbb7.trusted_root.json",
+        "sha256": "484cdfe1a7c65479c5ba2a22193d1be90f0020db1997de696ab207434c62fbb7",
+        "bytes": 31645
+      }
+    ]
+  },
+  "files": [
+    {
+      "file": "bootstrap-root.json",
+      "sha256": "98cba97be9075bc98b2322de3de85fbd1b70ec7392991dfd2f53d215bede1a8d"
+    },
+    {
+      "file": "github-release-bundle.json",
+      "sha256": "c8fb05f1a03f203c58bdc2a70913d5bece78f8fc5a4a09a05294a8798f3cbb8b"
+    },
+    {
+      "file": "github-release-artifact.zip",
+      "sha256": "e15b593c6ab8d7725a3cc82226ef816cac6bf9c70eed383bd459295cc65f5ec3"
+    },
+    {
+      "file": "LICENSE",
+      "sha256": "6da4adc42392c8485e40b4251c7e332fc3352df1947c9ffade71dd60b14a7a4f"
+    },
+    {
+      "file": "4.root.json",
+      "sha256": "a9fdd07ba2dfc9cc603e6250ea210356f5a5cf06028f329f527abc055af34fd3"
+    },
+    {
+      "file": "5.root.json",
+      "sha256": "546470a4aa294c76c75039d87ccca20b9e7e3494bfc89026afcd3b83c2d1541e"
+    },
+    {
+      "file": "6.root.json",
+      "sha256": "42e225b5eaed55755a637fb5150135d2930ecdf0b291c615fcd54a52a3fd2522"
+    },
+    {
+      "file": "7.root.json",
+      "sha256": "5f14db09da4f13783f2e25778f0f02685a5b5d3270cfca2763b720acc020db8b"
+    },
+    {
+      "file": "8.root.json",
+      "sha256": "87a67338159679a4e3f7b5c8cdc302cb364fd5e1d7d37ee2531a1cd8eb782999"
+    },
+    {
+      "file": "9.root.json",
+      "sha256": "eb303461e0109458144b6ebcbfd62aaa6f6d7481e9ca77504b85f17761661462"
+    },
+    {
+      "file": "timestamp.json",
+      "sha256": "ea045659ae9b745a52284761b564a179ab0fed5d195dc8937b55f8a4116289ba"
+    },
+    {
+      "file": "81.snapshot.json",
+      "sha256": "0616b7436c6a0f29e6bbf3b41b065c3b2aaaf88f1f805f99570cdeb222f39038"
+    },
+    {
+      "file": "10.targets.json",
+      "sha256": "0fa9dec2a92ff98570d611080ae334b6f0db4af42551d957de0fc447a18acc9c"
+    },
+    {
+      "file": "targets__484cdfe1a7c65479c5ba2a22193d1be90f0020db1997de696ab207434c62fbb7.trusted_root.json",
+      "sha256": "484cdfe1a7c65479c5ba2a22193d1be90f0020db1997de696ab207434c62fbb7"
+    }
+  ],
+  "note": "Network capture is not trust. Tests verify the complete root rotation and metadata signatures."
+}

@@ -1,0 +1,10 @@
+{
+  "module": "bikallem/compress",
+  "version": "0.3.4",
+  "package": "snappy",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/bikallem/compress",
+  "registry_archive_sha256": "5ff3d353ec33356c22f889c737105c9f4a654067d49bdd52d1866768712bce00",
+  "source_sha256": "9b1bb0d40da70da8cca03e2bc73c3234f5a27ea65c22bf012e5be612b573f648",
+  "reason": "Use the existing raw Snappy decoder with bounded output. The published module uses unsupported legacy metadata; the streaming wrapper allocates from an unbounded length prefix. Local changes reject integer overflow and trailing data and bound allocations before decoding."
+}

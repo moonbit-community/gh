@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": null,
+    "terminal": true,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 14,
+  "completed_cases": 14,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "terminal-object",
+      "input": {
+        "z": [
+          1,
+          2
+        ],
+        "a": true
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "\u001b[1;38m{\u001b[m\r\n  \u001b[1;34m\"a\"\u001b[m\u001b[1;38m:\u001b[m \u001b[33mtrue\u001b[m\u001b[1;38m,\u001b[m\r\n  \u001b[1;34m\"z\"\u001b[m\u001b[1;38m:\u001b[m \u001b[1;38m[\u001b[m\r\n    1\u001b[1;38m,\u001b[m\r\n    2\r\n  \u001b[1;38m]\u001b[m\r\n\u001b[1;38m}\u001b[m\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-json-types",
+      "input": {
+        "empty": null,
+        "f": false,
+        "s": "a\"b\n😀",
+        "n": -1.25,
+        "arr": [
+          null,
+          "s"
+        ]
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "\u001b[1;38m{\u001b[m\r\n  \u001b[1;34m\"arr\"\u001b[m\u001b[1;38m:\u001b[m \u001b[1;38m[\u001b[m\r\n    \u001b[36mnull\u001b[m\u001b[1;38m,\u001b[m\r\n    \u001b[32m\"s\"\u001b[m\r\n  \u001b[1;38m]\u001b[m\u001b[1;38m,\u001b[m\r\n  \u001b[1;34m\"empty\"\u001b[m\u001b[1;38m:\u001b[m \u001b[36mnull\u001b[m\u001b[1;38m,\u001b[m\r\n  \u001b[1;34m\"f\"\u001b[m\u001b[1;38m:\u001b[m \u001b[33mfalse\u001b[m\u001b[1;38m,\u001b[m\r\n  \u001b[1;34m\"n\"\u001b[m\u001b[1;38m:\u001b[m -1.25\u001b[1;38m,\u001b[m\r\n  \u001b[1;34m\"s\"\u001b[m\u001b[1;38m:\u001b[m \u001b[32m\"a\\\"b\\n😀\"\u001b[m\r\n\u001b[1;38m}\u001b[m\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-color-styles",
+      "input": "x",
+      "expression": "{{color \"cyan+bud:blue+h\" .}}|{{color \"202:17\" .}}|{{color \"off\" .}}|{{color \"reset\" .}}|{{color \"unknown\" .}}",
+      "format": "template",
+      "stdout": "\u001b[0;1;2;4;36;104mx\u001b[0m|\u001b[0;38;5;202;48;5;17mx\u001b[0m|x\u001b[0m|\u001b[0mx\u001b[0m|\u001b[0;30mx\u001b[0m",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-scalar-stream",
+      "input": [
+        "中文😀",
+        1.005,
+        null
+      ],
+      "expression": ".[]",
+      "format": "jq",
+      "stdout": "中文😀\r\n1.00\r\n\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-partial-error",
+      "input": [
+        {
+          "x": "ok"
+        },
+        3
+      ],
+      "expression": ".[] | .x",
+      "format": "jq",
+      "stdout": "ok\r\nexpected an object but got: number (3)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-color",
+      "input": "Moon",
+      "expression": "{{color \"red+b\" .}}",
+      "format": "template",
+      "stdout": "\u001b[0;1;31mMoon\u001b[0m",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-autocolor",
+      "input": "Moon",
+      "expression": "{{autocolor \"red\" .}}",
+      "format": "template",
+      "stdout": "\u001b[0;31mMoon\u001b[0m",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-hyperlink",
+      "input": "Moon",
+      "expression": "{{hyperlink \"https://example.com/\" .}}",
+      "format": "template",
+      "stdout": "\u001b]8;;https://example.com/\u001b\\Moon\u001b]8;;\u001b\\",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-narrow-table",
+      "input": [
+        [
+          "one-very-long-value-in-first-column",
+          "another-long-value-in-second-column"
+        ],
+        [
+          "short",
+          "tail"
+        ]
+      ],
+      "expression": "{{range .}}{{tablerow (index . 0) (index . 1)}}{{end}}",
+      "format": "template",
+      "stdout": "one-very-long-va...  another-long-val...\r\nshort                tail\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-three-columns",
+      "input": [
+        [
+          "name",
+          "012345678901234567890123456789",
+          "end"
+        ],
+        [
+          "中文测试",
+          "abc",
+          "last"
+        ]
+      ],
+      "expression": "{{range .}}{{tablerow (index . 0) (index . 1) (index . 2)}}{{end}}",
+      "format": "template",
+      "stdout": "name      012345678901234567890...  end\r\n中文测试  abc                       last\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-uneven-rows",
+      "input": {},
+      "expression": "{{tablerow \"a\" \"b\"}}{{tablerow \"long\"}}{{tablerender}}",
+      "format": "template",
+      "stdout": "a     b\r\nlong\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-untrusted-escape",
+      "input": "a\u001b[31mb\u001b[0m",
+      "expression": ".",
+      "format": "jq",
+      "stdout": "a^[[31mb^[[0m\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-template-escape",
+      "input": "a\u001b[31mb\u001b[0m",
+      "expression": "{{.}}",
+      "format": "template",
+      "stdout": "a^[[31mb^[[0m",
+      "stderr": "",
+      "exit_code": 0,
+      "status": "recorded"
+    },
+    {
+      "id": "terminal-error-location",
+      "input": [],
+      "expression": "ok\n{{printf \"%s\" (index . 1)}}",
+      "format": "template",
+      "stdout": "ok\r\ntemplate: :2:15: executing \"\" at <index . 1>: error calling index: index out of range: 1\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "status": "recorded"
+    }
+  ]
+}

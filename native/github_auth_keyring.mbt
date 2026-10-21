@@ -137,9 +137,14 @@ async fn keyring_capture(reader : &@io.Reader, capture : Bool) -> Bytes {
 }
 
 ///|
+// The process result is inspected as data before credential storage changes.
+#warnings("-result_error_return")
 async fn keyring_run(
   request : KeyringRequest,
 ) -> Result[NativeProcessResult, ProcessAdapterError] {
+  guard acceptance_process_allowed(request.program, request.args) else {
+    return Err(InvalidCommand)
+  }
   guard !request.program.is_empty() &&
     !request.program.iter().any(ch => ch.to_int() < 32 || ch.to_int() == 127) else {
     return Err(InvalidCommand)
@@ -203,6 +208,7 @@ async fn keyring_run(
 ///|
 // Browser and clipboard adapters need the same bounded, secret-free process
 // environment. A private wrapper shares it without exposing keyring details.
+#warnings("-result_error_return")
 async fn auth_host_process(
   program : String,
   args : Array[String],

@@ -1,0 +1,106 @@
+///|
+/// Exercise the actual command as a streaming subprocess. The cancellation
+/// write is issued only after a visible progress frame, through the same exact
+/// run permit as normal cleanup. Its policy cannot race with the watch reader:
+/// the reader receives an immutable policy with no mutation permits.
+async fn Acceptance::actions_watch(
+  self : Acceptance,
+  directory : String,
+  intent : Json,
+  records : Array[Json],
+) -> Unit {
+  let mode = inventory_string(intent, "mode")
+  let key = "run-" + mode
+  let run = self.ledger.owned(key)
+  let id = run.remote_id.unwrap()
+  let repository = self.ledger.owned("repository").locator[7:].to_owned()
+  let value = self.actions_wait(key, intent, false, records)
+  guard value is { "status": String("in_progress"), .. } else {
+    fail("run completed before progress observer attached")
+  }
+  self.verify_binary()
+  self.persist([])
+  let policy = directory + "/watch-" + mode + "-read-policy.json"
+  @fs.write_file(
+    policy,
+    @fs.read_file(self.policy_path).binary(),
+    permission=0o600,
+    create_mode=CreateNew,
+  )
+  let environment = self.environment()
+  environment["GH_ACCEPTANCE_POLICY"] = policy
+  let trace = directory + "/watch-" + mode + ".trace.jsonl"
+  environment["GH_TRACE_FILE"] = trace
+  let args = ["run", "watch", id, "--exit-status", "-i2", "-R", repository]
+  let started = @env.now()
+  let mut first_progress : UInt64? = None
+  let mut cancellation_issued = false
+  let output = StringBuilder()
+  let mut output_bytes = 0
+  let (exit_code, error) = @async.with_timeout(360000) <| () => {
+    let (input, writer) = @process.write_to_process()
+    writer.close()
+    let (reader, stdout) = @process.read_from_process()
+    defer reader.close()
+    let (errors, stderr) = @process.read_from_process()
+    defer errors.close()
+    @async.with_task_group() <| group => {
+      let child = group.spawn(() => {
+        @process.run(
+          self.binary,
+          args[:],
+          stdin=input,
+          stdout~,
+          stderr~,
+          cwd=self.config,
+          inherit_env=false,
+          extra_env=environment,
+          cancel_handler=@process.hard_cancel(),
+        )
+      })
+      let error_task = group.spawn(() => errors.read_all().text())
+      while reader.read_until("\n") is Some(line) {
+        output_bytes += @utf8.encode(line).length() + 1
+        guard output_bytes <= 4194304 else { fail("watch output limit") }
+        output.write_string(line + "\n")
+        if line.has_prefix("Refreshing run status every ") &&
+          first_progress is None {
+          first_progress = Some(@env.now())
+          if mode == "wait" {
+            cancellation_issued = true
+            self.actions_cancel(key, records)
+          }
+        }
+      }
+      (child.wait(), error_task.wait())
+    }
+  }
+  let expected_code = if mode == "success" { 0 } else { 1 }
+  let passed = first_progress is Some(_) &&
+    exit_code == expected_code &&
+    (mode != "wait" || cancellation_issued)
+  records.push({
+    "id": "run.watch-" + mode,
+    "status": if passed {
+      "pass"
+    } else {
+      "fail"
+    },
+    "resource_id": id,
+    "argv": args,
+    "exit_code": exit_code,
+    "first_progress_after_ms": first_progress.map_or(Json::null(), value => {
+      Json((value - started).to_double())
+    }),
+    "elapsed_ms": (@env.now() - started).to_double(),
+    "cancellation_issued_after_progress": cancellation_issued,
+    "trace": trace,
+    "output_sha256": @crypto.bytes_to_hex_string(
+      @crypto.sha256(@utf8.encode(output.to_string())),
+    ),
+    "reason": acceptance_diagnostic(error, self.token),
+  })
+  guard passed else {
+    fail("run watch command did not satisfy progress and exit-status contract")
+  }
+}

@@ -261,6 +261,9 @@ async fn repository_read_process(reader : @process.ReadFromProcess) -> Bytes {
 
 ///|
 async fn repository_git(args : Array[String]) -> RepositoryGitResult {
+  guard acceptance_process_allowed("git", args) else {
+    return { code: 128, stdout: "", }
+  }
   @async.with_timeout(10000) <| () => {
     let (stdout, child_stdout) = @process.read_from_process()
     defer stdout.close()

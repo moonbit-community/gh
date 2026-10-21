@@ -1,0 +1,16 @@
+import {
+  "ZSeanYves/gh",
+  "ZSeanYves/gh/internal/archive",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/buffer",
+  "moonbitlang/async",
+}
+
+import {
+  "moonbit-community/flate/zip",
+} for "test"
+
+options(
+  supported_targets: "native",
+)

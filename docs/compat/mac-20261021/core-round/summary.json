@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47",
+  "core_parity_verified": false,
+  "profile_verified": false,
+  "four_target_regression": "pass",
+  "controlled_actions_release_cases": 298,
+  "controlled_formatter_cases": 286,
+  "readonly_live_cases": 20,
+  "full_actions_live_final_binary": "incomplete_due_to_transport_timeouts",
+  "workflow_enable_disable_final_binary": "pass",
+  "artifacts": "blocked_account_storage_quota",
+  "cleanup": "build17 and build18 run08 deleted by immutable ID; run09 creation returned no ID and authenticated followup returned 404 twice; no deletion was attempted",
+  "post_build_changes": [
+    "scripts/acceptance_actions.mbtx",
+    "testdata/acceptance-v2.102.0.json",
+    "scripts/register_acceptance_evidence.mbtx"
+  ],
+  "post_build_runner_validation": "shared runner self-test passed after cleanup completion-race reconciliation change",
+  "hosted_ci": "see GitHub commit checks; not claimed by these local reports",
+  "reports": [
+    {
+      "file": "native-build.json",
+      "sha256": "6feb0594414d01356a39c780f1796a894bebf20a74c1e6d053b23db2e2bfe84f"
+    },
+    {
+      "file": "four-targets.json",
+      "sha256": "676defc8d4c008ddf5127df4027847ff153c2954186ce4fedbd65b5b6392ef24"
+    },
+    {
+      "file": "offline-gates.json",
+      "sha256": "839e4f0041d06b912937940d4becbdee9dee77ecb158d63d3fea440b2c0108af"
+    },
+    {
+      "file": "actions-release-differential.json",
+      "sha256": "5889471eb1c47c46c913d553ff42070df4e86f1f48c57c1f05bcbd179277ab43"
+    },
+    {
+      "file": "formatter-differential.json",
+      "sha256": "f0e9f44ad166967677f7e9a28b6a3918b4131cfeb118135324b66c5164f6fe3a"
+    },
+    {
+      "file": "live-read.json",
+      "sha256": "a3fa9a73b4063a440291e2ac16bd9a13ed9c8a541553dad27576c39a97060c82"
+    },
+    {
+      "file": "actions-live-build17.json",
+      "sha256": "28239161ba7bc789205db41b2406f5c21cb7fb509064a0f9b5d14d289f37f202"
+    },
+    {
+      "file": "actions-live-build18-timeout.json",
+      "sha256": "367a1a49b23ad9617cb725f318582552bba1aed36e656f5a283914240b7e9cad"
+    },
+    {
+      "file": "repository-create-timeout.json",
+      "sha256": "dd8ac25da7b17191e2348216f84ee24e8eb6cacf9e33eb8d8ecb96b07b0b831e"
+    },
+    {
+      "file": "repository-create-absence.json",
+      "sha256": "4bd33aa886b359e4e74314970000f3f0904b0b9828dbb5d27f33f9000886084e"
+    },
+    {
+      "file": "credential-scan.json",
+      "sha256": "7797a7a8a28bce5a00f924f66227f96fc80aebc2699f7ccaa1f71f6b19e4f227"
+    }
+  ]
+}

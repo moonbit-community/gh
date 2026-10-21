@@ -162,7 +162,9 @@ fn required_value(
 ) -> (String, Int32) raise ParseError {
   guard index + 1 < args.length() else { raise MissingValue(option) }
   let value = args[index + 1]
-  guard !value.is_empty() else { raise MissingValue(option) }
+  guard !value.is_empty() || option is ("--jq" | "-q" | "--template" | "-t") else {
+    raise MissingValue(option)
+  }
   (value, index + 1)
 }
 
@@ -174,7 +176,8 @@ fn option_value(
   attached : String?,
 ) -> (String, Int32) raise ParseError {
   match attached {
-    Some(value) if !value.is_empty() => (value, index)
+    Some(value) if !value.is_empty() ||
+      option is ("--jq" | "-q" | "--template" | "-t") => (value, index)
     Some(_) => raise MissingValue(option)
     None => required_value(args, index, option)
   }

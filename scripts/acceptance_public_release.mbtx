@@ -1,0 +1,336 @@
+///|
+/// Read-only public-release acceptance. All candidate mutations are disabled
+/// by the common scope gate. The oracle receives only a fixed verification
+/// command after its pinned checksum is checked.
+async fn run_public_release_proof(
+  credential_path : String,
+  report_directory : String,
+  downloads_only~ : Bool = false,
+) -> Unit {
+  guard !@fs.exists(report_directory) else { fail("report directory exists") }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let oracle = root +
+    "/_build/acceptance-20261020/oracle/gh_2.102.0_macOS_arm64/bin/gh"
+  let oracle_hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(oracle).binary()),
+  )
+  guard oracle_hash ==
+    "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6" else {
+    fail("oracle hash differs")
+  }
+  @fs.mkdir(report_directory, permission=0o700)
+  let directory = @fs.realpath(report_directory)
+  let isolated = @fs.tmpdir(prefix="gh-public-release-")
+  defer (if @fs.exists(isolated) { @fs.rmdir(isolated, recursive=true) })
+  let preflight : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: isolated,
+    ledger_path: directory + "/ledger.json",
+    policy_path: isolated + "/policy.json",
+    token: "synthetic-preflight",
+    ledger: Ledger::new("public-release-readonly", "unused"),
+    verified_binary: Ref(None),
+  }
+  preflight.verify_binary()
+  let build_evidence = acceptance_build_evidence(
+    preflight.verified_binary.val.unwrap(),
+  )
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("missing test credential")
+  }
+  let acceptance = { ..preflight, token, }
+  let records : Array[Json] = []
+  let mut status = "fail"
+  defer @async.protect_from_cancel(() => {
+    let cleaned = try {
+      @fs.rmdir(isolated, recursive=true)
+      true
+    } catch {
+      _ => false
+    }
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "public-release-verification",
+        "repository": "cli/cli",
+        "tag": "v2.102.0",
+        "binary_sha256": acceptance.verified_binary.val.unwrap(),
+        "source_build": build_evidence,
+        "oracle_sha256": oracle_hash,
+        "status": status,
+        "core_parity_verified": false,
+        "remote_mutations": 0,
+        "expected_cases": if downloads_only {
+          2
+        } else {
+          5
+        },
+        "completed_cases": records.length(),
+        "cleanup": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      permission=0o600,
+    )
+  })
+  let (code, viewer) = acceptance.api("GET", "/user")
+  guard code == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+    fail("unexpected credential account")
+  }
+  let oracle_home = isolated + "/oracle"
+  @fs.mkdir(oracle_home, permission=0o700)
+  let environment = acceptance.environment()
+  environment["HOME"] = oracle_home
+  environment["GH_CONFIG_DIR"] = oracle_home
+  environment["XDG_CACHE_HOME"] = oracle_home
+  if !downloads_only {
+    let command = [
+      "release", "verify", "v2.102.0", "-R", "cli/cli", "--format", "json",
+    ]
+    let (code, output, error) = acceptance.invoke(command)
+    let reference = @shell.Cmd(
+      oracle,
+      command,
+      cwd=oracle_home,
+      inherit_env=false,
+      env=environment,
+    ).output(timeout_ms=120000, max_output_bytes=4194304)
+    let expected_out = reference
+      .stdout()
+      .replace_all(old=token, new="<redacted>")
+    let expected_err = acceptance_diagnostic(reference.stderr(), token)
+    @fs.write_file(directory + "/candidate.stdout", output, permission=0o600)
+    @fs.write_file(directory + "/candidate.stderr", error, permission=0o600)
+    @fs.write_file(directory + "/oracle.stdout", expected_out, permission=0o600)
+    @fs.write_file(directory + "/oracle.stderr", expected_err, permission=0o600)
+    let positive = code == 0 && reference.exit_code() == 0
+    let matches = positive &&
+      (try @json.parse(output) == @json.parse(expected_out) catch {
+        _ => false
+      })
+    status = if matches {
+      "pass"
+    } else if reference.exit_code() != 0 {
+      "blocked"
+    } else {
+      "fail"
+    }
+    records.push({
+      "id": "release.verify.public-proof",
+      "status": status,
+      "candidate_exit": code,
+      "oracle_exit": reference.exit_code(),
+      "verified_positive": positive,
+      "json_equal": matches,
+      "reason": if status == "blocked" {
+        "public_positive_case_unavailable; inspect oracle.stderr"
+      } else {
+        ""
+      },
+    })
+  }
+  let name = "gh_2.102.0_checksums.txt"
+  let candidate_directory = isolated + "/candidate-assets"
+  let oracle_directory = oracle_home + "/assets"
+  @fs.mkdir(candidate_directory, permission=0o700)
+  @fs.mkdir(oracle_directory, permission=0o700)
+  let (download_code, _, download_error) = acceptance.invoke([
+    "release", "download", "v2.102.0", "-R", "cli/cli", "--pattern", name, "--dir",
+    candidate_directory,
+  ])
+  let download_reference = @shell.Cmd(
+    oracle,
+    [
+      "release", "download", "v2.102.0", "-R", "cli/cli", "--pattern", name, "--dir",
+      oracle_directory,
+    ],
+    cwd=oracle_home,
+    inherit_env=false,
+    env=environment,
+  ).output(timeout_ms=120000, max_output_bytes=4194304)
+  let downloaded = download_code == 0 &&
+    download_reference.exit_code() == 0 &&
+    @fs.exists(candidate_directory + "/" + name) &&
+    @fs.exists(oracle_directory + "/" + name)
+  let same_bytes = downloaded &&
+    @fs.read_file(candidate_directory + "/" + name).binary() ==
+    @fs.read_file(oracle_directory + "/" + name).binary()
+  @fs.write_file(
+    directory + "/download-candidate.stderr",
+    download_error,
+    permission=0o600,
+  )
+  @fs.write_file(
+    directory + "/download-oracle.stderr",
+    acceptance_diagnostic(download_reference.stderr(), token),
+    permission=0o600,
+  )
+  records.push({
+    "id": "release.download.public-asset",
+    "status": if same_bytes {
+      "pass"
+    } else if download_reference.exit_code() != 0 {
+      "blocked"
+    } else {
+      "fail"
+    },
+    "candidate_exit": download_code,
+    "oracle_exit": download_reference.exit_code(),
+    "bytes_equal": same_bytes,
+    "asset_sha256": if downloaded {
+      @crypto.bytes_to_hex_string(
+        @crypto.sha256(@fs.read_file(candidate_directory + "/" + name).binary()),
+      )
+    } else {
+      ""
+    },
+  })
+  if same_bytes && !downloads_only {
+    for tamper in [false, true] {
+      if tamper {
+        let original = @fs.read_file(candidate_directory + "/" + name).binary()
+        @fs.write_file(
+          candidate_directory + "/" + name,
+          original + b"\ntampered-acceptance-input\n",
+        )
+      }
+      let asset_command = [
+        "release",
+        "verify-asset",
+        "v2.102.0",
+        candidate_directory + "/" + name,
+        "-R",
+        "cli/cli",
+        "--format",
+        "json",
+      ]
+      let (code, output, error) = acceptance.invoke(asset_command)
+      let reference = @shell.Cmd(
+        oracle,
+        asset_command,
+        cwd=oracle_home,
+        inherit_env=false,
+        env=environment,
+      ).output(timeout_ms=120000, max_output_bytes=4194304)
+      let expected_error = acceptance_diagnostic(reference.stderr(), token)
+      let expected_rejection = "attestation for v2.102.0 does not contain subject sha256:" +
+        @crypto.bytes_to_hex_string(
+          @crypto.sha256(
+            @fs.read_file(candidate_directory + "/" + name).binary(),
+          ),
+        ) +
+        "\n"
+      let same = code == (if tamper { 1 } else { 0 }) &&
+        code == reference.exit_code() &&
+        error == expected_error &&
+        (!tamper || expected_error == expected_rejection) &&
+        (if tamper {
+          output == reference.stdout()
+        } else {
+          try @json.parse(output) == @json.parse(reference.stdout()) catch {
+            _ => false
+          }
+        })
+      let label = if tamper { "tampered" } else { "valid" }
+      @fs.write_file(
+        directory + "/asset-" + label + "-candidate.stderr",
+        error,
+        permission=0o600,
+      )
+      @fs.write_file(
+        directory + "/asset-" + label + "-oracle.stderr",
+        expected_error,
+        permission=0o600,
+      )
+      records.push({
+        "id": "release.verify-asset.public-" + label,
+        "status": if same {
+          "pass"
+        } else if (tamper && expected_error != expected_rejection) ||
+          (!tamper && reference.exit_code() != 0) {
+          "blocked"
+        } else {
+          "fail"
+        },
+        "candidate_exit": code,
+        "oracle_exit": reference.exit_code(),
+        "output_equal": same,
+      })
+    }
+  } else if !downloads_only {
+    for label in ["valid", "tampered"] {
+      records.push({
+        "id": "release.verify-asset.public-" + label,
+        "status": "blocked",
+        "reason": "public_asset_download_not_verified",
+      })
+    }
+  }
+  let archive_args = [
+    "release", "download", "v2.102.0", "-R", "cli/cli", "--archive", "zip", "--output",
+  ]
+  let (archive_code, _, archive_error) = acceptance.invoke(
+    archive_args + [candidate_directory + "/source.zip"],
+  )
+  let archive_reference = @shell.Cmd(
+    oracle,
+    archive_args + [oracle_directory + "/source.zip"],
+    cwd=oracle_home,
+    inherit_env=false,
+    env=environment,
+  ).output(timeout_ms=120000, max_output_bytes=4194304)
+  let archive_downloaded = archive_code == 0 &&
+    archive_reference.exit_code() == 0 &&
+    @fs.exists(candidate_directory + "/source.zip") &&
+    @fs.exists(oracle_directory + "/source.zip")
+  let archive_equal = archive_downloaded &&
+    @fs.read_file(candidate_directory + "/source.zip").binary() ==
+    @fs.read_file(oracle_directory + "/source.zip").binary()
+  @fs.write_file(
+    directory + "/archive-candidate.stderr",
+    archive_error,
+    permission=0o600,
+  )
+  @fs.write_file(
+    directory + "/archive-oracle.stderr",
+    acceptance_diagnostic(archive_reference.stderr(), token),
+    permission=0o600,
+  )
+  records.push({
+    "id": "release.download.public-source-archive",
+    "status": if archive_equal {
+      "pass"
+    } else if archive_reference.exit_code() != 0 {
+      "blocked"
+    } else {
+      "fail"
+    },
+    "candidate_exit": archive_code,
+    "oracle_exit": archive_reference.exit_code(),
+    "bytes_equal": archive_equal,
+    "archive_sha256": if archive_downloaded {
+      @crypto.bytes_to_hex_string(
+        @crypto.sha256(
+          @fs.read_file(candidate_directory + "/source.zip").binary(),
+        ),
+      )
+    } else {
+      ""
+    },
+  })
+  status = if records.any(record => record is { "status": String("fail"), .. }) {
+    "fail"
+  } else if records.length() != (if downloads_only { 2 } else { 5 }) ||
+    records.any(record => record is { "status": String("blocked"), .. }) {
+    "blocked"
+  } else {
+    "pass"
+  }
+  println("public Release proof: " + status + "; no remote resources created")
+}

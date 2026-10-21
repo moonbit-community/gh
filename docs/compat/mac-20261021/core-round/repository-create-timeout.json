@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "family": "private-repository-lifecycle",
+  "actions_requested": true,
+  "storage_independent": true,
+  "actions_profile_verified": false,
+  "run_id": "d01852a5a33a736a441c2624",
+  "repository": "ZSeanYves/gh-acceptance-d01852a5a33a736a441c2624-repository",
+  "source_build": {
+    "schema": 1,
+    "family": "native-acceptance-build",
+    "source_base": "c1b8712ab01fa9debd5d8d4bdba643371bb5bd15",
+    "source_files_sha256": "e1ac39dc988103a6b22f2b24b2d0054b983d1e442e7a3563fabd051b238107bc",
+    "source_unchanged": true,
+    "toolchain": "moon 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moon\nmoonc v0.10.16+b1a0e846e (2026-10-16) ~/.moon/bin/moonc\nmoonrun 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+    "dependencies_sha256": "f2ae545ec274b7abae73567e759228d4a04f214f9f163fa1bbeaba90a45a5856",
+    "selection": [],
+    "status": "pass",
+    "core_parity_verified": false,
+    "cases": [
+      {
+        "id": "native-check",
+        "argv": [
+          "check",
+          "--target",
+          "native",
+          "--frozen",
+          "--deny-warn"
+        ],
+        "exit_code": 0,
+        "status": "pass"
+      },
+      {
+        "id": "native-build",
+        "argv": [
+          "build",
+          "--target",
+          "native",
+          "--release",
+          "--frozen",
+          "--deny-warn",
+          "cmd/main"
+        ],
+        "exit_code": 0,
+        "status": "pass"
+      }
+    ],
+    "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47"
+  },
+  "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47",
+  "status": "fail",
+  "cleanup": "blocked",
+  "core_parity_verified": false,
+  "cases": [
+    {
+      "id": "repository.lifecycle",
+      "status": "fail",
+      "reason": "Failure(runner.mbtx:2080:5-2080:59@moon/test/single FAILED: API response missing status headers: gh: transport\n)"
+    },
+    {
+      "id": "repository.cleanup",
+      "status": "blocked",
+      "reason": "Failure(runner.mbtx:4162:7-4162:73@moon/test/single FAILED: repository creation outcome unknown; no deletion permitted)"
+    }
+  ]
+}

@@ -1,14 +1,15 @@
 ///|
-async fn read_raw_response(
+async fn read_raw_response_stream(
   client : @http.Client,
   verb : @http_types.Method,
   max_response_bytes : Int32,
-) -> @gh.RawHttpResponse {
+  sink : @gh.RawResponseSink,
+) -> @gh.RawDownloadResult {
   let decoder = @http1.ResponseDecoder::new(
     verb,
     limits=response_limits(max_response_bytes),
   )
-  let buffer = @buffer.Buffer()
+  let mut received = 0L
   let line_guard = ResponseLineGuard::new()
   let mut head : @http_types.Response[Unit]? = None
   let mut eof = false
@@ -58,26 +59,45 @@ async fn read_raw_response(
           }
         }
         head = Some(value)
+        let response_head = raw_response_head(value, line_guard.reason_phrase)
+        if !sink.headers(response_head) {
+          return @gh.RawDownloadResult::new(
+            head=response_head,
+            bytes_received=0L,
+            complete=false,
+          )
+        }
         if value.status == 205 &&
           value.headers.get_string("content-length") is None &&
           value.headers.get_string("transfer-encoding") is None {
-          return raw_response_from_head(value, b"")
+          return @gh.RawDownloadResult::new(
+            head=response_head,
+            bytes_received=0L,
+            complete=true,
+          )
         }
       }
       Some(ResponseData(bytes)) => {
         guard head is Some(_) else {
           raise @http1.InvalidFraming("data before final response")
         }
-        guard bytes.length() <= max_response_bytes - buffer.length() else {
+        guard bytes.length().to_int64() <=
+          max_response_bytes.to_int64() - received else {
           raise ResponseTooLarge
         }
-        buffer.write_bytes(bytes)
+        sink.chunk(bytes)
+        received += bytes.length().to_int64()
       }
       // Trailer fields are not promoted into response headers.
       Some(ResponseTrailers(_)) => ()
       Some(ResponseEnd) =>
         match head {
-          Some(value) => return raw_response_from_head(value, buffer.to_bytes())
+          Some(value) =>
+            return @gh.RawDownloadResult::new(
+              head=raw_response_head(value, line_guard.reason_phrase),
+              bytes_received=received,
+              complete=true,
+            )
           None => ()
         }
       None => {
@@ -103,10 +123,10 @@ async fn read_raw_response(
 }
 
 ///|
-fn raw_response_from_head(
+fn raw_response_head(
   head : @http_types.Response[Unit],
-  body : Bytes,
-) -> @gh.RawHttpResponse {
+  reason_phrase : String?,
+) -> @gh.RawResponseHead {
   let headers = head.headers
     .fields()
     .map(field => {
@@ -123,5 +143,5 @@ fn raw_response_from_head(
       }
       (field.name.value, value)
     })
-  @gh.RawHttpResponse::new(status=head.status, headers~, body~)
+  @gh.RawResponseHead::new(status=head.status, headers~, reason_phrase?)
 }

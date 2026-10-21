@@ -1,0 +1,145 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/github/operations"
+
+import {
+  "ZSeanYves/gh/github",
+}
+
+// Values
+pub async fn delete_workflow_cache(@github.Client, String, String, by_id~ : Bool, ref_name? : String) -> Result[Int32, @github.GitHubError]
+
+pub async fn dispatch_workflow(@github.Client, String, String, String, Json, return_run_details? : Bool) -> Result[WorkflowDispatch, @github.GitHubError]
+
+pub async fn get_workflow_job(@github.Client, String, String) -> Result[WorkflowJob, @github.GitHubError]
+
+pub async fn get_workflow_run(@github.Client, String, String, attempt? : String) -> Result[WorkflowRun, @github.GitHubError]
+
+pub async fn list_artifacts(@github.Client, String, run_id? : String, max_pages? : Int32) -> Result[Array[Artifact], @github.GitHubError]
+
+pub async fn list_release_attestations(@github.Client, String, String) -> Result[Array[ReleaseAttestation], @github.GitHubError]
+
+pub async fn list_workflow_jobs(@github.Client, String, String, attempt? : String, max_pages? : Int32) -> Result[Array[WorkflowJob], @github.GitHubError]
+
+pub async fn list_workflows(@github.Client, String, limit? : Int32) -> Result[Array[Workflow], @github.GitHubError]
+
+pub fn plan_run_logs(Array[WorkflowJob], Array[String], only_failed? : Bool) -> Result[Array[RunLogSegment], String]
+
+pub async fn release_download_metadata(@github.Client, String, String?) -> Result[ReleaseDownloadMetadata, @github.GitHubError]
+
+pub async fn release_ref_digest(@github.Client, String, String) -> Result[String, @github.GitHubError]
+
+pub async fn release_trust_domain(@github.Client) -> Result[String, @github.GitHubError]
+
+pub async fn rerun_workflow_job(@github.Client, String, String, debug_logging? : Bool) -> Result[Unit, @github.GitHubError]
+
+pub async fn rerun_workflow_run(@github.Client, String, String, only_failed? : Bool, debug_logging? : Bool) -> Result[Unit, @github.GitHubError]
+
+pub async fn resolve_workflow(@github.Client, String, String, include_disabled? : Bool, states? : Array[String]) -> Result[Workflow, @github.GitHubError]
+
+pub async fn set_workflow_enabled(@github.Client, String, String, Bool) -> Result[Unit, @github.GitHubError]
+
+pub async fn workflow_annotations(@github.Client, String, WorkflowJob) -> Result[Array[WorkflowAnnotation]?, @github.GitHubError]
+
+pub async fn workflow_cache_ids(@github.Client, String, ref_name? : String) -> Result[Array[String], @github.GitHubError]
+
+pub async fn workflow_default_branch(@github.Client, String) -> Result[String, @github.GitHubError]
+
+pub fn workflow_failed(String) -> Bool
+
+pub async fn workflow_run_pull_request(@github.Client, String, WorkflowRun) -> Result[String?, @github.GitHubError]
+
+pub fn workflow_selector_is_direct(String) -> Bool
+
+// Errors
+
+// Types and methods
+pub struct Artifact {
+  id : String
+  name : String
+  expired : Bool
+  download_path : String
+}
+pub fn Artifact::download_path(Self) -> String
+pub fn Artifact::expired(Self) -> Bool
+pub fn Artifact::id(Self) -> String
+pub fn Artifact::name(Self) -> String
+
+pub struct ReleaseAttestation {
+  bundle : Json?
+  bundle_url : String
+}
+
+pub struct ReleaseDownloadAsset {
+  name : String
+  path : String
+}
+
+pub struct ReleaseDownloadMetadata {
+  name : String
+  tag : String
+  draft : Bool
+  assets : Array[ReleaseDownloadAsset]
+  zip_url : String
+  tar_url : String
+}
+
+pub struct RunLogSegment {
+  job_id : String
+  job_name : String
+  step_name : String?
+  archive_path : String?
+}
+
+pub struct Workflow {
+  id : String
+  name : String
+  path : String
+  state : String
+}
+
+pub struct WorkflowAnnotation {
+  job_name : String
+  message : String
+  path : String
+  level : String
+  start_line : Int64
+}
+
+pub struct WorkflowDispatch {
+  run_id : String?
+  html_url : String
+}
+
+pub struct WorkflowJob {
+  id : String
+  run_id : String
+  name : String
+  status : String
+  conclusion : String
+  started_at : String
+  completed_at : String
+  steps : Array[WorkflowStep]
+}
+
+pub struct WorkflowRun {
+  id : String
+  status : String
+  conclusion : String
+  started_at : String
+  workflow_name : String
+  head_branch : String
+  head_repository : String
+  event : String
+  jobs_url : String
+}
+
+pub struct WorkflowStep {
+  name : String
+  number : Int32
+  status : String
+  conclusion : String
+}
+
+// Type aliases
+
+// Traits

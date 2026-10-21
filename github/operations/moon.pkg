@@ -1,0 +1,12 @@
+import {
+  "ZSeanYves/gh/github",
+  "ZSeanYves/gh/internal/bounded_json",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/percent",
+}
+
+import {
+  "moonbitlang/async",
+} for "test"

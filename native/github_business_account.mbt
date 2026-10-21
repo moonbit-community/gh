@@ -20,6 +20,19 @@ fn business_account_short_option(
     ("project", "edit", "-d") => Some(("description", true))
     ("status", _, "-e") => Some(("exclude", true))
     ("status", _, "-o") => Some(("org", true))
+    ("repo", "deploy-key", "-t") => Some(("title", true))
+    ("repo", "deploy-key", "-w") => Some(("allow_write", false))
+    ("pr", "revert", "-t") => Some(("title", true))
+    ("pr", "revert", "-b") => Some(("body", true))
+    ("pr", "revert", "-F") => Some(("body_file", true))
+    ("pr", "revert", "-d") => Some(("draft", false))
+    ("issue", "develop", "-l") => Some(("list", false))
+    ("issue", "develop", "-n") => Some(("name", true))
+    ("issue", "develop", "-b") => Some(("base", true))
+    ("pr", "checks", "-i") => Some(("interval", true))
+    ("pr", "checks", "-w") => Some(("web", false))
+    ("run", "view", "-j") => Some(("job", true))
+    ("run", "view", "-a") => Some(("attempt", true))
     _ => None
   }
 }
@@ -59,6 +72,8 @@ async fn account_request(
   path : String,
   body? : Json,
   query~ : Array[(String, String)] = [],
+  operation~ : String = "account",
+  http_error_url? : String,
 ) -> Result[Json, @github_cli.Output] {
   let request = @github.Request::new(
     verb~,
@@ -69,14 +84,14 @@ async fn account_request(
   let result = if path == "/graphql" {
     client.graphql_raw(
       request,
-      operation_id="account",
-      operation_name="account.graphql",
+      operation_id=operation,
+      operation_name=operation + ".graphql",
     )
   } else {
     client.request(
       request,
-      operation_id="account",
-      operation_name="account.request",
+      operation_id=operation,
+      operation_name=operation + ".request",
     )
   }
   let response = match result {
@@ -88,8 +103,29 @@ async fn account_request(
       }
   }
   if response.status() < 200 || response.status() >= 300 {
+    // Raw API output and a business command's diagnostic are distinct
+    // contracts. Opt-in commands keep structured HTTP failures off stdout.
+    if http_error_url is Some(url) {
+      let body = @json.parse(@utf8.decode(response.body())) catch {
+        _ => Json::null()
+      }
+      if graphql_object_field(body, "message") is Some(String(message)) {
+        return Err(
+          @github_cli.Output::new(
+            stderr="HTTP " +
+              response.status().to_string() +
+              ": " +
+              message +
+              " (" +
+              url +
+              ")\n",
+            exit_code=1,
+          ),
+        )
+      }
+    }
     return Err(
-      @github_cli.render_response(
+      render_github_response(
         response.status(),
         response.headers(),
         response.body(),
@@ -136,7 +172,7 @@ fn account_render(parsed : ParsedBusiness, value : Json) -> @github_cli.Output {
       }
     None => bytes
   }
-  @github_cli.render_response(
+  render_github_response(
     200,
     [],
     bytes,

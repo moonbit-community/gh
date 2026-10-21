@@ -1,0 +1,338 @@
+[
+  {
+    "id": "cache_id",
+    "args": [
+      "cache",
+      "delete",
+      "12"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 204
+      }
+    }
+  },
+  {
+    "id": "cache_id_normalized",
+    "args": [
+      "cache",
+      "delete",
+      "+00012"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 204
+      }
+    }
+  },
+  {
+    "id": "cache_key",
+    "args": [
+      "cache",
+      "delete",
+      "deps/main"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?key=deps%2Fmain": {
+        "method": "DELETE",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "total_count": 2,
+          "actions_caches": [
+            {
+              "id": 12
+            },
+            {
+              "id": 13
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_encoded_key_ref",
+    "args": [
+      "cache",
+      "delete",
+      "two words/缓存",
+      "--ref",
+      "refs/heads/feature+name"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?key=two+words%2F%E7%BC%93%E5%AD%98&ref=refs%2Fheads%2Ffeature%2Bname": {
+        "method": "DELETE",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "total_count": 2,
+          "actions_caches": [
+            {
+              "id": 12
+            },
+            {
+              "id": 13
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_large_numeric_key",
+    "args": [
+      "cache",
+      "delete",
+      "9223372036854775808"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?key=9223372036854775808": {
+        "method": "DELETE",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "total_count": 2,
+          "actions_caches": [
+            {
+              "id": 12
+            },
+            {
+              "id": 13
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_id_not_found",
+    "args": [
+      "cache",
+      "delete",
+      "12"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "message": "cache permission denied"
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_key_ref_not_found",
+    "args": [
+      "cache",
+      "delete",
+      "missing",
+      "-r",
+      "refs/heads/main"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?key=missing&ref=refs%2Fheads%2Fmain": {
+        "method": "DELETE",
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "message": "cache permission denied"
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_forbidden",
+    "args": [
+      "cache",
+      "delete",
+      "12"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 403,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "message": "cache permission denied"
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_false_all",
+    "args": [
+      "cache",
+      "delete",
+      "12",
+      "--all=false"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 204
+      }
+    }
+  },
+  {
+    "id": "cache_missing",
+    "args": [
+      "cache",
+      "delete"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_conflict",
+    "args": [
+      "cache",
+      "delete",
+      "12",
+      "--all"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_id_ref",
+    "args": [
+      "cache",
+      "delete",
+      "12",
+      "--ref",
+      "refs/heads/main"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_ref_without_key",
+    "args": [
+      "cache",
+      "delete",
+      "--ref",
+      "refs/heads/main"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_succeed_without_all",
+    "args": [
+      "cache",
+      "delete",
+      "12",
+      "--succeed-on-no-caches"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_too_many",
+    "args": [
+      "cache",
+      "delete",
+      "12",
+      "13"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_unknown_flag",
+    "args": [
+      "cache",
+      "delete",
+      "12",
+      "--nonesuch"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "cache_all_empty",
+    "args": [
+      "cache",
+      "delete",
+      "--all"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?per_page=100": {
+        "json": {
+          "total_count": 0,
+          "actions_caches": []
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_all_empty_ok",
+    "args": [
+      "cache",
+      "delete",
+      "--all",
+      "--succeed-on-no-caches"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?per_page=100": {
+        "json": {
+          "total_count": 0,
+          "actions_caches": []
+        }
+      }
+    }
+  },
+  {
+    "id": "cache_all_paginated_ref",
+    "args": [
+      "cache",
+      "delete",
+      "--all",
+      "--ref",
+      "refs/heads/main"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?per_page=100&ref=refs%2Fheads%2Fmain": {
+        "json": {
+          "total_count": 2,
+          "actions_caches": [
+            {
+              "id": 12
+            }
+          ]
+        },
+        "headers": {
+          "Link": "<http://api.github.localhost/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain>; rel=\"next\""
+        }
+      },
+      "/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain": {
+        "json": {
+          "total_count": 2,
+          "actions_caches": [
+            {
+              "id": 13
+            }
+          ]
+        }
+      },
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 204
+      },
+      "/repos/acme/widgets/actions/caches/13": {
+        "method": "DELETE",
+        "status": 204
+      }
+    }
+  }
+]

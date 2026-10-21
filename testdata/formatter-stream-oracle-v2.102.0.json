@@ -1,0 +1,270 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": "1",
+    "terminal": false,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 22,
+  "completed_cases": 22,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "stream-array-catch",
+      "input": null,
+      "expression": "[try (1,error(\"late\")) catch .]",
+      "format": "jq",
+      "stdout": "[1,\"late\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-array-optional",
+      "input": null,
+      "expression": "[(1,error(\"late\"))?]",
+      "format": "jq",
+      "stdout": "[1]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-first-error",
+      "input": null,
+      "expression": "first(1,error(\"unreached\"))",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-limit-error",
+      "input": null,
+      "expression": "limit(1;1,error(\"unreached\"))",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-limit-zero",
+      "input": null,
+      "expression": "limit(0;error(\"unreached\"))",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-repeat-limit",
+      "input": 3,
+      "expression": "[limit(4;repeat(.,.+1))]",
+      "format": "jq",
+      "stdout": "[3,4,3,4]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-select-error",
+      "input": 7,
+      "expression": "select(true,error(\"late\"))",
+      "format": "jq",
+      "stdout": "7\n",
+      "stderr": "error: late\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-operator-error",
+      "input": null,
+      "expression": "(1,error(\"late\")) + 2",
+      "format": "jq",
+      "stdout": "3\n",
+      "stderr": "error: late\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-alternative-error",
+      "input": null,
+      "expression": "(1,error(\"late\")) // 2",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "error: late\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-object-error",
+      "input": null,
+      "expression": "{a:(1,error(\"late\"))}",
+      "format": "jq",
+      "stdout": "{\"a\":1}\n",
+      "stderr": "error: late\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-nested-map-catch",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "[try (.[] | if . == 2 then error(\"late\") else . end) catch .]",
+      "format": "jq",
+      "stdout": "[1,\"late\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-path-function-first",
+      "input": {
+        "a": 1,
+        "b": 2
+      },
+      "expression": "def f: .a,.b; path(first(f))",
+      "format": "jq",
+      "stdout": "[\"a\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-recursive-first",
+      "input": 1,
+      "expression": "def forever: .,forever; first(forever)",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-limit-catch-control",
+      "input": null,
+      "expression": "limit(1;try (1,2) catch 3)",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-first-optional-control",
+      "input": null,
+      "expression": "first((1,2)?)",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-empty-limit",
+      "input": null,
+      "expression": "[limit(5;empty)]",
+      "format": "jq",
+      "stdout": "[]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-operator-cartesian",
+      "input": null,
+      "expression": "[(1,2)+(10,20)]",
+      "format": "jq",
+      "stdout": "[11,12,21,22]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-operator-right-error",
+      "input": null,
+      "expression": "(1,2)+(10,error(\"late\"))",
+      "format": "jq",
+      "stdout": "11\n12\n",
+      "stderr": "error: late\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-nested-first-limit",
+      "input": null,
+      "expression": "[limit(2;(first((1,2)),3,4))]",
+      "format": "jq",
+      "stdout": "[1,3]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-try-downstream-error",
+      "input": null,
+      "expression": "try 1 catch \"caught\" | error(\"outside\")",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "error: outside\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-optional-downstream-error",
+      "input": null,
+      "expression": "(1,2)? | if . == 2 then error(\"outside\") else . end",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "error: outside\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "stream-nested-try",
+      "input": null,
+      "expression": "try ((try 1 catch \"inner\") | error(\"outside\")) catch .",
+      "format": "jq",
+      "stdout": "outside\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

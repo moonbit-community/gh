@@ -26,14 +26,16 @@ jobs:
       - name: Install pinned MoonBit toolchain and core
         uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
         with:
-          version: 0.10.15+943464bfa
-          core-version: 0.10.15+943464bfa
+          version: 0.10.16+b1a0e846e
+          core-version: 0.10.16+b1a0e846e
 
       - name: Update registry
         run: moon update
 
       - name: Check formatting including automation
-        run: moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx scripts/live_github_write_fixture.mbtx
+        run: |
+          moon fmt --check
+          moon fmt --check scripts/*.mbtx
 
       - name: Generate public interfaces
         run: moon info
@@ -64,11 +66,14 @@ jobs:
       - name: Install pinned MoonBit toolchain and core
         uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
         with:
-          version: 0.10.15+943464bfa
-          core-version: 0.10.15+943464bfa
+          version: 0.10.16+b1a0e846e
+          core-version: 0.10.16+b1a0e846e
 
       - name: Update registry
         run: moon update
+
+      - name: Resolve dependencies on the clean runner
+        run: moon check --target native --deny-warn
 
       - name: Check Native packages without warnings
         run: moon check --target native --frozen --deny-warn
@@ -79,18 +84,62 @@ jobs:
       - name: Build the GitHub CLI
         run: moon build --target native --frozen --release --deny-warn cmd/main
 
+      - name: Validate the pinned command, flag and JSON field acceptance inventory
+        run: moon run --target native scripts/acceptance_matrix.mbtx -- --check
+
+      - name: Validate the shared live scope guard without credentials or network
+        run: moon run --target native scripts/run_acceptance.mbtx -- core_acceptance --self-test
+
+      - name: Compare formatter pipe and PTY behavior with fixed oracle captures
+        if: runner.os == 'macOS'
+        run: moon run --target native scripts/verify_formatter.mbtx -- _build/native/release/build/ZSeanYves/gh/cmd/main/main.exe _build/formatter-ci
+
+      - name: Compare Actions downloads, logs and cryptographic Release verification
+        if: runner.os == 'macOS'
+        run: moon run --target native scripts/verify_actions_release.mbtx -- _build/native/release/build/ZSeanYves/gh/cmd/main/main.exe _build/actions-release-ci
+
+      - name: Preserve Actions and Release differential evidence
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: actions-release-${{ matrix.platform }}-${{ github.sha }}
+          path: _build/actions-release-ci
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Preserve formatter differential evidence
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: formatter-${{ matrix.platform }}-${{ github.sha }}
+          path: _build/formatter-ci
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Check the local fixture runner
         run: moon check --target native --deny-warn scripts/live_github_fixture.mbtx
 
       - name: Validate fixture logic without GitHub credentials or network requests
         run: moon run --target native scripts/live_github_fixture.mbtx -- --self-test
 
+      - name: Check the write fixture runner
+        run: moon check --target native --deny-warn scripts/live_github_write_fixture.mbtx
+
+      - name: Validate write fixture logic without GitHub credentials or network requests
+        run: moon run --target native scripts/live_github_write_fixture.mbtx -- --self-test
+
+      - name: Check the command repair fixture runner
+        run: moon check --target native --deny-warn scripts/live_github_repair_fixture.mbtx
+
+      - name: Validate command repair comparisons without credentials or network requests
+        run: moon run --target native scripts/live_github_repair_fixture.mbtx -- --self-test
+
       - name: Preserve the built GitHub CLI
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gh-${{ matrix.platform }}-${{ github.sha }}
-          path: _build/native/release/build/cmd/main/main.exe
+          path: _build/native/release/build/ZSeanYves/gh/cmd/main/main.exe
           if-no-files-found: warn
           retention-days: 14
 
@@ -111,11 +160,14 @@ jobs:
       - name: Install pinned MoonBit toolchain and core
         uses: hustcer/setup-moonbit@87e2bdf5cf20d3b6f5c5f266a8a513f503bb5b76 # v1
         with:
-          version: 0.10.15+943464bfa
-          core-version: 0.10.15+943464bfa
+          version: 0.10.16+b1a0e846e
+          core-version: 0.10.16+b1a0e846e
 
       - name: Update registry
         run: moon update
+
+      - name: Resolve dependencies on the clean runner
+        run: moon check --target ${{ matrix.target }} --deny-warn
 
       - name: Check portable packages without warnings
         run: moon check --target ${{ matrix.target }} --frozen --deny-warn

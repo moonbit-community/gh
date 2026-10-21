@@ -60,8 +60,7 @@ async fn execute_account_status(
     .map(x => x.to_owned())
     .collect() {
     if !entry.is_empty() {
-      guard @github_cli.RepositoryContext::parse(entry)
-        is Ok(context) &&
+      guard @github_cli.RepositoryContext::parse(entry) is Ok(context) &&
         context.host() == "github.com" else {
         return @github_cli.failure(
           message="excluded repository must use OWNER/REPO",

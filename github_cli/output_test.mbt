@@ -11,7 +11,7 @@ test "raw response preserves binary body and separates HTTP error" {
   let bytes = Bytes::from_array([0, 255, 1])
   let output = @github_cli.render_response(404, [], bytes)
   assert_true(Bytes::equal(output.stdout_bytes(), bytes))
-  assert_eq(output.stderr(), "gh: HTTP 404 Not Found\n")
+  assert_eq(output.stderr(), "gh: HTTP 404\n")
   assert_eq(output.exit_code(), 1)
 }
 
@@ -23,7 +23,7 @@ test "HTTP JSON error message is rendered on stderr while body stays raw" {
   let output = @github_cli.render_response(401, [], body)
   assert_eq(output.stdout_bytes(), body)
   assert_eq(output.stderr(), "gh: Bad credentials (HTTP 401)\n")
-  assert_eq(output.exit_code(), 4)
+  assert_eq(output.exit_code(), 1)
 }
 
 ///|
@@ -51,7 +51,7 @@ test "jq arrays nested fields and missing fields" {
   let body = @utf8.encode("[{\"name\":\"one\"},{\"other\":2}]")
   assert_eq(
     @github_cli.render_response(200, [], body, jq=".[].name").stdout(),
-    "one\nnull\n",
+    "one\n\n",
   )
   let object = @utf8.encode("{\"a\":{\"b\":3}}")
   assert_eq(
@@ -76,7 +76,7 @@ test "jq and template reject malformed syntax" {
     template="x{{range .}}",
   )
   assert_eq(template.exit_code(), 1)
-  assert_true(template.stderr().contains("unsupported template"))
+  assert_eq(template.stderr(), "template: :1: unexpected EOF\n")
 }
 
 ///|
@@ -142,7 +142,7 @@ test "template retains literal prefix and suffix" {
 }
 
 ///|
-test "template supports predicates, JSON aliases, and literal formatting" {
+test "template supports predicates and gh Sprig argument order, rejecting unregistered functions" {
   let body = @utf8.encode(
     "{\"state\":\"open\",\"title\":\"Fix issue\",\"labels\":[\"bug\"]}",
   )
@@ -156,15 +156,15 @@ test "template supports predicates, JSON aliases, and literal formatting" {
     "Fix issue",
   )
   assert_eq(
-    @github_cli.render_response(200, [], body, template="{{toJSON}}").stdout(),
-    "{\"state\":\"open\",\"title\":\"Fix issue\",\"labels\":[\"bug\"]}",
+    @github_cli.render_response(200, [], body, template="{{toJSON}}").stderr(),
+    "template: :1: function \"toJSON\" not defined\n",
   )
   assert_eq(
     @github_cli.render_response(
       200,
       [],
       body,
-      template="{{contains .title \"Fix\"}} {{hasPrefix .title \"Fix\"}} {{hasSuffix .title \"issue\"}}",
+      template="{{contains \"Fix\" .title}} {{hasPrefix \"Fix\" .title}} {{hasSuffix \"issue\" .title}}",
     ).stdout(),
     "true true true",
   )
@@ -182,7 +182,7 @@ test "template supports gh color, truncation, hyperlink, and table helpers" {
       body,
       template="{{truncate 5 .title}}|{{hyperlink .url .title}}|{{autocolor \"green\" .state}}|{{tablerow .state .title}}{{tablerender}}",
     ).stdout(),
-    "ab...|abcdefgh|open|open  abcdefgh\n",
+    "ab...|\u001b]8;;https://example.test\u001b\\abcdefgh\u001b]8;;\u001b\\|open|open  abcdefgh\n",
   )
   let colored = @github_cli.render_response(
     200,
@@ -190,8 +190,9 @@ test "template supports gh color, truncation, hyperlink, and table helpers" {
     body,
     template="{{color \"green\" .state}}",
     allow_escape_sequences=true,
+    format_context=@github_cli.FormatContext::new(terminal=true, color=true),
   ).stdout()
-  assert_true(colored.contains("\u{001b}[32mopen\u{001b}[0m"))
+  assert_true(colored.contains("\u{001b}[0;32mopen\u{001b}[0m"))
 }
 
 ///|
@@ -222,7 +223,7 @@ test "jq pipelines and templates cover common gh filters" {
 test "escape sequences are sanitized by default" {
   let body = @utf8.encode("\u{001b}[31mred\u{001b}[0m")
   let output = @github_cli.render_response(200, [], body)
-  assert_eq(output.stdout(), "red")
+  assert_eq(output.stdout(), "^[[31mred^[[0m")
   let escaped = @github_cli.render_response(
     200,
     [],
@@ -256,7 +257,7 @@ test "jq csv escapes commas and quotes" {
   let body = @utf8.encode("[\"one,two\",\"say \\\"hi\\\"\"]")
   assert_eq(
     @github_cli.render_response(200, [], body, jq="@csv").stdout(),
-    "\"one,two\",\"say \"\"hi\"\"\n",
+    "\"one,two\",\"say \"\"hi\"\"\"\n",
   )
 }
 
@@ -302,7 +303,7 @@ test "jq core filters cover optional lookups, range, predicates, and folds" {
       @utf8.encode("{\"ready\":true,\"draft\":false}"),
       jq="select(.ready and .draft == false)",
     ).stdout(),
-    "{\"ready\":true,\"draft\":false}\n",
+    "{\"draft\":false,\"ready\":true}\n",
   )
   assert_eq(
     @github_cli.render_response(200, [], @utf8.encode("null"), jq="length").stdout(),

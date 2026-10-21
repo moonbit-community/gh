@@ -94,6 +94,7 @@ pub fn RawRequest::body(self : RawRequest) -> Bytes? {
 /// as supplied by the transport adapter.  Empty and non-JSON bodies are valid.
 pub struct RawHttpResponse {
   status : Int32
+  reason_phrase : String?
   headers : Array[(String, String)]
   body : Bytes
 }
@@ -103,8 +104,14 @@ pub fn RawHttpResponse::new(
   status~ : Int32,
   headers~ : Array[(String, String)] = [],
   body~ : Bytes = b"",
+  reason_phrase? : String,
 ) -> RawHttpResponse {
-  { status, headers: headers.copy(), body, }
+  { status, reason_phrase, headers: headers.copy(), body, }
+}
+
+///|
+pub fn RawHttpResponse::reason_phrase(self : RawHttpResponse) -> String? {
+  self.reason_phrase
 }
 
 ///|
@@ -144,14 +151,16 @@ pub fn RawHttpResponse::header(
 pub struct RawTransport {
   origin : String
   priv send_request : async (RawRequest) -> RawHttpResponse
+  priv receive_request : (async (RawRequest, RawResponseSink) -> RawDownloadResult)?
 }
 
 ///|
 pub fn RawTransport::new(
   origin~ : String,
   send~ : async (RawRequest) -> RawHttpResponse,
+  receive? : async (RawRequest, RawResponseSink) -> RawDownloadResult,
 ) -> RawTransport {
-  { origin, send_request: send, }
+  { origin, send_request: send, receive_request: receive, }
 }
 
 ///|

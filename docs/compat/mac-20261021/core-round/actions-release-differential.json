@@ -1,0 +1,1797 @@
+{
+  "schema": 1,
+  "binary_sha256": "d09680ecaf1461524768457383442211bfa0e69dff811d0c8461080923386e47",
+  "core_parity_verified": false,
+  "status": "pass",
+  "cases": [
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_text",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_false",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_false_case_sensitive",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_agent",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_override_agent",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_valid_agent",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_invalid_agent",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_no_color",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_text_no_color",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_config_disabled",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions-progress-pty",
+      "id": "spinner_env_overrides_config",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_failed",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_debug",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_failed_debug",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_false_flags",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_bool_spellings",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_job",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_job_overrides_run",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_short_cluster",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_run_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_job_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_unprocessable",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_run_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_job_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_missing_target",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_unknown_flag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_unknown_shorthand",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_missing_job_value",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_excess_positionals",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun-pty",
+      "id": "rerun_invalid_boolean",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_id",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_id_normalized",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_key",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_encoded_key_ref",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_large_numeric_key",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_id_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_key_ref_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_false_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_missing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_conflict",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_id_ref",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_ref_without_key",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_succeed_without_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_too_many",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_unknown_flag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_all_empty",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_all_empty_ok",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete-pty",
+      "id": "cache_all_paginated_ref",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions",
+      "id": "download_one_name",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions",
+      "id": "download_pattern_isolated",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions",
+      "id": "download_no_valid",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions",
+      "id": "download_no_match",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions",
+      "id": "failed_step_log",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "actions",
+      "id": "job_log_fallback",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_json",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_asset",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_asset_json",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_no_tag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_asset_bad_digest",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_retry_recovery",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_retry_exhausted",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_no_retry_rate_limit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_meta_retry",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release",
+      "id": "release_verify_meta_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "single_pattern",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "repeated_overlapping_pattern",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "empty_pattern",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "glob_middle_required",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "output_file",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "output_stdout",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "output_many",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "skip_existing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "clobber_existing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "reject_existing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "archive_zip",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "archive_tar",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "archive_missing_filename",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "latest_requires_selector",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "clobber_conflict",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "destination_conflict",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "archive_conflict",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "archive_bad_type",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "release-download",
+      "id": "too_many_arguments",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_raw_and_magic_fields",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_magic_file",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_json_stdin",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_json_wrong_type",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_json_null",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_missing_field_value",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_case_insensitive_name",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_ambiguous_name",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-run",
+      "id": "dispatch_missing_name",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_failed",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_debug",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_failed_debug",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_false_flags",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_bool_spellings",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_job",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_job_overrides_run",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_short_cluster",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_run_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_job_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_unprocessable",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_run_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_job_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_missing_target",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_unknown_flag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_unknown_shorthand",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_missing_job_value",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_excess_positionals",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-rerun",
+      "id": "rerun_invalid_boolean",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_id",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_id_normalized",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_key",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_encoded_key_ref",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_large_numeric_key",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_id_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_key_ref_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_false_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_missing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_conflict",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_id_ref",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_ref_without_key",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_succeed_without_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_too_many",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_unknown_flag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_all_empty",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_all_empty_ok",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "cache-delete",
+      "id": "cache_all_paginated_ref",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_success",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_failure_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_failure_default_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_cancelled_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_compact_failure",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_compact_success",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_annotations_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_annotations_missing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_annotations_error",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_no_jobs",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_pull_request",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_already_success",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_already_neutral_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_boolean_false",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_negative_interval",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_extra_positional",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_missing_id",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_unknown_timeout",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_invalid_interval",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_invalid_bool",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch",
+      "id": "watch_unknown_short",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_success",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_failure_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_failure_default_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_cancelled_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_compact_failure",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_compact_success",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_annotations_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_annotations_missing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_annotations_error",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_no_jobs",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_pull_request",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_already_success",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_already_neutral_exit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_boolean_false",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_negative_interval",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_extra_positional",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_missing_id",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_unknown_timeout",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_invalid_interval",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_invalid_bool",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-pty",
+      "id": "watch_unknown_short",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-stream",
+      "id": "watch_success_stream",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-stream",
+      "id": "watch_failure_exit_stream",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-stream",
+      "id": "watch_no_jobs_stream",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-interrupt",
+      "id": "watch_interrupt",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_hex",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_binary",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_octal",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_separator",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_explicit_octal",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_invalid_octal",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_range",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_negative_range",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_min_duration",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_max_duration",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_duration_overflow",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_double_separator",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_interval_space",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_nanoseconds",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_microseconds",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_milliseconds",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_zero",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_negative",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_saturate",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_offset",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_borrow",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge",
+      "id": "watch_duration_hours",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_hex",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_binary",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_octal",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_separator",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_explicit_octal",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_invalid_octal",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_range",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_negative_range",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_min_duration",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_max_duration",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_duration_overflow",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_double_separator",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_interval_space",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_nanoseconds",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_microseconds",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_milliseconds",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_zero",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_negative",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_saturate",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_offset",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_borrow",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "run-watch-edge-pty",
+      "id": "watch_duration_hours",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_default",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_limit_filter_order",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_json",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_jq",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_template",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_bool_false",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_conflicting_format",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_cluster",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_empty_fields",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_filtered_empty",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_empty",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_pagination",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_zero",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_bad_limit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_invalid_field",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_jq_without_json",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_positional",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "list_unknown_flag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_missing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_extra",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_unknown",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_12",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_CI.YAML",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_cI",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_no_match",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "enable_ambiguous",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_12",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_CI.YAML",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_cI",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_no_match",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage",
+      "id": "disable_ambiguous",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_default",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_all",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_limit_filter_order",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_json",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_jq",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_template",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_bool_false",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_conflicting_format",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_cluster",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_empty_fields",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_filtered_empty",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_empty",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_pagination",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_zero",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_bad_limit",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_invalid_field",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_jq_without_json",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_positional",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "list_unknown_flag",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_missing",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_extra",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_unknown",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_12",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_CI.YAML",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_cI",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_no_match",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "enable_ambiguous",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_12",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_CI.YAML",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_cI",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_not_found",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_forbidden",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_no_match",
+      "status": "pass",
+      "differences": []
+    },
+    {
+      "family": "workflow-manage-pty",
+      "id": "disable_ambiguous",
+      "status": "pass",
+      "differences": []
+    }
+  ],
+  "scope": "fixed gh 2.102.0; synthetic loopback; no live account writes"
+}

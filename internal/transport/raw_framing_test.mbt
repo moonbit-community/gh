@@ -34,6 +34,7 @@ async test "raw framing preserves repeated headers cookies and opaque body" {
   ) <| transport => {
     let response = transport.send(@gh.RawRequest::new(verb="GET", path="/raw"))
     assert_eq(response.body(), b"\x00\xff\x01\xfe")
+    assert_eq(response.reason_phrase(), Some("OK"))
     assert_eq(response.headers().filter(pair => pair.0 == "x-repeat"), [
       ("x-repeat", "first"),
       ("x-repeat", "second"),

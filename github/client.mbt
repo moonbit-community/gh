@@ -76,8 +76,15 @@ pub async fn Client::request(
   request : Request,
   operation_id~ : String = "request",
   operation_name~ : String = "rest",
+  retry_policy? : RetryPolicy,
 ) -> Result[RawResponse, GitHubError] {
-  self.send(request, graphql=false, operation_id~, operation_name~)
+  self.send(
+    request,
+    graphql=false,
+    operation_id~,
+    operation_name~,
+    retry_policy?,
+  )
 }
 
 ///|
@@ -174,6 +181,7 @@ async fn Client::send(
   operation_id~ : String,
   operation_name~ : String,
   query_fingerprint? : String,
+  retry_policy? : RetryPolicy,
 ) -> Result[RawResponse, GitHubError] {
   let prepared = self.prepare(request, graphql~)
   match prepared {
@@ -181,7 +189,7 @@ async fn Client::send(
     Ok(request) =>
       self.send_attempts(
         request,
-        self.retry_policy.max_attempts(),
+        retry_policy.unwrap_or(self.retry_policy),
         operation_id~,
         operation_name~,
         query_fingerprint?,
@@ -193,7 +201,7 @@ async fn Client::send(
 async fn Client::send_attempts(
   self : Client,
   request : Request,
-  max_attempts : Int32,
+  retry_policy : RetryPolicy,
   operation_id~ : String,
   operation_name~ : String,
   query_fingerprint? : String,
@@ -225,9 +233,14 @@ async fn Client::send_attempts(
             message="request did not complete; remote outcome may be unknown",
           ),
         )
-      Ok(response) if response.status >= 200 && response.status < 300 =>
-        Ok(response)
-      Ok(response) => Err(http_error(response))
+      Ok(response) => {
+        let response = { ..response, request_url: Some(request.url), }
+        if response.status >= 200 && response.status < 300 {
+          Ok(response)
+        } else {
+          Err(http_error(response))
+        }
+      }
     }
     let (status, request_id) = match outcome {
       Ok(response) =>
@@ -249,19 +262,14 @@ async fn Client::send_attempts(
       error_code?,
       query_fingerprint?,
     )
-    if attempt < max_attempts &&
-      (request.verb == "GET" || request.verb == "HEAD") {
-      match outcome {
-        Ok(response) if retryable_status(response.status) => {
-          attempt += 1
-          continue
-        }
-        Err(TransportError::Failed | TransportError::Message(..)) => {
-          attempt += 1
-          continue
-        }
-        _ => ()
+    if attempt < retry_policy.max_attempts() &&
+      (request.verb == "GET" || request.verb == "HEAD") &&
+      retry_policy.should_retry(outcome) {
+      if retry_policy.delay_ms() > 0 {
+        @async.sleep(retry_policy.delay_ms())
       }
+      attempt += 1
+      continue
     }
     return result
   }

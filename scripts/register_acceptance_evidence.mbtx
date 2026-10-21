@@ -1,0 +1,284 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+fn field(value : Json, key : String) -> Json raise {
+  guard value is Object(fields) && fields.get(key) is Some(value) else {
+    fail("missing evidence field " + key)
+  }
+  value
+}
+
+///|
+fn text_field(value : Json, key : String) -> String raise {
+  guard field(value, key) is String(value) else {
+    fail("expected evidence string " + key)
+  }
+  value
+}
+
+///|
+fn phase(state : String, evidence : Json, reason~ : String = "") -> Json {
+  {
+    "status": state,
+    "reason": reason,
+    "evidence": if state == "blocked" {
+      []
+    } else {
+      [evidence]
+    },
+  }
+}
+
+///|
+fn has_id(value : Json, expected : String) -> Bool {
+  value is { "id": String(id), .. } && id == expected
+}
+
+///|
+/// Import exact case evidence, never promote a sampled command/flag to complete.
+/// Repeated executions replace the case's current result while retaining every
+/// prior report reference. The command remains blocked until its full contract
+/// is audited; a passing subset cannot change the profile or global parity gate.
+async fn main {
+  let args = @env.args()
+  guard args.length() == 3 &&
+    args[1] is ("differential" | "public-release" | "scope-live") else {
+    fail(
+      "usage: register_acceptance_evidence.mbtx differential|public-release|scope-live REPORT_DIRECTORY",
+    )
+  }
+  let directory = args[2]
+  let report_path = directory + "/report.json"
+  let report_bytes = @fs.read_file(report_path).binary()
+  let report = @json.parse(@fs.read_file(report_path).text())
+  let binary_hash = text_field(report, "binary_sha256")
+  guard binary_hash.length() == 64 &&
+    field(report, "core_parity_verified") == Json(false) else {
+    fail("missing binary identity or unsafe global parity claim")
+  }
+  guard field(report, "cases") is Array(records) else {
+    fail("case evidence missing")
+  }
+  let matrix_path = "testdata/acceptance-v2.102.0.json"
+  let matrix = @json.parse(@fs.read_file(matrix_path).text())
+  guard matrix is Object(root) &&
+    root.get("commands") is Some(Array(commands)) &&
+    root.get("core_parity_verified") == Some(Json(false)) &&
+    root.get("profile_verified") == Some(Json(false)) else {
+    fail("unexpected acceptance profile")
+  }
+  let by_command : Map[String, Json] = Map([])
+  for command in commands {
+    by_command[text_field(command, "id")] = command
+  }
+  let evidence : Json = {
+    "report": report_path,
+    "binary_sha256": binary_hash,
+    "report_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(report_bytes)),
+  }
+  if args[1] == "scope-live" {
+    let family = text_field(report, "family")
+    guard ["scope-branch-lifecycle", "private-repository-lifecycle"].contains(
+        family,
+      ) &&
+      report
+      is {
+        "source_build": {
+          "status": String("pass"),
+          "binary_sha256": String(build_hash),
+          ..
+        },
+        ..
+      } &&
+      build_hash == binary_hash else {
+      fail("scope lifecycle requires a successful source-bound build")
+    }
+    // These exercise API transport and the ownership boundary. They do not
+    // establish `repo create/edit/delete` CLI parsing or oracle equivalence.
+    let previous = match root.get("scope_cases") {
+      Some(Array(cases)) => cases
+      None => []
+      _ => fail("unexpected scope case table")
+    }
+    let updated = previous.copy()
+    for record in records {
+      let id = family + ":" + text_field(record, "id")
+      let state = text_field(record, "status")
+      guard ["pass", "fail", "blocked"].contains(state) else {
+        fail("invalid scope case state")
+      }
+      let old = previous.iter().find_first(item => has_id(item, id))
+      let history : Array[Json] = match old {
+        Some({ "history": Array(history), .. }) => history.copy()
+        _ => []
+      }
+      if !history.contains(evidence) {
+        history.push(evidence)
+      }
+      let item : Json = {
+        "id": id,
+        "status": state,
+        "history": history,
+        "command": "api",
+        "live": phase(state, evidence),
+        "cleanup": phase(text_field(report, "cleanup"), evidence),
+        "differential": phase(
+          "blocked",
+          evidence,
+          reason="scope_lifecycle_is_not_oracle_comparison",
+        ),
+      }
+      if updated.iter().find_first(item => has_id(item, id)) is Some(_) {
+        for index in 0..<updated.length() {
+          if has_id(updated[index], id) {
+            updated[index] = item
+          }
+        }
+      } else {
+        updated.push(item)
+      }
+    }
+    root["scope_cases"] = Json::array(updated)
+    @fs.write_file(matrix_path + ".tmp", matrix.stringify(indent=2) + "\n")
+    @fs.rename(matrix_path + ".tmp", matrix_path)
+    println(
+      "registered scope lifecycle evidence; command compatibility gates remain unverified",
+    )
+    return
+  }
+  for record in records {
+    let id = text_field(record, "id")
+    let state = text_field(record, "status")
+    guard ["pass", "fail", "blocked"].contains(state) else {
+      fail("invalid case state")
+    }
+    let (command, argv, case_id) = if args[1] == "differential" {
+      let family = text_field(record, "family")
+      guard [
+        "actions-progress-pty", "run-rerun-pty", "cache-delete-pty", "actions", "release",
+        "release-download", "workflow-run", "run-rerun", "cache-delete", "run-watch",
+        "run-watch-pty", "run-watch-stream", "run-watch-interrupt", "run-watch-edge",
+        "run-watch-edge-pty", "workflow-manage", "workflow-manage-pty",
+      ].contains(family) else {
+        fail("unexpected corpus")
+      }
+      let capture = @json.parse(
+        @fs.read_file(directory + "/" + family + ".json").text(),
+      )
+      guard field(capture, "candidate_sha256") == Json(binary_hash) &&
+        field(capture, "cases") is Array(cases) &&
+        cases.iter().filter(item => has_id(item, id)).next() is Some(case) &&
+        field(case, "args") is Array(argv) &&
+        argv.length() >= 2 &&
+        argv[0] is String(first) &&
+        argv[1] is String(second) else {
+        fail("case capture mismatch")
+      }
+      let canonical = if first == "workflow" && second == "ls" {
+        "list"
+      } else {
+        second
+      }
+      (first + "." + canonical, Json::array(argv), family + ":" + id)
+    } else {
+      guard text_field(report, "oracle_sha256") ==
+        "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6" &&
+        field(report, "remote_mutations") == Json(0) else {
+        fail("unexpected real proof report")
+      }
+      let command = if id.has_prefix("release.verify-asset.") {
+        "release.verify-asset"
+      } else if id.has_prefix("release.download.") {
+        "release.download"
+      } else if id.has_prefix("release.verify.") {
+        "release.verify"
+      } else {
+        fail("unknown public proof case")
+      }
+      (command, Json::array([]), "public:" + id)
+    }
+    guard by_command.get(command) is Some(Object(entry)) &&
+      entry.get("scope") == Some(Json("core")) &&
+      entry.get("cases") is Some(Array(cases)) else {
+      fail("missing core command " + command)
+    }
+    let old = cases.iter().filter(item => has_id(item, case_id)).next()
+    let history : Array[Json] = match old {
+      Some({ "history": Array(history), .. }) => history.copy()
+      _ => []
+    }
+    if !history.contains(evidence) {
+      history.push(evidence)
+    }
+    let is_live = args[1] == "public-release"
+    let item : Json = {
+      "id": case_id,
+      "argv": argv,
+      "status": state,
+      "history": history,
+      "implementation": phase(state, evidence),
+      "controlled": if is_live {
+        phase("blocked", evidence, reason="separate_controlled_case_required")
+      } else {
+        phase(state, evidence)
+      },
+      "differential": phase(state, evidence),
+      "live": if is_live {
+        phase(state, evidence)
+      } else {
+        phase("blocked", evidence, reason="synthetic_case_only")
+      },
+      "cleanup": phase(
+        if is_live && field(report, "cleanup") != Json("pass") {
+          "blocked"
+        } else if text_field(report, "status") == "pass" {
+          "pass"
+        } else {
+          "blocked"
+        },
+        evidence,
+      ),
+    }
+    entry["cases"] = Json::array(
+      [..cases.filter(item => !has_id(item, case_id)), item],
+    )
+    for
+      plane in [
+        "implementation", "controlled", "differential", "live", "cleanup",
+      ] {
+      entry[plane] = phase(
+        "blocked",
+        evidence,
+        reason="partial_case_evidence; full_command_and_flag_audit_pending",
+      )
+    }
+    entry["implementation_entry"] = Json(
+      match command {
+        "release.download" => "native/github_release_download.mbt"
+        "release.verify" | "release.verify-asset" =>
+          "native/github_release_verify.mbt"
+        "run.download" => "native/github_actions_download.mbt"
+        "run.view" => "native/github_actions_logs.mbt"
+        "run.watch" => "native/github_actions_watch.mbt"
+        "run.rerun" => "native/github_actions_rerun.mbt"
+        "cache.delete" => "native/github_cache_delete.mbt"
+        "workflow.run" => "native/github_workflow_run.mbt"
+        _ => text_field(Json::object(entry), "implementation_entry")
+      },
+    )
+  }
+  @fs.write_file(matrix_path + ".tmp", matrix.stringify(indent=2) + "\n")
+  @fs.rename(matrix_path + ".tmp", matrix_path)
+  println(
+    "registered " +
+    records.length().to_string() +
+    " case results; complete-command gates remain unverified",
+  )
+}

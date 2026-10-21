@@ -1,0 +1,310 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+fn string_field(value : Json, key : String) -> String {
+  match value {
+    Object(fields) =>
+      match fields.get(key) {
+        Some(String(text)) => text
+        _ => ""
+      }
+    _ => ""
+  }
+}
+
+///|
+fn status(reason : String, deferred~ : Bool = false) -> Json {
+  {
+    "status": if deferred {
+      "deferred"
+    } else {
+      "blocked"
+    },
+    "reason": reason,
+    "evidence": [],
+  }
+}
+
+///|
+fn deferred(command : String) -> Bool {
+  [
+    "codespace", "copilot", "agent-task", "attestation", "extension", "skill", "skills",
+    "org",
+  ].contains(command)
+}
+
+///|
+async fn build_matrix(manifest : Json, root : String) -> Json {
+  guard manifest
+    is {
+      "pinned_version": String("2.102.0"),
+      "snapshots": Array(snapshots),
+      ..
+    } else {
+    fail("invalid pinned oracle manifest")
+  }
+  let commands : Array[Json] = []
+  let seen : Map[String, Bool] = Map([])
+  for snapshot in snapshots {
+    guard snapshot
+      is {
+        "name": String(name),
+        "args": Array(raw_args),
+        "help_flags": Array(flags),
+        ..
+      } else {
+      continue
+    }
+    if !(name.has_suffix("-help") ||
+      name == "root-help" ||
+      name == "empty-argv" ||
+      name == "version" ||
+      name.has_prefix("help-")) {
+      continue
+    }
+    let args : Array[String] = []
+    for arg in raw_args {
+      if arg is String(value) && value != "--help" {
+        args.push(value)
+      }
+    }
+    let command = if args.is_empty() { "root" } else { args.join(" ") }
+    if seen.contains(command) {
+      continue
+    }
+    seen[command] = true
+    let top = args.get(0).unwrap_or("root")
+    let is_deferred = deferred(top) ||
+      (top == "help" && args.get(1).map_or(false, deferred))
+    let fields : Array[Json] = []
+    for flag in flags {
+      if flag is String(text) {
+        let flag_deferred = is_deferred ||
+          text.contains("--org ") ||
+          text.contains("--enterprise ")
+        fields.push({
+          "declaration": text,
+          "scope": if flag_deferred {
+            "deferred"
+          } else {
+            "core"
+          },
+          "implementation": status("flag_not_audited", deferred=flag_deferred),
+          "differential": status("case_not_registered", deferred=flag_deferred),
+        })
+      }
+    }
+    let reference = "testdata/gh-oracle/v2.102.0/" +
+      string_field(snapshot, "stdout")
+    let help = @fs.read_file(root + "/" + reference).text()
+    let json_fields : Array[Json] = []
+    let mut in_json_fields = false
+    for line in help.split("\n") {
+      if line == "JSON FIELDS" {
+        in_json_fields = true
+        continue
+      }
+      if in_json_fields {
+        if line.is_empty() {
+          break
+        }
+        for field in line.split(",") {
+          let field = field.trim().to_owned()
+          if !field.is_empty() {
+            json_fields.push({
+              "name": field,
+              "implementation": status(
+                "field_not_audited",
+                deferred=is_deferred,
+              ),
+              "differential": status(
+                "case_not_registered",
+                deferred=is_deferred,
+              ),
+            })
+          }
+        }
+      }
+    }
+    commands.push({
+      "id": command.replace_all(old=" ", new="."),
+      "argv": args,
+      "scope": if is_deferred {
+        "deferred"
+      } else {
+        "core"
+      },
+      "deferred_reason": if is_deferred {
+        "user_scope_exclusion"
+      } else {
+        ""
+      },
+      "implementation_entry": match top {
+        "auth" => "native/github_auth_commands.mbt"
+        "api" => "native/github_api.mbt"
+        "config" | "alias" => "native/github_local.mbt"
+        "root" | "--version" | "help" | "completion" => "native/github_run.mbt"
+        _ => "native/github_business.mbt"
+      },
+      "reference": reference,
+      "flags": fields,
+      "json_fields": json_fields,
+      "cases": [],
+      "implementation": status("command_not_audited", deferred=is_deferred),
+      "controlled": status("case_not_registered", deferred=is_deferred),
+      "differential": status("case_not_registered", deferred=is_deferred),
+      "live": status("lifecycle_not_registered", deferred=is_deferred),
+      "cleanup": status("lifecycle_not_registered", deferred=is_deferred),
+    })
+  }
+  guard commands.length() >= 200 else {
+    fail("incomplete oracle command inventory")
+  }
+  {
+    "schema": 1,
+    "oracle": "2.102.0",
+    "profile": "github-com-core-macos",
+    "core_parity_verified": false,
+    "profile_verified": false,
+    "excluded": [
+      "organization", "enterprise", "real-multi-account", "linux-keyring", "windows-keyring",
+      "separate-integrations",
+    ],
+    "command_count": commands.length(),
+    "commands": commands,
+  }
+}
+
+///|
+/// Reconcile scope without discarding registered behavior cases or evidence.
+/// Reopened entries remain blocked until independently accepted.
+fn refresh_scope(actual : Json, expected : Json) -> Json raise {
+  guard actual is Object(previous) && expected is Object(current) else {
+    fail("invalid command inventory")
+  }
+  let updated = previous.copy()
+  let changed = previous.get("scope") != current.get("scope")
+  for key in ["scope", "deferred_reason"] {
+    updated[key] = current[key]
+  }
+  if changed {
+    for
+      key in ["implementation", "controlled", "differential", "live", "cleanup"] {
+      updated[key] = current[key]
+    }
+  }
+  for (group, field) in [("flags", "declaration"), ("json_fields", "name")] {
+    guard current.get(group) is Some(Array(expected_items)) &&
+      previous.get(group) is Some(Array(old_items)) else {
+      fail("missing inventory group")
+    }
+    updated[group] = Json::array(
+      expected_items.map(item => {
+        let identity = string_field(item, field)
+        match
+          old_items
+          .iter()
+          .find_first(item => string_field(item, field) == identity) {
+          Some(old) if !changed &&
+            string_field(old, "scope") == string_field(item, "scope") => old
+          _ => item
+        }
+      }),
+    )
+  }
+  Json::object(updated)
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 &&
+    ["--check", "--initialize", "--refresh-scope"].contains(args[1]) else {
+    fail("usage: acceptance_matrix.mbtx --check|--initialize|--refresh-scope")
+  }
+  let root = @env.current_dir().unwrap_or(".")
+  let oracle = @json.parse(
+    @fs.read_file(root + "/testdata/gh-oracle/v2.102.0/manifest.json").text(),
+  )
+  let generated = build_matrix(oracle, root)
+  let destination = root + "/testdata/acceptance-v2.102.0.json"
+  if args[1] == "--initialize" {
+    @fs.write_file(
+      destination,
+      generated.stringify(indent=2) + "\n",
+      create_mode=CreateNew,
+    )
+  } else {
+    let existing = @json.parse(@fs.read_file(destination).text())
+    guard existing is { "commands": Array(commands), .. } &&
+      generated is { "commands": Array(expected), .. } &&
+      commands.length() == expected.length() else {
+      fail("matrix command inventory drift")
+    }
+    let ids : Map[String, Json] = Map([])
+    for command in commands {
+      let id = string_field(command, "id")
+      guard !id.is_empty() && !ids.contains(id) else {
+        fail("duplicate matrix command")
+      }
+      ids[id] = command
+      for
+        key in [
+          "implementation", "controlled", "differential", "live", "cleanup",
+        ] {
+        guard command is Object(fields) &&
+          fields.get(key)
+          is Some({ "status": String(state), "evidence": Array(evidence), .. }) &&
+          ["pass", "fail", "blocked", "deferred"].contains(state) else {
+          fail("invalid acceptance status")
+        }
+        if state == "pass" {
+          guard !evidence.is_empty() else { fail("pass without evidence") }
+        }
+      }
+    }
+    let refreshed : Array[Json] = []
+    for command in expected {
+      guard ids.get(string_field(command, "id")) is Some(actual) else {
+        fail("missing oracle command")
+      }
+      if args[1] == "--refresh-scope" {
+        refreshed.push(refresh_scope(actual, command))
+        continue
+      }
+      guard string_field(actual, "scope") == string_field(command, "scope") else {
+        fail("scope drift")
+      }
+      for (group, field) in [("flags", "declaration"), ("json_fields", "name")] {
+        guard command is Object(expected_fields) &&
+          actual is Object(actual_fields) &&
+          expected_fields.get(group) is Some(Array(expected)) &&
+          actual_fields.get(group) is Some(Array(actual)) &&
+          expected.map(item => string_field(item, field)) ==
+          actual.map(item => string_field(item, field)) else {
+          fail("flag or JSON field inventory drift")
+        }
+      }
+    }
+    if args[1] == "--refresh-scope" {
+      guard existing is Object(fields) else { fail("matrix") }
+      let fields = fields.copy()
+      fields["commands"] = Json::array(refreshed)
+      fields["profile_verified"] = Json(false)
+      @fs.write_file(
+        destination + ".tmp",
+        Json::object(fields).stringify(indent=2) + "\n",
+      )
+      @fs.rename(destination + ".tmp", destination)
+    }
+  }
+  println(
+    "acceptance matrix inventory verified; no compatibility pass inferred from help",
+  )
+}

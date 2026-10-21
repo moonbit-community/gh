@@ -1,0 +1,470 @@
+{
+  "schema": 1,
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "candidate_sha256": null,
+  "expected_cases": 9,
+  "completed_cases": 9,
+  "failures": 0,
+  "cases_sha256": "6d51dd6dff64df972a2ff53885583c594ec361700d9b268bdd83989dca22bc45",
+  "cases": [
+    {
+      "id": "dispatch_raw_and_magic_fields",
+      "args": [
+        "workflow",
+        "run",
+        "12",
+        "--ref",
+        "main",
+        "-f",
+        "name=first",
+        "-f",
+        "empty=",
+        "-F",
+        "name=magic",
+        "-f",
+        "name=last",
+        "-F",
+        "number=123",
+        "-F",
+        "bool=false"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI",
+            "path": ".github/workflows/ci.yml",
+            "state": "active"
+          }
+        },
+        "/repos/acme/widgets/actions/workflows/12/dispatches": {
+          "method": "POST",
+          "json": {
+            "workflow_run_id": 50,
+            "run_url": "https://api.github.com/repos/acme/widgets/actions/runs/50",
+            "html_url": "https://github.com/acme/widgets/actions/runs/50"
+          }
+        }
+      },
+      "stdout": "https://github.com/acme/widgets/actions/runs/50\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/workflows/12/dispatches"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/repos/acme/widgets/actions/workflows/12/dispatches",
+          "raw_body": "{\"inputs\":{\"bool\":\"false\",\"empty\":\"\",\"name\":\"magic\",\"number\":\"123\"},\"ref\":\"main\",\"return_run_details\":true}",
+          "json_body": {
+            "inputs": {
+              "bool": "false",
+              "empty": "",
+              "name": "magic",
+              "number": "123"
+            },
+            "ref": "main",
+            "return_run_details": true
+          }
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_magic_file",
+      "args": [
+        "workflow",
+        "run",
+        "ci.yml",
+        "-r",
+        "main",
+        "-F",
+        "message=@input.txt",
+        "-f",
+        "literal=@input.txt"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows/ci.yml": {
+          "json": {
+            "id": 12,
+            "name": "CI",
+            "path": ".github/workflows/ci.yml",
+            "state": "active"
+          }
+        },
+        "/repos/acme/widgets/actions/workflows/12/dispatches": {
+          "method": "POST",
+          "status": 204
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows/ci.yml",
+        "/repos/acme/widgets/actions/workflows/12/dispatches"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/ci.yml",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/repos/acme/widgets/actions/workflows/12/dispatches",
+          "raw_body": "{\"inputs\":{\"literal\":\"@input.txt\",\"message\":\"from file\\n\"},\"ref\":\"main\",\"return_run_details\":true}",
+          "json_body": {
+            "inputs": {
+              "literal": "@input.txt",
+              "message": "from file\n"
+            },
+            "ref": "main",
+            "return_run_details": true
+          }
+        }
+      ],
+      "files_hex": {
+        "input.txt": "66726f6d2066696c650a"
+      },
+      "directories": []
+    },
+    {
+      "id": "dispatch_json_stdin",
+      "args": [
+        "workflow",
+        "run",
+        "12",
+        "-r",
+        "topic/ref",
+        "--json"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI",
+            "path": ".github/workflows/ci.yml",
+            "state": "active"
+          }
+        },
+        "/repos/acme/widgets/actions/workflows/12/dispatches": {
+          "method": "POST",
+          "json": {
+            "workflow_run_id": 51,
+            "html_url": "https://github.com/acme/widgets/actions/runs/51"
+          }
+        }
+      },
+      "stdout": "https://github.com/acme/widgets/actions/runs/51\n",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/workflows/12/dispatches"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/repos/acme/widgets/actions/workflows/12/dispatches",
+          "raw_body": "{\"inputs\":{\"empty\":\"\",\"null\":\"\",\"text\":\"你好\\nsecond line\"},\"ref\":\"topic/ref\",\"return_run_details\":true}",
+          "json_body": {
+            "inputs": {
+              "empty": "",
+              "null": "",
+              "text": "你好\nsecond line"
+            },
+            "ref": "topic/ref",
+            "return_run_details": true
+          }
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_json_wrong_type",
+      "args": [
+        "workflow",
+        "run",
+        "12",
+        "-r",
+        "main",
+        "--json"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI",
+            "path": ".github/workflows/ci.yml",
+            "state": "active"
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "could not parse provided JSON: json: cannot unmarshal number into Go struct field .number of type string\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows/12"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_json_null",
+      "args": [
+        "workflow",
+        "run",
+        "12",
+        "-r",
+        "main",
+        "--json"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI",
+            "path": ".github/workflows/ci.yml",
+            "state": "active"
+          }
+        },
+        "/repos/acme/widgets/actions/workflows/12/dispatches": {
+          "method": "POST",
+          "status": 204
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows/12",
+        "/repos/acme/widgets/actions/workflows/12/dispatches"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/repos/acme/widgets/actions/workflows/12/dispatches",
+          "raw_body": "{\"inputs\":null,\"ref\":\"main\",\"return_run_details\":true}",
+          "json_body": {
+            "inputs": null,
+            "ref": "main",
+            "return_run_details": true
+          }
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_missing_field_value",
+      "args": [
+        "workflow",
+        "run",
+        "12",
+        "-r",
+        "main",
+        "-f",
+        "broken"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows/12": {
+          "json": {
+            "id": 12,
+            "name": "CI",
+            "path": ".github/workflows/ci.yml",
+            "state": "active"
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "field \"broken\" requires a value separated by an '=' sign\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows/12"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows/12",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_case_insensitive_name",
+      "args": [
+        "workflow",
+        "run",
+        "cI",
+        "-r",
+        "main"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows?page=1&per_page=100": {
+          "json": {
+            "workflows": [
+              {
+                "id": 11,
+                "name": "CI",
+                "path": ".github/workflows/old.yml",
+                "state": "disabled_manually"
+              },
+              {
+                "id": 12,
+                "name": "CI",
+                "path": ".github/workflows/ci.yml",
+                "state": "active"
+              }
+            ]
+          }
+        },
+        "/repos/acme/widgets/actions/workflows/12/dispatches": {
+          "method": "POST",
+          "status": 204
+        }
+      },
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows?page=1&per_page=100",
+        "/repos/acme/widgets/actions/workflows/12/dispatches"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows?page=1&per_page=100",
+          "raw_body": "",
+          "json_body": null
+        },
+        {
+          "method": "POST",
+          "path": "/repos/acme/widgets/actions/workflows/12/dispatches",
+          "raw_body": "{\"inputs\":{},\"ref\":\"main\",\"return_run_details\":true}",
+          "json_body": {
+            "inputs": {},
+            "ref": "main",
+            "return_run_details": true
+          }
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_ambiguous_name",
+      "args": [
+        "workflow",
+        "run",
+        "CI",
+        "-r",
+        "main"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows?page=1&per_page=100": {
+          "json": {
+            "workflows": [
+              {
+                "id": 11,
+                "name": "CI",
+                "path": ".github/workflows/first.yml",
+                "state": "active"
+              },
+              {
+                "id": 12,
+                "name": "CI",
+                "path": ".github/workflows/second.yml",
+                "state": "active"
+              }
+            ]
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "could not resolve to a unique workflow; found: first.yml second.yml\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows?page=1&per_page=100"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows?page=1&per_page=100",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    },
+    {
+      "id": "dispatch_missing_name",
+      "args": [
+        "workflow",
+        "run",
+        "missing",
+        "-r",
+        "main"
+      ],
+      "routes": {
+        "/repos/acme/widgets/actions/workflows?page=1&per_page=100": {
+          "json": {
+            "workflows": []
+          }
+        }
+      },
+      "stdout": "",
+      "stderr": "could not find any workflows named missing\n",
+      "exit_code": 1,
+      "requests": [
+        "/repos/acme/widgets/actions/workflows?page=1&per_page=100"
+      ],
+      "request_messages": [
+        {
+          "method": "GET",
+          "path": "/repos/acme/widgets/actions/workflows?page=1&per_page=100",
+          "raw_body": "",
+          "json_body": null
+        }
+      ],
+      "files_hex": {},
+      "directories": []
+    }
+  ],
+  "scope": "synthetic loopback; no live GitHub writes"
+}

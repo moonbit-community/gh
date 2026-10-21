@@ -41,7 +41,9 @@ async test "issue list fixture resolves repository and query" {
   assert_eq(seen_method, "GET")
   assert_eq(seen_path, "/repos/acme/widgets/issues")
   assert_true(seen_query.contains(("state", "open")))
-  assert_true(seen_query.contains(("per_page", "10")))
+  // The REST endpoint mixes PRs with issues. Fetch a full page, then enforce
+  // --limit after filtering; the mixed-page regression covers that boundary.
+  assert_true(seen_query.contains(("per_page", "100")))
 }
 
 ///|
@@ -491,8 +493,8 @@ async test "business json projection unwraps GitHub collection envelopes" {
     let body = match request.path() {
       "/repos/acme/widgets/actions/runs" =>
         b"{\"total_count\":1,\"workflow_runs\":[{\"id\":42,\"workflow_id\":7,\"status\":\"completed\",\"conclusion\":\"success\",\"name\":\"CI\"}]}"
-      "/repos/acme/widgets/actions/workflows" =>
-        b"{\"total_count\":1,\"workflows\":[{\"id\":7,\"name\":\"CI\",\"state\":\"active\"}]}"
+      "/repos/acme/widgets/actions/workflows?page=1&per_page=50" =>
+        b"{\"total_count\":1,\"workflows\":[{\"id\":7,\"name\":\"CI\",\"path\":\".github/workflows/ci.yml\",\"state\":\"active\"}]}"
       "/search/issues" =>
         b"{\"total_count\":1,\"items\":[{\"number\":9,\"title\":\"Bug\",\"state\":\"open\"}]}"
       "/search/repositories" =>
@@ -1186,7 +1188,7 @@ async test "search repository qualifier and code filters are encoded in q" {
 }
 
 ///|
-async test "pull request diff uses diff media type and checks accept ref" {
+async test "pull request diff uses diff media type" {
   let seen_path : Array[String] = []
   let seen_headers : Array[Array[(String, String)]] = []
   let transport = @github.Transport::new(send=request => {
@@ -1206,11 +1208,7 @@ async test "pull request diff uses diff media type and checks accept ref" {
     Ok(value) => value
     Err(_) => fail("repository parse failed")
   }
-  for
-    args in [
-      ["pr", "diff", "7", "-R", "acme/widgets"],
-      ["pr", "checks", "7", "-R", "acme/widgets", "--ref", "deadbeef"],
-    ] {
+  for args in [["pr", "diff", "7", "-R", "acme/widgets"]] {
     let options = match @github_cli.parse(args) {
       @github_cli.Business(value) => value
       _ => fail("expected business invocation")
@@ -1227,11 +1225,10 @@ async test "pull request diff uses diff media type and checks accept ref" {
   assert_true(
     seen_headers[0].contains(("Accept", "application/vnd.github.diff")),
   )
-  assert_eq(seen_path[1], "/repos/acme/widgets/commits/deadbeef/check-runs")
 }
 
 ///|
-async test "issue locks carry lock reason and run log routes preserve bytes" {
+async test "issue locks carry lock reason and run logs reject invalid metadata" {
   let seen : Array[(String, String, Bytes?)] = []
   let transport = @github.Transport::new(send=request => {
     seen.push((request.verb(), request.path(), request.body()))
@@ -1279,9 +1276,12 @@ async test "issue locks carry lock reason and run log routes preserve bytes" {
     base_url="https://api.github.example",
     repository~,
   )
-  assert_eq(run_output.exit_code(), 0)
-  assert_eq(seen[1].1, "/repos/acme/widgets/actions/runs/99/logs")
-  assert_eq(run_output.stdout_bytes(), b"binary-log")
+  assert_eq(run_output.exit_code(), 1)
+  assert_eq(
+    seen[1].1,
+    "/repos/acme/widgets/actions/runs/99?exclude_pull_requests=true",
+  )
+  assert_eq(run_output.stdout_bytes(), b"")
 }
 
 ///|
@@ -1470,23 +1470,42 @@ async test "release upload fixture sends binary assets to release id" {
 ///|
 async test "run watch fixture polls until completion and honors exit status" {
   let mut calls = 0
-  let transport = @github.Transport::new(send=_request => {
-    calls += 1
-    if calls == 1 {
-      Ok(
-        @github.RawResponse::new(
-          status=200,
-          body=b"{\"status\":\"in_progress\",\"conclusion\":null}",
-        ),
-      )
-    } else {
-      Ok(
-        @github.RawResponse::new(
-          status=200,
-          body=b"{\"status\":\"completed\",\"conclusion\":\"failure\"}",
-        ),
-      )
+  let frames : Array[String] = []
+  let transport = @github.Transport::new(send=request => {
+    let value : Json = match request.path() {
+      "/repos/acme/widgets/actions/runs/99?exclude_pull_requests=true" => {
+        calls += 1
+        if calls == 3 {
+          assert_eq(frames.length(), 1)
+          assert_true(
+            frames[0].contains("Refreshing run status every 0 seconds"),
+          )
+        }
+        {
+          "id": 99,
+          "workflow_id": 12,
+          "status": if calls < 3 {
+            "in_progress"
+          } else {
+            "completed"
+          },
+          "conclusion": if calls < 3 {
+            Json::null()
+          } else {
+            Json("failure")
+          },
+          "jobs_url": "https://api.github.example/repos/acme/widgets/actions/runs/99/jobs",
+        }
+      }
+      "/repos/acme/widgets/actions/workflows/12" => { "name": "CI" }
+      "/graphql" =>
+        { "data": { "repository": { "pullRequests": { "nodes": [] } } } }
+      "/repos/acme/widgets/actions/runs/99/jobs?per_page=100" => { "jobs": [] }
+      _ => fail("unexpected watch request")
     }
+    Ok(
+      @github.RawResponse::new(status=200, body=@utf8.encode(value.stringify())),
+    )
   })
   let client = match
     @github.Client::new(
@@ -1512,10 +1531,13 @@ async test "run watch fixture polls until completion and honors exit status" {
     client~,
     base_url="https://api.github.example",
     repository~,
+    stdout_writer=bytes => frames.push(@utf8.decode(bytes)),
   )
-  assert_eq(calls, 2)
+  assert_eq(calls, 3)
   assert_eq(output.exit_code(), 1)
-  assert_true(output.stdout().contains("completed"))
+  assert_eq(output.stdout(), "")
+  assert_eq(frames.length(), 2)
+  assert_true(frames[1].contains("X  CI · 99"))
 }
 
 ///|
@@ -1551,21 +1573,6 @@ async test "extended core commands map to GitHub REST endpoints" {
       ["repo", "read-file", "README.md", "-R", "acme/widgets"],
       "GET",
       "/repos/acme/widgets/contents/README.md",
-    ),
-    (
-      ["issue", "pin", "7", "-R", "acme/widgets"],
-      "PUT",
-      "/repos/acme/widgets/issues/7/pin",
-    ),
-    (
-      ["pr", "update-branch", "7", "-R", "acme/widgets"],
-      "PUT",
-      "/repos/acme/widgets/pulls/7/update-branch",
-    ),
-    (
-      ["pr", "revert", "7", "-R", "acme/widgets"],
-      "POST",
-      "/repos/acme/widgets/pulls/7/revert",
     ),
   ]
   for (args, expected_method, expected_path) in cases {

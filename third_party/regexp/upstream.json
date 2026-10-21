@@ -1,0 +1,94 @@
+{
+  "module": "moonbitlang/regexp",
+  "version": "0.3.6",
+  "registry_checksum": "5f5474bf5cddd888ea8526709474b99a04066a6197abda3c95b48b8078684ad7",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/moonbitlang/regexp.mbt",
+  "reason": "The public execute API restarts anchor and word-boundary context on a sliced suffix. Global jq regex iteration needs a start offset into the original input.",
+  "files": [
+    {
+      "path": "moon.pkg",
+      "upstream_sha256": "c176166787179409ae38a637e9ade8ee6954084afdce653f1a7167c4310c2a69"
+    },
+    {
+      "path": "moon.mod",
+      "upstream_sha256": "02073bc9231ffaec8646658362f229decd364a3991ccad8cbc6246e5d8f2042d"
+    },
+    {
+      "path": "todo.mbt",
+      "upstream_sha256": "afe9737a3ab3e29a243e81bb0741a803a3eff9f38abca049f805e3e0fb2cff97"
+    },
+    {
+      "path": "LICENSE",
+      "upstream_sha256": "25cca5bcb2efbfcf33f8f00c7741a35045c75f84e1f017a03dd457db8fcbaeea"
+    },
+    {
+      "path": "internal/unicode/moon.pkg",
+      "upstream_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "internal/unicode/case_folding.mbt",
+      "upstream_sha256": "f7698faf1bc22403772e2be4469c982fb03bd1d68d49eadde846a45726e1f001"
+    },
+    {
+      "path": "internal/unicode/chars.mbt",
+      "upstream_sha256": "42d8258571c25f4716cb05f38af5291e0844ac88c08cb9688846174c352b7177"
+    },
+    {
+      "path": "internal/unicode/general_category.mbt",
+      "upstream_sha256": "79e9f70bd05dbc1cd5cee18845daf50457748360705eacebb24e017bb29b06bd"
+    },
+    {
+      "path": "internal/unicode/property_value_alises.mbt",
+      "upstream_sha256": "3b31445d15b246eb4d1bbd421694481a94e5ebec5ad75b0ad40e878759540915"
+    },
+    {
+      "path": "internal/parse/moon.pkg",
+      "upstream_sha256": "53412244beca12cced83df616e3f57adad08a9597b5cdea075a8269d587c34bb"
+    },
+    {
+      "path": "internal/parse/parse.mbt",
+      "upstream_sha256": "5aeae2e5cb6b26089082f30ca834bce1b44c741a941ab8113a556003c822fca1"
+    },
+    {
+      "path": "internal/parse/alias.mbt",
+      "upstream_sha256": "d63fdbd0e1ae0bf5bc924602a354d876fe5ced6347df6d1266fa252ddf904f70"
+    },
+    {
+      "path": "internal/vm/moon.pkg",
+      "upstream_sha256": "ea65f23232817fb498e458df57635d020c23f7b67bf39e3d28f70a64b602b472"
+    },
+    {
+      "path": "internal/vm/alias.mbt",
+      "upstream_sha256": "fff434a33233b209e87fba461173ed449eb125093d62f16bad3746b1dbfd1616"
+    },
+    {
+      "path": "internal/vm/impl.mbt",
+      "upstream_sha256": "d6069fae4d53bd120c4b01fde41ddb89b185a31eed92cbe560d4fbeaa6212c78"
+    },
+    {
+      "path": "internal/ast/moon.pkg",
+      "upstream_sha256": "b7440c5612b1dd0182b017368b6c1bf8f4f76cf38ace61dd2cc803e25474e0d0"
+    },
+    {
+      "path": "internal/ast/compile.mbt",
+      "upstream_sha256": "6bea98c4b2efa754d7308ddcfd69ffa51d37517bc5aee24e89796f0f469eee96"
+    },
+    {
+      "path": "internal/ast/alias.mbt",
+      "upstream_sha256": "ab4ca498dfab043490aff04d917b3f11b566f645f77ab3640d7bd23938b7ac13"
+    },
+    {
+      "path": "NOTICE",
+      "upstream_sha256": "9c2a70c4108965baec52ca2f6350fe401251f8407a3b596ed87e9e6c2e41050b"
+    },
+    {
+      "path": "alias.mbt",
+      "upstream_sha256": "e3de58c4fa2ba61683b688b4865b7442841c894fc6e98c098a531e2b23d91de8"
+    },
+    {
+      "path": "top.mbt",
+      "upstream_sha256": "477472b28b1176eb240d3ba37628f58f756a57c36747c9b6b9efa6ecfa6f5198"
+    }
+  ]
+}

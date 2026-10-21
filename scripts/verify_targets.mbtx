@@ -1,0 +1,215 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn source_snapshot() -> Json {
+  let listed = @shell.Cmd("git", [
+    "ls-files", "--cached", "--others", "--exclude-standard", "-z",
+  ]).output(timeout_ms=10000, max_output_bytes=4194304)
+  guard listed.exit_code() == 0 else {
+    fail("cannot enumerate repository source")
+  }
+  let paths = listed
+    .stdout()
+    .split("\u0000")
+    .filter(path => !path.is_empty())
+    .map(path => path.to_owned())
+    .collect()
+  paths.sort()
+  let files : Array[Json] = []
+  for path in paths {
+    if !@fs.exists(path) {
+      files.push({ "path": path, "state": "deleted" })
+      continue
+    }
+    let kind = @fs.kind(path, follow_symlink=false)
+    if kind == @fs.SymLink {
+      let link = @shell.Cmd("readlink", ["./" + path]).output(
+        timeout_ms=10000,
+        max_output_bytes=65536,
+      )
+      guard link.exit_code() == 0 && @fs.kind(path) == @fs.Regular else {
+        fail("cannot capture source symlink: " + path)
+      }
+      files.push({
+        "path": path,
+        "symlink": link.stdout(),
+        "sha256": @crypto.bytes_to_hex_string(
+          @crypto.sha256(@fs.read_file(path).binary()),
+        ),
+      })
+      continue
+    }
+    guard kind == @fs.Regular else {
+      fail("source snapshot requires regular repository files: " + path)
+    }
+    files.push({
+      "path": path,
+      "sha256": @crypto.bytes_to_hex_string(
+        @crypto.sha256(@fs.read_file(path).binary()),
+      ),
+    })
+  }
+  Json::array(files)
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let build_only = args.length() == 3 && args[2] == "--build"
+  guard (args.length() == 2 || args.length() == 4 || build_only) &&
+    !@fs.exists(args[1]) else {
+    fail(
+      "usage: verify_targets.mbtx NEW_REPORT_DIRECTORY [--package PACKAGE | --build]",
+    )
+  }
+  let selection = if args.length() == 4 {
+    guard args[2] == "--package" else { fail("expected --package") }
+    ["--package", args[3]]
+  } else {
+    []
+  }
+  @fs.mkdir(args[1])
+  let directory = @fs.realpath(args[1])
+  let snapshot = source_snapshot()
+  let snapshot_hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@utf8.encode(snapshot.stringify())),
+  )
+  @fs.write_file(
+    directory + "/source-files.json",
+    snapshot.stringify(indent=2) + "\n",
+  )
+  let version = @shell.Cmd("moon", ["version", "--all"]).output(
+    timeout_ms=10000,
+    max_output_bytes=65536,
+  )
+  let head = @shell.Cmd("git", ["rev-parse", "HEAD"]).output(
+    timeout_ms=10000,
+    max_output_bytes=4096,
+  )
+  let dependencies = @shell.Cmd("moon", ["tree", "--json"]).output(
+    timeout_ms=60000,
+    max_output_bytes=1048576,
+  )
+  guard version.exit_code() == 0 &&
+    head.exit_code() == 0 &&
+    dependencies.exit_code() == 0 else {
+    fail("cannot capture toolchain, source base and dependency graph")
+  }
+  @fs.write_file(directory + "/toolchain.txt", version.stdout())
+  @fs.write_file(directory + "/dependencies.json", dependencies.stdout())
+  let records : Array[Json] = []
+  let mut stable = false
+  let mut passed = false
+  let mut binary_hash = ""
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": if build_only {
+          "native-acceptance-build"
+        } else {
+          "target-regression"
+        },
+        "source_base": head.stdout().trim().to_owned(),
+        "source_files_sha256": snapshot_hash,
+        "source_unchanged": stable,
+        "toolchain": version.stdout(),
+        "dependencies_sha256": @crypto.bytes_to_hex_string(
+          @crypto.sha256(@utf8.encode(dependencies.stdout())),
+        ),
+        "selection": selection,
+        "status": if passed {
+          "pass"
+        } else {
+          "fail"
+        },
+        "core_parity_verified": false,
+        "cases": records,
+        "binary_sha256": binary_hash,
+      }).stringify(indent=2) +
+      "\n",
+    )
+  })
+  let commands : Array[(String, Array[String])] = []
+  if build_only {
+    commands.push(
+      (
+        "native-check",
+        ["check", "--target", "native", "--frozen", "--deny-warn"],
+      ),
+    )
+    commands.push(
+      (
+        "native-build",
+        [
+          "build", "--target", "native", "--release", "--frozen", "--deny-warn",
+          "cmd/main",
+        ],
+      ),
+    )
+  } else {
+    for target in ["native", "js", "wasm", "wasm-gc"] {
+      for operation in ["check", "test"] {
+        let name = target + "-" + operation
+        let command = [operation, "--target", target, "--frozen", "--deny-warn"]
+        if operation == "test" {
+          command.append(selection)
+        }
+        commands.push((name, command))
+      }
+    }
+  }
+  for (name, command) in commands {
+    let result = @shell.Cmd("moon", command).output(
+      timeout_ms=900000,
+      max_output_bytes=4194304,
+    )
+    @fs.write_file(directory + "/" + name + ".stdout", result.stdout())
+    @fs.write_file(directory + "/" + name + ".stderr", result.stderr())
+    records.push({
+      "id": name,
+      "argv": command,
+      "exit_code": result.exit_code(),
+      "status": if result.exit_code() == 0 {
+        "pass"
+      } else {
+        "fail"
+      },
+    })
+    println(
+      name + ": " + (if result.exit_code() == 0 { "pass" } else { "fail" }),
+    )
+  }
+  if build_only &&
+    records.all(record => record is { "status": String("pass"), .. }) {
+    let binary = @fs.read_file(
+      "_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    ).binary()
+    binary_hash = @crypto.bytes_to_hex_string(@crypto.sha256(binary))
+    @fs.write_file(
+      directory + "/gh",
+      binary,
+      create_mode=CreateNew,
+      permission=0o700,
+    )
+  }
+  stable = source_snapshot() == snapshot
+  passed = stable &&
+    records.length() == (if build_only { 2 } else { 8 }) &&
+    records.all(record => record is { "status": String("pass"), .. })
+  guard passed else {
+    fail(
+      "target regression failed or source changed during validation; inspect report",
+    )
+  }
+}

@@ -1,0 +1,220 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+fn workflow(id : Int32, state : String, name~ : String = "CI") -> Json {
+  {
+    "id": id,
+    "name": name,
+    "path": ".github/workflows/ci-" + id.to_string() + ".yml",
+    "state": state,
+  }
+}
+
+///|
+async fn main {
+  let cases : Array[Json] = []
+  let root = "/repos/acme/widgets/actions/workflows"
+  fn add(
+    id : String,
+    args : Array[String],
+    routes : Map[String, Json],
+  ) -> Unit {
+    cases.push({ "id": id, "args": args, "routes": Json::object(routes) })
+  }
+  let items = [
+    workflow(12, "active"),
+    workflow(13, "disabled_manually", name="Publish"),
+    workflow(14, "deleted", name="Retired"),
+  ]
+  for
+    (id, args, limit) in [
+      ("list_default", ["list"], 50),
+      ("list_all", ["list", "--all"], 50),
+      ("list_limit_filter_order", ["list", "-L2"], 2),
+      ("list_json", ["list", "-a", "--json", "id,name,path,state"], 50),
+      ("list_jq", ["list", "-a", "--json", "name,id", "-q", ".[1].name"], 50),
+      (
+        "list_template",
+        ["list", "--json", "name", "-t", "{{range .}}{{.name}}!{{end}}"],
+        50,
+      ),
+      ("list_bool_false", ["ls", "--all=false"], 50),
+      (
+        "list_conflicting_format",
+        ["list", "--json", "name", "-q", ".", "-t", "hi"],
+        50,
+      ),
+      ("list_cluster", ["list", "-aL2"], 2),
+      ("list_empty_fields", ["list", "--json="], 50),
+    ] {
+    add(
+      id,
+      ["workflow"] + args,
+      Map([
+        (
+          root + "?page=1&per_page=" + limit.to_string(),
+          { "json": { "workflows": items } },
+        ),
+      ]),
+    )
+  }
+  add(
+    "list_filtered_empty",
+    ["workflow", "list", "--json", "name"],
+    Map([
+      (root + "?page=1&per_page=50", { "json": { "workflows": [items[1]] } }),
+    ]),
+  )
+  add(
+    "list_empty",
+    ["workflow", "list", "-a"],
+    Map([(root + "?page=1&per_page=50", { "json": { "workflows": [] } })]),
+  )
+  add(
+    "list_forbidden",
+    ["workflow", "list"],
+    Map([
+      (
+        root + "?page=1&per_page=50",
+        { "status": 403, "json": { "message": "Forbidden" } },
+      ),
+    ]),
+  )
+  let first = Array::makei(100, index => {
+    workflow(index + 1, "active", name="Build " + index.to_string())
+  })
+  add(
+    "list_pagination",
+    ["workflow", "list", "-L101", "--json", "id", "--jq", "length"],
+    Map([
+      (root + "?page=1&per_page=100", { "json": { "workflows": first } }),
+      (
+        root + "?page=2&per_page=100",
+        {
+          "json": {
+            "workflows": [workflow(101, "active"), workflow(102, "active")],
+          },
+        },
+      ),
+    ]),
+  )
+  for
+    (id, args) in [
+      ("list_zero", ["list", "-L0"]),
+      ("list_bad_limit", ["list", "--limit=no"]),
+      ("list_invalid_field", ["list", "--json", "name,url"]),
+      ("list_jq_without_json", ["list", "-q", "."]),
+      ("list_positional", ["list", "extra"]),
+      ("list_unknown_flag", ["list", "--unknown"]),
+      ("enable_missing", ["enable"]),
+      ("disable_extra", ["disable", "one", "two"]),
+      ("enable_unknown", ["enable", "12", "--all"]),
+    ] {
+    add(id, ["workflow"] + args, Map([]))
+  }
+  for action in ["enable", "disable"] {
+    for selector in ["12", "CI.YAML", "cI"] {
+      let state = if action == "enable" {
+        "disabled_manually"
+      } else {
+        "active"
+      }
+      let routes : Map[String, Json] = Map([
+        (root + "/12/" + action, { "method": "PUT", "status": 204 }),
+      ])
+      if selector == "cI" {
+        routes[root + "?page=1&per_page=100"] = {
+          "json": {
+            "workflows": [
+              workflow(12, state),
+              workflow(13, "deleted"),
+              workflow(
+                14,
+                if action == "enable" {
+                  "active"
+                } else {
+                  "disabled_manually"
+                },
+              ),
+            ],
+          },
+        }
+      } else {
+        routes[root + "/" + selector] = { "json": workflow(12, state) }
+      }
+      add(action + "_" + selector, ["workflow", action, selector], routes)
+    }
+    add(
+      action + "_not_found",
+      ["workflow", action, "no.yml"],
+      Map([
+        (
+          root + "/no.yml",
+          { "status": 404, "json": { "message": "Not Found" } },
+        ),
+      ]),
+    )
+    add(
+      action + "_forbidden",
+      ["workflow", action, "12"],
+      Map([
+        (root + "/12", { "json": workflow(12, "active") }),
+        (
+          root + "/12/" + action,
+          { "status": 403, "method": "PUT", "json": { "message": "Forbidden" } },
+        ),
+      ]),
+    )
+    add(
+      action + "_no_match",
+      ["workflow", action, "CI"],
+      Map([
+        (
+          root + "?page=1&per_page=100",
+          { "json": { "workflows": [workflow(12, "deleted")] } },
+        ),
+      ]),
+    )
+    add(
+      action + "_ambiguous",
+      ["workflow", action, "CI"],
+      Map([
+        (
+          root + "?page=1&per_page=100",
+          {
+            "json": {
+              "workflows": [
+                workflow(
+                  12,
+                  if action == "enable" {
+                    "disabled_inactivity"
+                  } else {
+                    "active"
+                  },
+                ),
+                workflow(
+                  13,
+                  if action == "enable" {
+                    "disabled_manually"
+                  } else {
+                    "active"
+                  },
+                ),
+              ],
+            },
+          },
+        ),
+      ]),
+    )
+  }
+  @fs.write_file(
+    "testdata/workflow-manage-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

@@ -14,6 +14,7 @@ priv struct ResponseLineGuard {
   mut line_bytes : Array[Byte]
   mut chunk_remaining : Int32
   mut chunk_crlf_step : Int32
+  mut reason_phrase : String?
 }
 
 ///|
@@ -28,6 +29,7 @@ fn ResponseLineGuard::new() -> ResponseLineGuard {
     line_bytes: [],
     chunk_remaining: 0,
     chunk_crlf_step: 0,
+    reason_phrase: None,
   }
 }
 
@@ -69,6 +71,21 @@ fn ResponseLineGuard::feed(
         }
         if self.status_line {
           self.informational = guard_status_is_informational(self.line_bytes)
+          if !self.informational && self.line_bytes.length() >= 12 {
+            let reason = Bytes::from_array(self.line_bytes)[12:]
+            let text = StringBuilder()
+            // HTTP/1 reason phrases are opaque octets; retain non-ASCII
+            // bytes without replacing them or reading body data as text.
+            for byte in reason {
+              text.write_char(byte.to_int().to_char().unwrap())
+            }
+            self.reason_phrase = Some(
+              text
+              .to_string()
+              .strip_prefix(" ")
+              .map_or(text.to_string(), value => value.to_owned()),
+            )
+          }
           self.status_line = false
           self.line_length = 0
           self.line_bytes = []

@@ -1,0 +1,76 @@
+///|
+/// Preserve the registry regex engine locally so execute_from can retain the
+/// original text's anchors and word boundaries during global jq operations.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn copy_library(
+  source : String,
+  destination : String,
+  relative : String,
+  files : Array[Json],
+) -> Unit {
+  @fs.mkdir(destination)
+  for name in @fs.readdir(source) {
+    let original = source + "/" + name
+    if @fs.kind(original) == @fs.Directory {
+      if name is ("internal" | "ast" | "vm" | "parse" | "unicode") {
+        copy_library(
+          original,
+          destination + "/" + name,
+          relative + name + "/",
+          files,
+        )
+      }
+      continue
+    }
+    if name.has_suffix("_test.mbt") ||
+      name.has_suffix("_wbtest.mbt") ||
+      name.has_suffix("_bench.mbt") ||
+      name.has_suffix(".mbti") {
+      continue
+    }
+    if !(name.has_suffix(".mbt") ||
+      name is ("moon.pkg" | "moon.mod" | "LICENSE" | "NOTICE")) {
+      continue
+    }
+    let bytes = @fs.read_file(original).binary()
+    @fs.write_file(destination + "/" + name, bytes, create_mode=CreateNew)
+    files.push({
+      "path": relative + name,
+      "upstream_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+    })
+  }
+}
+
+///|
+async fn main {
+  let source = ".mooncakes/moonbitlang/regexp"
+  let destination = "third_party/regexp"
+  guard !@fs.exists(destination) else { fail("regex vendor already exists") }
+  guard @fs.read_file(source + "/moon.mod")
+    .text()
+    .contains("version = \"0.3.6\"") else {
+    fail("unexpected regex version")
+  }
+  let files : Array[Json] = []
+  copy_library(source, destination, "", files)
+  @fs.write_file(
+    destination + "/upstream.json",
+    Json::object({
+      "module": "moonbitlang/regexp",
+      "version": "0.3.6",
+      "license": "Apache-2.0",
+      "registry_checksum": "5f5474bf5cddd888ea8526709474b99a04066a6197abda3c95b48b8078684ad7",
+      "repository": "https://github.com/moonbitlang/regexp.mbt",
+      "reason": "The public execute API restarts anchor and word-boundary context on a sliced suffix. Global jq regex iteration needs a start offset into the original input.",
+      "files": Json::array(files),
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+  )
+}

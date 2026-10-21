@@ -833,7 +833,11 @@ async fn main {
   }
   let root = @fs.realpath(@env.current_dir().unwrap_or("."))
   let binary = @fs.realpath(
-    args.get(1).unwrap_or(root + "/_build/native/debug/build/cmd/main/main.exe"),
+    args
+    .get(1)
+    .unwrap_or(
+      root + "/_build/native/debug/build/ZSeanYves/gh/cmd/main/main.exe",
+    ),
   )
   guard @fs.kind(binary) is @fs.Regular && @fs.can_execute(binary) else {
     fail("project binary must be an executable regular file")

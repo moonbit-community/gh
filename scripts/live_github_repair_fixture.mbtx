@@ -1,0 +1,860 @@
+///|
+/// Explicit live differential for repaired command semantics. Every mutation
+/// is confined to marker-owned resources in the dedicated test repository.
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+let repository = "ZSeanYves/gh_test"
+
+///|
+struct Result {
+  code : Int32
+  out : String
+  err : String
+}
+
+///|
+struct Fixture {
+  binary : String
+  candidate_hash : String
+  oracle : String
+  token : String
+  config : String
+  marker : String
+  records : Array[Json]
+  branches : Array[String]
+  prs : Array[String]
+  issues : Array[String]
+  keys : Array[String]
+  residual : Array[String]
+  mut default_branch : String
+  mut default_sha : String
+}
+
+///|
+fn hash(value : String) -> String {
+  @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(value)))
+}
+
+///|
+fn field(value : Json, path : Array[String]) -> Json {
+  let mut value = value
+  for key in path {
+    value = match value {
+      Object(fields) => fields.get(key).unwrap_or(Json::null())
+      _ => Json::null()
+    }
+  }
+  value
+}
+
+///|
+fn text_field(value : Json, path : Array[String]) -> String {
+  match field(value, path) {
+    String(value) => value
+    Number(value, ..) => value.to_int().to_string()
+    _ => ""
+  }
+}
+
+///|
+fn decoded(result : Result) -> Json {
+  @json.parse(result.out) catch {
+    _ => Json::null()
+  }
+}
+
+///|
+fn same_output(a : String, b : String) -> Bool {
+  // Preserve array order and every value/type, allowing only JSON object key
+  // order/insignificant JSON whitespace. Non-JSON streams compare exactly.
+  let left = @json.parse(a) catch { _ => return a == b }
+  let right = @json.parse(b) catch { _ => return false }
+  left == right
+}
+
+///|
+async fn Fixture::run(
+  self : Fixture,
+  binary : String,
+  args : Array[String],
+  input? : String,
+) -> Result {
+  if binary == self.binary &&
+    @crypto.bytes_to_hex_string(@crypto.sha256(@fs.read_file(binary).binary())) !=
+    self.candidate_hash {
+    return {
+      code: 1,
+      out: "",
+      err: "candidate binary changed after scope preflight",
+    }
+  }
+  if binary == self.oracle && !oracle_readonly(args) {
+    return {
+      code: 1,
+      out: "",
+      err: "oracle writes are forbidden; use the guarded candidate",
+    }
+  }
+  if binary == "git" &&
+    !(args == ["init", "--quiet"] ||
+    (
+      args.length() == 4 &&
+      args[0] == "config" &&
+      args[1] == "--local" &&
+      args[2] == "--get" &&
+      args[3].has_prefix("branch.") &&
+      args[3].has_suffix(".gh-merge-base")
+    )) {
+    return {
+      code: 1,
+      out: "",
+      err: "Git writes require the shared checkout ownership guard",
+    }
+  }
+  let output = @shell.Cmd(
+    binary,
+    args,
+    cwd=self.config,
+    inherit_env=false,
+    env={
+      "GH_TOKEN": self.token,
+      "GH_HOST": "github.com",
+      "GH_CONFIG_DIR": self.config,
+      "HOME": self.config,
+      "XDG_CONFIG_HOME": self.config,
+      "XDG_CACHE_HOME": self.config,
+      "PATH": "/usr/bin:/bin",
+      "LC_ALL": "C",
+      "LANG": "C",
+      "GH_PROMPT_DISABLED": "1",
+      "GIT_TERMINAL_PROMPT": "0",
+      "GH_NO_UPDATE_NOTIFIER": "1",
+      "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+      "GH_TELEMETRY": "0",
+      "DO_NOT_TRACK": "1",
+      "NO_COLOR": "1",
+      "GH_PAGER": "cat",
+      "PAGER": "cat",
+      "GH_LIVE_ACCEPTANCE": "1",
+      "GH_ACCEPTANCE_POLICY": @env.get_env_var("GH_ACCEPTANCE_POLICY").unwrap_or(
+        self.config + "/missing-acceptance-policy.json",
+      ),
+    },
+    stdin?=input.map(value => @shell.Stdin::Text(value)),
+  ).output(timeout_ms=90000, max_output_bytes=4194304) catch {
+    _ => return { code: 124, out: "", err: "process_timeout_or_spawn", }
+  }
+  { code: output.exit_code(), out: output.stdout(), err: output.stderr(), }
+}
+
+///|
+fn oracle_readonly(args : Array[String]) -> Bool {
+  if args == ["--version"] {
+    return true
+  }
+  if args.get(0) == Some("api") {
+    guard args.length() == 4 &&
+      args[2] == "--method" &&
+      args[3] is ("GET" | "HEAD") else {
+      return false
+    }
+    return !args[1].has_prefix("graphql")
+  }
+  args.get(0) is Some("issue" | "pr" | "repo" | "status") &&
+  (
+    args.get(1) is Some("list" | "view" | "checks" | "status") ||
+    args.get(0) == Some("status")
+  ) &&
+  !args.contains("--web")
+}
+
+///|
+fn Fixture::record(
+  self : Fixture,
+  name : String,
+  status : String,
+  a : Result,
+  b? : Result,
+) -> Unit {
+  let leaked = a.out.contains(self.token) ||
+    a.err.contains(self.token) ||
+    b.map_or(false, b => {
+      b.out.contains(self.token) || b.err.contains(self.token)
+    })
+  let record : Map[String, Json] = {
+    "name": Json::string(name),
+    "status": Json::string(if leaked { "failed" } else { status }),
+    "candidate_exit": Json::number(a.code.to_double()),
+    "candidate_stdout_sha256": Json::string(
+      hash(a.out.replace_all(old=self.token, new="<redacted>")),
+    ),
+    "candidate_stderr_sha256": Json::string(
+      hash(a.err.replace_all(old=self.token, new="<redacted>")),
+    ),
+  }
+  if b is Some(b) {
+    record["oracle_exit"] = Json::number(b.code.to_double())
+    record["oracle_stdout_sha256"] = Json::string(
+      hash(b.out.replace_all(old=self.token, new="<redacted>")),
+    )
+    record["oracle_stderr_sha256"] = Json::string(
+      hash(b.err.replace_all(old=self.token, new="<redacted>")),
+    )
+  }
+  self.records.push(Json::object(record))
+  println(name + ": " + (if leaked { "failed" } else { status }))
+  if status == "failed" && !leaked {
+    println("candidate: " + a.code.to_string() + " " + a.out + " " + a.err)
+    if b is Some(b) {
+      println("oracle: " + b.code.to_string() + " " + b.out + " " + b.err)
+    }
+  }
+}
+
+///|
+async fn Fixture::api(
+  self : Fixture,
+  verb : String,
+  path : String,
+  body? : Json,
+) -> Result {
+  let args = ["api", path, "--method", verb]
+  if body is Some(_) {
+    args.append(["--input", "-"])
+  }
+  self.run(self.binary, args, input?=body.map(value => value.stringify()))
+}
+
+///|
+async fn Fixture::compare(
+  self : Fixture,
+  name : String,
+  args : Array[String],
+) -> Unit {
+  let a = self.run(self.binary, args)
+  let b = self.run(self.oracle, args)
+  let matched = a.code == b.code && same_output(a.out, b.out) && a.err == b.err
+  self.record(name, if matched { "passed" } else { "failed" }, a, b~)
+}
+
+///|
+fn permission_denied(result : Result) -> Bool {
+  result.code != 0 &&
+  (
+    result.err.contains("Resource not accessible") ||
+    result.err.contains("HTTP 403") ||
+    result.err.contains("insufficient") ||
+    result.err.contains("requires one of the following scopes")
+  )
+}
+
+///|
+async fn Fixture::exercise(self : Fixture) -> Unit {
+  let initialized = self.run("git", ["init", "--quiet"])
+  guard initialized.code == 0 else {
+    fail("isolated Git repository setup failed")
+  }
+  let metadata = self.api("GET", "repos/" + repository)
+  self.default_branch = text_field(decoded(metadata), ["default_branch"])
+  guard metadata.code == 0 && !self.default_branch.is_empty() else {
+    fail("repository preflight failed")
+  }
+  let baseline = self.api(
+    "GET",
+    "repos/" + repository + "/git/ref/heads/" + self.default_branch,
+  )
+  self.default_sha = text_field(decoded(baseline), ["object", "sha"])
+  guard baseline.code == 0 && !self.default_sha.is_empty() else {
+    fail("branch preflight failed")
+  }
+  let base = self.marker + "-base"
+  let head = self.marker + "-head"
+  for branch in [base, head] {
+    self.branches.push(branch)
+    let result = self.api("POST", "repos/" + repository + "/git/refs", body={
+      "ref": Json::string("refs/heads/" + branch),
+      "sha": Json::string(self.default_sha),
+    })
+    guard result.code == 0 else { fail("marker branch creation failed") }
+  }
+  let file = self.marker + ".txt"
+  let content = self.api("PUT", "repos/" + repository + "/contents/" + file, body={
+    "message": Json::string(self.marker),
+    "branch": Json::string(head),
+    "content": Json::string(@base64.encode(@utf8.encode(self.marker + "\n"))),
+  })
+  guard content.code == 0 else { fail("marker content creation failed") }
+  let head_sha = text_field(decoded(content), ["commit", "sha"])
+  let issue = self.api("POST", "repos/" + repository + "/issues", body={
+    "title": Json::string(self.marker),
+    "body": Json::string(self.marker),
+  })
+  let issue_number = text_field(decoded(issue), ["number"])
+  guard issue.code == 0 && !issue_number.is_empty() else {
+    fail("marker issue creation failed")
+  }
+  self.issues.push(issue_number)
+  let pr = self.api("POST", "repos/" + repository + "/pulls", body={
+    "title": Json::string(self.marker),
+    "body": Json::string(self.marker),
+    "head": Json::string(head),
+    "base": Json::string(base),
+  })
+  let number = text_field(decoded(pr), ["number"])
+  guard pr.code == 0 && !number.is_empty() else {
+    fail("marker pull request creation failed")
+  }
+  self.prs.push(number)
+  self.await_search(number)
+
+  self.compare("issue-status-nonempty-json", [
+    "issue", "status", "-R", repository, "--json", "number,title,state",
+  ])
+  self.compare("pr-status-nonempty-json", [
+    "pr", "status", "-R", repository, "--json", "number,title,state,headRefName",
+  ])
+  self.compare("issue-status-export-json", [
+    "issue", "status", "-R", repository, "--json", "number,author,assignees,labels,milestone,createdAt,closedAt",
+  ])
+  self.compare("pr-status-export-json", [
+    "pr", "status", "-R", repository, "--json", "number,author,assignees,labels,milestone,headRepository,headRepositoryOwner",
+  ])
+  self.compare("issue-status-nonempty-text", [
+    "issue", "status", "-R", repository,
+  ])
+  self.compare("pr-status-nonempty-text", ["pr", "status", "-R", repository])
+  self.compare("pr-checks-empty", ["pr", "checks", number, "-R", repository])
+  self.compare("pr-revert-unmerged", ["pr", "revert", number, "-R", repository])
+
+  // Both implementations see the same initially unpinned resource.
+  let pin_args = ["issue", "pin", issue_number, "-R", repository]
+  let unpin_args = ["issue", "unpin", issue_number, "-R", repository]
+  let pinned = self.run(self.binary, pin_args)
+  let pin_state = self.run(self.oracle, [
+    "issue", "view", issue_number, "-R", repository, "--json", "isPinned",
+  ])
+  let pinned_confirmed = field(decoded(pin_state), ["isPinned"]) ==
+    Json::boolean(true)
+  ignore(self.run(self.oracle, unpin_args))
+  let pin_oracle = self.run(self.oracle, pin_args)
+  self.record(
+    "issue-pin-differential",
+    if pinned_confirmed &&
+      pinned.code == 0 &&
+      pin_oracle.code == 0 &&
+      pinned.out == pin_oracle.out &&
+      pinned.err == pin_oracle.err {
+      "passed"
+    } else if permission_denied(pinned) && permission_denied(pin_oracle) {
+      "pending_permission"
+    } else {
+      "failed"
+    },
+    pinned,
+    b=pin_oracle,
+  )
+  let unpinned = self.run(self.binary, unpin_args)
+  ignore(self.run(self.oracle, pin_args))
+  let unpin_oracle = self.run(self.oracle, unpin_args)
+  self.record(
+    "issue-unpin-differential",
+    if unpinned.code == unpin_oracle.code &&
+      unpinned.out == unpin_oracle.out &&
+      unpinned.err == unpin_oracle.err {
+      "passed"
+    } else {
+      "failed"
+    },
+    unpinned,
+    b=unpin_oracle,
+  )
+
+  let linked = self.marker + "-linked"
+  self.branches.push(linked)
+  let develop_args = [
+    "issue", "develop", issue_number, "-R", repository, "--base", base, "--name",
+    linked,
+  ]
+  let developed = self.run(self.binary, develop_args)
+  let saved_base = self.run("git", [
+    "config",
+    "--local",
+    "--get",
+    "branch." + linked + ".gh-merge-base",
+  ])
+  self.record(
+    "issue-develop-saves-base",
+    if saved_base.code == 0 && saved_base.out == base + "\n" {
+      "passed"
+    } else {
+      "failed"
+    },
+    saved_base,
+  )
+  let develop_oracle = self.run(self.oracle, develop_args)
+  self.record(
+    "issue-develop-create-and-reuse",
+    if developed.code == 0 &&
+      develop_oracle.code == 0 &&
+      developed.out == develop_oracle.out &&
+      developed.err == develop_oracle.err {
+      "passed"
+    } else if permission_denied(developed) && permission_denied(develop_oracle) {
+      "pending_permission"
+    } else {
+      "failed"
+    },
+    developed,
+    b=develop_oracle,
+  )
+  self.compare("issue-develop-list", [
+    "issue", "develop", issue_number, "-R", repository, "--list",
+  ])
+
+  for state in ["pending", "failure", "success"] {
+    let status = self.api(
+      "POST",
+      "repos/" + repository + "/statuses/" + head_sha,
+      body={
+        "state": Json::string(state),
+        "context": Json::string(self.marker),
+        "description": Json::string("fixture " + state),
+        "target_url": Json::string("https://github.com/" + repository),
+      },
+    )
+    if status.code != 0 {
+      self.record(
+        "checks-fixture-status-" + state,
+        if permission_denied(status) {
+          "pending_permission"
+        } else {
+          "failed"
+        },
+        status,
+      )
+      break
+    }
+    self.compare("pr-checks-" + state + "-json", [
+      "pr", "checks", number, "-R", repository, "--json", "name,state,bucket,link,description,startedAt,completedAt,event,workflow",
+    ])
+    self.compare("pr-checks-" + state + "-text-exit", [
+      "pr", "checks", number, "-R", repository,
+    ])
+  }
+  self.compare("pr-checks-required-empty", [
+    "pr", "checks", number, "-R", repository, "--required",
+  ])
+  self.compare("pr-update-branch-current", [
+    "pr", "update-branch", number, "-R", repository,
+  ])
+
+  // Move only the marker base, leaving the repository default branch intact.
+  let moved = self.api(
+    "PUT",
+    "repos/" + repository + "/contents/" + self.marker + "-base.txt",
+    body={
+      "message": Json::string(self.marker + " base"),
+      "branch": Json::string(base),
+      "content": Json::string(@base64.encode(@utf8.encode("base\n"))),
+    },
+  )
+  guard moved.code == 0 else { fail("marker base update failed") }
+  let updated = self.run(self.binary, [
+    "pr", "update-branch", number, "-R", repository, "--rebase",
+  ])
+  self.record(
+    "pr-update-branch-rebase",
+    if updated.code == 0 && updated.out == "✓ PR branch updated\n" {
+      "passed"
+    } else {
+      "failed"
+    },
+    updated,
+  )
+  self.compare("pr-update-branch-after-rebase", [
+    "pr", "update-branch", number, "-R", repository, "--rebase",
+  ])
+
+  // Revert must never manufacture a REST /pulls/{number}/revert endpoint.
+  let merged = self.api(
+    "PUT",
+    "repos/" + repository + "/pulls/" + number + "/merge",
+    body={ "merge_method": "merge" },
+  )
+  guard merged.code == 0 &&
+    field(decoded(merged), ["merged"]) == Json::boolean(true) else {
+    fail("marker PR merge failed")
+  }
+  let reverted = self.run(self.binary, [
+    "pr",
+    "revert",
+    number,
+    "-R",
+    repository,
+    "--title",
+    self.marker + " revert",
+    "--body",
+    self.marker,
+  ])
+  let revert_number = reverted.out
+    .trim()
+    .split("/")
+    .last()
+    .unwrap_or("")
+    .to_owned()
+  let revert_id = @string.parse_int(revert_number) catch { _ => 0 }
+  if reverted.code == 0 && revert_id > 0 {
+    self.prs.push(revert_number)
+    let reverted_pr = self.api(
+      "GET",
+      "repos/" + repository + "/pulls/" + revert_number,
+    )
+    let revert_head = text_field(decoded(reverted_pr), ["head", "ref"])
+    // GitHub chooses this branch name; track the exact ref returned for this
+    // marker-owned revert PR, never a wildcard or an unrelated branch.
+    if !revert_head.is_empty() {
+      self.branches.push(revert_head)
+    }
+    let valid = text_field(decoded(reverted_pr), ["title"]) ==
+      self.marker + " revert" &&
+      text_field(decoded(reverted_pr), ["base", "ref"]) == base
+    self.record(
+      "pr-revert-confirmed",
+      if valid {
+        "passed"
+      } else {
+        "failed"
+      },
+      reverted,
+    )
+    self.await_search(revert_number)
+    self.compare("pr-status-with-revert-json", [
+      "pr", "status", "-R", repository, "--json", "number,title,state",
+    ])
+  } else {
+    self.record(
+      "pr-revert-confirmed",
+      if permission_denied(reverted) {
+        "pending_permission"
+      } else {
+        "failed"
+      },
+      reverted,
+    )
+  }
+  self.deploy_keys()
+}
+
+///|
+async fn Fixture::await_search(self : Fixture, number : String) -> Unit {
+  // GitHub's search index lags writes. Qualify nonempty fixture visibility
+  // using the oracle alone before comparing either implementation.
+  let expected = @string.parse_int(number)
+  for attempt = 0; attempt < 30; attempt = attempt + 1 {
+    let result = self.run(self.oracle, [
+      "pr", "status", "-R", repository, "--json", "number",
+    ])
+    if result.code == 0 &&
+      field(decoded(result), ["createdBy"]) is Array(items) &&
+      items.any(item => {
+        field(item, ["number"]) == Json::number(expected.to_double())
+      }) {
+      return
+    }
+    @async.sleep(2000)
+  }
+  fail("marker PR did not become visible in the search index")
+}
+
+///|
+async fn Fixture::deploy_keys(self : Fixture) -> Unit {
+  for writable in [false, true] {
+    let results : Array[Result] = []
+    let mut confirmed = true
+    for index, binary in [self.binary, self.oracle] {
+      let title = self.marker +
+        (if writable { "-stdin-write-" } else { "-file-read-" }) +
+        index.to_string()
+      let key_path = self.config + "/" + title
+      let generated = @shell.Cmd(
+        "/usr/bin/ssh-keygen",
+        ["-q", "-t", "ed25519", "-N", "", "-C", title, "-f", key_path],
+        inherit_env=false,
+        env={ "PATH": "/usr/bin:/bin" },
+      ).output(timeout_ms=10000)
+      guard generated.exit_code() == 0 else {
+        fail("temporary deploy key generation failed")
+      }
+      let key = @fs.read_file(key_path + ".pub").text()
+      let args = [
+        "repo",
+        "deploy-key",
+        "add",
+        if writable {
+          "-"
+        } else {
+          key_path + ".pub"
+        },
+        "-R",
+        repository,
+        "--title",
+        title,
+      ]
+      if writable {
+        args.push("--allow-write")
+      }
+      let result = self.run(
+        binary,
+        args,
+        input?=if writable { Some(key) } else { None },
+      )
+      results.push(result)
+      let listed = self.api("GET", "repos/" + repository + "/keys?per_page=100")
+      let mut found = false
+      if decoded(listed) is Array(keys) {
+        for entry in keys {
+          if text_field(entry, ["title"]) == title {
+            let id = text_field(entry, ["id"])
+            if !id.is_empty() {
+              self.keys.push(id)
+            }
+            found = field(entry, ["read_only"]) == Json::boolean(!writable)
+          }
+        }
+      }
+      confirmed = confirmed && found
+    }
+    let a = results[0]
+    let b = results[1]
+    if permission_denied(a) && permission_denied(b) {
+      self.record(
+        if writable {
+          "deploy-key-stdin-denial-differential"
+        } else {
+          "deploy-key-file-denial-differential"
+        },
+        if a.code == b.code && a.out == b.out && a.err == b.err {
+          "passed"
+        } else {
+          "failed"
+        },
+        a,
+        b~,
+      )
+    }
+    let status = if confirmed &&
+      a.code == 0 &&
+      b.code == 0 &&
+      a.out == b.out &&
+      a.err == b.err {
+      "passed"
+    } else if permission_denied(a) && permission_denied(b) {
+      "pending_permission"
+    } else {
+      "failed"
+    }
+    self.record(
+      if writable {
+        "deploy-key-stdin-write"
+      } else {
+        "deploy-key-file-read-only"
+      },
+      status,
+      a,
+      b~,
+    )
+  }
+}
+
+///|
+async fn Fixture::cleanup(self : Fixture) -> Unit {
+  for number in self.prs {
+    let result = self.api("PATCH", "repos/" + repository + "/pulls/" + number, body={
+      "state": "closed",
+    })
+    if result.code != 0 {
+      self.residual.push("pr:" + number)
+    }
+  }
+  for number in self.issues {
+    let result = self.run(self.oracle, [
+      "issue", "delete", number, "-R", repository, "--yes",
+    ])
+    if result.code != 0 {
+      self.residual.push("issue:" + number)
+    }
+  }
+  for branch in self.branches {
+    let result = self.api(
+      "DELETE",
+      "repos/" + repository + "/git/refs/heads/" + branch,
+    )
+    if result.code != 0 &&
+      !result.err.contains("HTTP 404") &&
+      !result.err.contains("Reference does not exist") {
+      self.residual.push("branch:" + branch)
+    }
+  }
+  for key in self.keys {
+    let result = self.api("DELETE", "repos/" + repository + "/keys/" + key)
+    if result.code != 0 {
+      self.residual.push("deploy-key:" + key)
+    }
+  }
+  if !self.default_sha.is_empty() {
+    let result = self.api(
+      "GET",
+      "repos/" + repository + "/git/ref/heads/" + self.default_branch,
+    )
+    self.record(
+      "default-branch-unchanged",
+      if result.code == 0 &&
+        text_field(decoded(result), ["object", "sha"]) == self.default_sha {
+        "passed"
+      } else {
+        "failed"
+      },
+      result,
+    )
+  }
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  if args.length() == 2 && args[1] == "--self-test" {
+    assert_true(same_output("{\"a\":1,\"b\":2}", "{\"b\":2,\"a\":1}"))
+    assert_false(same_output("[1,2]", "[2,1]"))
+    assert_false(same_output("{\"a\":null}", "{}"))
+    assert_false(same_output("{\"a\":\"1\"}", "{\"a\":1}"))
+    assert_false(same_output("", "[]"))
+    println("repair fixture self-test passed")
+    return
+  }
+  guard (
+      args.length() == 3 ||
+      (args.length() == 4 && args[3] == "--deploy-keys-only")
+    ) &&
+    @env.get_env_var("LIVE_GITHUB") == Some("1") &&
+    @env.get_env_var("GH_LIVE_REPO") == Some(repository) else {
+    fail("explicit test repository opt-in required")
+  }
+  guard @env.get_env_var("GH_TOKEN") is Some(token) && !token.is_empty() else {
+    fail("missing test token")
+  }
+  guard @env.get_env_var("GH_ACCEPTANCE_POLICY") is Some(_) else {
+    fail(
+      "live writes require a shared ledger policy; use scripts/run_acceptance.mbtx",
+    )
+  }
+  guard @env.get_env_var("GH_ORACLE_BINARY") is Some(oracle) &&
+    @env.get_env_var("GH_ORACLE_SHA256") is Some(expected) &&
+    @crypto.bytes_to_hex_string(@crypto.sha256(@fs.read_file(oracle).binary())) ==
+    expected else {
+    fail("verified oracle required")
+  }
+  guard !@fs.exists(args[2]) else { fail("report already exists") }
+  let config = @fs.tmpdir(prefix="gh-repair-")
+  defer @fs.rmdir(config, recursive=true)
+  @fs.chmod(config, 0o700)
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let binary = @fs.realpath(args[1])
+  let probe = @shell.Cmd(
+    "moon",
+    [
+      "run",
+      "--target",
+      "native",
+      root + "/scripts/run_acceptance.mbtx",
+      "--",
+      "core_acceptance",
+      "--verify-binary",
+      binary,
+    ],
+    cwd=root,
+    inherit_env=true,
+  ).output(timeout_ms=120000, max_output_bytes=65536)
+  guard probe.exit_code() == 0 &&
+    @json.parse(probe.stdout())
+    is {
+      "scope_protocol": Number(1, ..),
+      "binary_sha256": String(candidate_hash),
+      ..
+    } else {
+    fail(
+      "candidate must pass the shared scope preflight before receiving credentials",
+    )
+  }
+  let marker = "codex-repair-" +
+    config.split("/").last().unwrap_or("fixture").to_owned()
+  let fixture : Fixture = {
+    binary,
+    candidate_hash,
+    oracle,
+    token,
+    config,
+    marker,
+    records: [],
+    branches: [],
+    prs: [],
+    issues: [],
+    keys: [],
+    residual: [],
+    default_branch: "",
+    default_sha: "",
+  }
+  try {
+    if args.length() == 4 {
+      fixture.deploy_keys()
+    } else {
+      fixture.exercise()
+    }
+  } catch {
+    _ =>
+      fixture.record("fixture-execution", "failed", {
+        code: 1,
+        out: "",
+        err: "fixture aborted; cleanup attempted",
+      })
+  }
+  fixture.cleanup()
+  let report : Json = {
+    "schema": 1,
+    "repository": repository,
+    "marker": Json::string(marker),
+    "binary_sha256": Json::string(
+      @crypto.bytes_to_hex_string(
+        @crypto.sha256(@fs.read_file(args[1]).binary()),
+      ),
+    ),
+    "oracle_sha256": Json::string(expected),
+    "core_parity_verified": false,
+    "cases": Json::array(fixture.records),
+    "cleanup_passed": Json::boolean(fixture.residual.is_empty()),
+    "residual_resources": Json::array(fixture.residual.map(Json::string)),
+  }
+  @fs.write_file(
+    args[2],
+    report.stringify(indent=2) + "\n",
+    permission=0o600,
+    create_mode=@fs.CreateNew,
+  )
+  println("Report: " + args[2])
+  guard fixture.residual.is_empty() &&
+    !fixture.records.any(record => {
+      field(record, ["status"]) == Json::string("failed")
+    }) else {
+    fail("repair acceptance failed; inspect sanitized report")
+  }
+}

@@ -10,7 +10,11 @@ async fn empty_business_fixture_output(
   let transport = @github.Transport::new(send=request => {
     assert_eq(request.verb(), "GET")
     assert_eq(request.path(), expected_path)
-    Ok(@github.RawResponse::new(status~, body~))
+    Ok(
+      @github.RawResponse::new(status~, body~, headers=[
+        ("Content-Type", "application/json"),
+      ]),
+    )
   })
   let client = match
     @github.Client::new(
@@ -62,7 +66,7 @@ async test "workflow list keeps an empty workflows collection silent" {
       args.push(flag)
     }
     let output = empty_business_fixture_output(
-      args, "/repos/acme/widgets/actions/workflows", b"{\"total_count\":0,\"workflows\":[]}",
+      args, "/repos/acme/widgets/actions/workflows?page=1&per_page=50", b"{\"total_count\":0,\"workflows\":[]}",
       200,
     )
     assert_eq(output.exit_code(), 0)
@@ -77,7 +81,7 @@ async test "workflow list keeps empty results silent with jq and template" {
     [
       "workflow", "list", "-R", "acme/widgets", "--json", "id,name", "--jq", ".[]",
     ],
-    "/repos/acme/widgets/actions/workflows",
+    "/repos/acme/widgets/actions/workflows?page=1&per_page=50",
     b"{\"total_count\":0,\"workflows\":[]}",
     200,
   )
@@ -89,7 +93,7 @@ async test "workflow list keeps empty results silent with jq and template" {
       "workflow", "list", "-R", "acme/widgets", "--json", "id,name", "--template",
       "{{.name}}",
     ],
-    "/repos/acme/widgets/actions/workflows",
+    "/repos/acme/widgets/actions/workflows?page=1&per_page=50",
     b"{\"total_count\":0,\"workflows\":[]}",
     200,
   )
@@ -104,11 +108,11 @@ async test "workflow list filters disabled states before JSON projection" {
     #|{
     #|  "total_count": 5,
     #|  "workflows": [
-    #|    {"id": 1, "name": "CI", "state": "active"},
-    #|    {"id": 2, "name": "Manual", "state": "disabled_manually"},
-    #|    {"id": 3, "name": "Inactive", "state": "disabled_inactivity"},
-    #|    {"id": 4, "name": "Deleted", "state": "deleted"},
-    #|    {"id": 5, "name": "Unknown", "state": "future_state"}
+    #|    {"id": 1, "name": "CI", "path": ".github/workflows/1.yml", "state": "active"},
+    #|    {"id": 2, "name": "Manual", "path": ".github/workflows/2.yml", "state": "disabled_manually"},
+    #|    {"id": 3, "name": "Inactive", "path": ".github/workflows/3.yml", "state": "disabled_inactivity"},
+    #|    {"id": 4, "name": "Deleted", "path": ".github/workflows/4.yml", "state": "deleted"},
+    #|    {"id": 5, "name": "Unknown", "path": ".github/workflows/5.yml", "state": "future_state"}
     #|  ]
     #|}
   for flags in [[], ["--all=false"]] {
@@ -120,7 +124,7 @@ async test "workflow list filters disabled states before JSON projection" {
     }
     let output = empty_business_fixture_output(
       args,
-      "/repos/acme/widgets/actions/workflows",
+      "/repos/acme/widgets/actions/workflows?page=1&per_page=50",
       @utf8.encode(body),
       200,
     )
@@ -133,7 +137,7 @@ async test "workflow list filters disabled states before JSON projection" {
   for flag in ["--all", "-a", "--all=true"] {
     let output = empty_business_fixture_output(
       ["workflow", "list", "-R", "acme/widgets", "--json", "id", flag],
-      "/repos/acme/widgets/actions/workflows",
+      "/repos/acme/widgets/actions/workflows?page=1&per_page=50",
       @utf8.encode(body),
       200,
     )
@@ -151,7 +155,7 @@ async test "workflow list filters disabled states before JSON projection" {
 
 ///|
 async test "workflow list is silent when every workflow is disabled" {
-  let body = b"{\"total_count\":1,\"workflows\":[{\"id\":9,\"state\":\"disabled_manually\"}]}"
+  let body = b"{\"total_count\":1,\"workflows\":[{\"id\":9,\"name\":\"CI\",\"path\":\".github/workflows/ci.yml\",\"state\":\"disabled_manually\"}]}"
   for
     flags in [
       [],
@@ -164,7 +168,7 @@ async test "workflow list is silent when every workflow is disabled" {
       args.push(flag)
     }
     let output = empty_business_fixture_output(
-      args, "/repos/acme/widgets/actions/workflows", body, 200,
+      args, "/repos/acme/widgets/actions/workflows?page=1&per_page=50", body, 200,
     )
     assert_eq(output.exit_code(), 0)
     assert_eq(output.stderr(), "")
@@ -177,16 +181,18 @@ async test "workflow list HTTP failures remain visible with an empty collection"
   let body = b"{\"message\":\"Resource not accessible by integration\",\"workflows\":[]}"
   let output = empty_business_fixture_output(
     ["workflow", "list", "-R", "acme/widgets", "--json", "id"],
-    "/repos/acme/widgets/actions/workflows",
+    "/repos/acme/widgets/actions/workflows?page=1&per_page=50",
     body,
     403,
   )
   assert_eq(output.exit_code(), 1)
-  assert_eq(output.stdout_bytes(), body)
+  assert_eq(output.stdout(), "")
   assert_true(
     output
     .stderr()
-    .contains("gh: Resource not accessible by integration (HTTP 403)"),
+    .contains(
+      "could not get workflows: HTTP 403: Resource not accessible by integration",
+    ),
   )
 }
 

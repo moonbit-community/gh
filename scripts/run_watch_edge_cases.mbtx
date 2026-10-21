@@ -1,0 +1,71 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn main {
+  guard @json.parse(@fs.read_file("testdata/run-watch-cases.json").text())
+    is Array(base) else {
+    fail("fixtures")
+  }
+  let cases : Array[Json] = []
+  fn copy(id : String) -> Map[String, Json] raise {
+    guard @json.parse(base[0].stringify()) is Object(fields) else {
+      fail("fixture")
+    }
+    fields["id"] = Json(id)
+    fields
+  }
+  for
+    (name, value) in [
+      ("hex", "-0x1"),
+      ("binary", "-0b1"),
+      ("octal", "-010"),
+      ("separator", "-0_1"),
+      ("explicit_octal", "-0o1"),
+      ("invalid_octal", "08"),
+      ("range", "9223372036854775808"),
+      ("negative_range", "-9223372036854775809"),
+      ("min_duration", "-9223372036854775808"),
+      ("max_duration", "9223372036854775807"),
+      ("duration_overflow", "9223372037"),
+      ("double_separator", "1__0"),
+      ("space", " 0"),
+    ] {
+    let fields = copy("watch_interval_" + name)
+    fields["args"] = ["run", "watch", "51", "-i", Json(value)]
+    cases.push(Json::object(fields))
+  }
+  for
+    (name, start, end) in [
+      ("nanoseconds", "2099-01-01T00:00:00Z", "2099-01-01T00:00:00.000000123Z"),
+      ("microseconds", "2099-01-01T00:00:00Z", "2099-01-01T00:00:00.00012345Z"),
+      ("milliseconds", "2099-01-01T00:00:00Z", "2099-01-01T00:00:00.12345Z"),
+      ("zero", "2099-01-01T00:00:00Z", "2099-01-01T00:00:00Z"),
+      ("negative", "2099-01-01T00:00:01Z", "2099-01-01T00:00:00Z"),
+      ("saturate", "0001-01-01T00:00:00Z", "2099-01-01T00:00:00Z"),
+      ("offset", "2099-01-01T01:00:00+01:00", "2099-01-01T00:00:00.001Z"),
+      ("borrow", "2099-01-01T00:00:00.999Z", "2099-01-01T00:00:01Z"),
+      ("hours", "2099-01-01T00:00:00Z", "2099-01-01T01:01:01.001Z"),
+    ] {
+    let fields = copy("watch_duration_" + name)
+    guard fields["routes"] is Object(routes) &&
+      routes["/repos/acme/widgets/actions/runs/51/jobs?per_page=100"]
+      is { "sequence": Array(sequence), .. } &&
+      sequence[1] is { "json": { "jobs": Array(jobs), .. }, .. } &&
+      jobs[0] is Object(job) else {
+      fail("jobs fixture")
+    }
+    job["started_at"] = Json(start)
+    job["completed_at"] = Json(end)
+    cases.push(Json::object(fields))
+  }
+  @fs.write_file(
+    "testdata/run-watch-edge-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

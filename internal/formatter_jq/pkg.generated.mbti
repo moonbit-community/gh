@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/formatter_jq"
+
+// Values
+pub fn render(Json, String, indent? : Int32, color? : Bool, environment? : Map[String, String]) -> (String, String?)
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

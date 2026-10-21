@@ -1,7 +1,14 @@
 import {
   "ZSeanYves/gh",
   "ZSeanYves/gh/internal/transport",
+  "ZSeanYves/gh/internal/live_scope",
+  "ZSeanYves/gh/internal/download",
+  "ZSeanYves/gh/internal/archive",
+  "ZSeanYves/gh/internal/attestation",
+  "ZSeanYves/gh/internal/bounded_json",
+  "ZSeanYves/gh/internal/snappy",
   "ZSeanYves/gh/github",
+  "ZSeanYves/gh/github/operations",
   "ZSeanYves/gh/github_cli",
   "ZSeanYves/gh/internal/github_auth",
   "moonbitlang/async",
@@ -14,6 +21,8 @@ import {
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/encoding/percent",
   "moonbitlang/x/crypto",
+  "moonbitlang/x/time",
+  "moonbitlang/x/fs" @sync_fs,
   "cc06b/mooncry/lib",
   "mizchi/experimental_crypto/getrandom",
   "moonbitlang/async/fs",
@@ -21,12 +30,14 @@ import {
   "moonbitlang/async/stdio",
   "moonbitlang/async/process",
   "moonbitlang/async/socket",
+  "moonbit-community/tty",
 }
 
 import {
   "moonbitlang/async/http",
   "moonbitlang/async/socket",
   "moonbitlang/core/json",
+  "moonbit-community/flate/zip",
 } for "test"
 
 supported_targets = "native"

@@ -143,7 +143,7 @@ pub fn resolve(
     Some(value) => value
     None => return Err(InvalidHost)
   }
-  let enterprise = host != "github.com"
+  let enterprise = host != "github.com" && host != "github.localhost"
   let selected = if enterprise {
     first_non_empty([
       (environment.gh_enterprise_token, GhEnterpriseToken),
@@ -162,7 +162,9 @@ pub fn resolve(
     Some((value, source)) if valid_token(value) => (Some(value), source)
     Some(_) => return Err(InvalidToken)
   }
-  let (rest_base_url, graphql_url) = if enterprise {
+  let (rest_base_url, graphql_url) = if host == "github.localhost" {
+    ("http://api.github.localhost", "http://api.github.localhost/graphql")
+  } else if enterprise {
     ("https://" + host + "/api/v3", "https://" + host + "/api/graphql")
   } else {
     ("https://api.github.com", "https://api.github.com/graphql")

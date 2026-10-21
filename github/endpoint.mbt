@@ -38,7 +38,10 @@ fn parse_endpoint(value : String, query~ : Bool = false) -> Endpoint? {
       return None
     }
   }
-  guard scheme == "https" || host == "localhost" || host == "127.0.0.1" else {
+  guard scheme == "https" ||
+    host == "localhost" ||
+    host.has_suffix(".localhost") ||
+    host == "127.0.0.1" else {
     return None
   }
   let suffix = match port {

@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/archive"
+
+// Values
+pub fn decode_zip(BytesView, max_package_bytes? : Int32, max_entry_bytes? : Int32, max_total_bytes? : Int32, max_entries? : Int32, cancelled? : () -> Bool) -> Array[Entry] raise
+
+// Errors
+
+// Types and methods
+pub struct Entry {
+  path : String
+  directory : Bool
+  executable : Bool
+  // private fields
+}
+pub fn Entry::data(Self) -> BytesView
+pub fn Entry::directory(Self) -> Bool
+pub fn Entry::executable(Self) -> Bool
+pub fn Entry::path(Self) -> String
+
+// Type aliases
+
+// Traits

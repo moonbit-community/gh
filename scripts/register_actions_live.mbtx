@@ -1,0 +1,145 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+/// Register only command invocations actually exercised by the Actions runner.
+/// Repository setup, API cleanup and the runner's status polling are separate
+/// evidence; in particular, polling does not count as `run watch` acceptance.
+fn command_for(id : String) -> String? {
+  if id.has_prefix("workflow.dispatch-") {
+    return Some("workflow.run")
+  }
+  if id.has_prefix("run.logs-") {
+    return Some("run.view")
+  }
+  if id.has_prefix("run.watch-") {
+    return Some("run.watch")
+  }
+  if id.has_suffix(".cancel-command") {
+    return Some("run.cancel")
+  }
+  match id {
+    "workflow.disable-read" => Some("workflow.disable")
+    "workflow.enable-read" => Some("workflow.enable")
+    "run.rerun" | "run.rerun-failed-jobs" | "run.rerun-job" => Some("run.rerun")
+    "run.download-bytes-and-paths" => Some("run.download")
+    "cache.delete-command" => Some("cache.delete")
+    _ => None
+  }
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 else {
+    fail("usage: register_actions_live.mbtx REPORT_DIRECTORY")
+  }
+  let path = args[1] + "/report.json"
+  let bytes = @fs.read_file(path).binary()
+  let report = @json.parse(@fs.read_file(path).text())
+  guard report
+    is {
+      "family": String("private-repository-lifecycle"),
+      "actions_requested": True,
+      "core_parity_verified": False,
+      "actions_profile_verified": False,
+      "binary_sha256": String(binary),
+      "cleanup": String(cleanup),
+      "source_build": {
+        "status": String("pass"),
+        "binary_sha256": String(built),
+        "source_files_sha256": String(source),
+        ..
+      },
+      "cases": Array(records),
+      ..
+    } &&
+    binary == built &&
+    binary.length() == 64 else {
+    fail("unbound Actions evidence")
+  }
+  let evidence : Json = {
+    "report": path,
+    "binary_sha256": binary,
+    "source_files_sha256": source,
+    "report_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+  }
+  let matrix_path = "testdata/acceptance-v2.102.0.json"
+  let matrix = @json.parse(@fs.read_file(matrix_path).text())
+  guard matrix is Object(root) &&
+    root.get("core_parity_verified") == Some(Json(false)) &&
+    root.get("profile_verified") == Some(Json(false)) &&
+    root.get("commands") is Some(Array(commands)) else {
+    fail("unsafe matrix")
+  }
+  for record in records {
+    guard record is { "id": String(id), "status": String(state), .. } else {
+      fail("invalid case")
+    }
+    guard ["pass", "fail", "blocked"].contains(state) else {
+      fail("invalid case state")
+    }
+    guard command_for(id) is Some(command) else { continue }
+    guard commands
+      .iter()
+      .find_first(value => {
+        value is { "id": String(name), .. } && name == command
+      })
+      is Some(Object(fields)) &&
+      fields.get("cases") is Some(Array(cases)) else {
+      fail("missing command")
+    }
+    let case_id = "actions-live:" + id
+    let old = cases
+      .iter()
+      .find_first(value => {
+        value is { "id": String(name), .. } && name == case_id
+      })
+    let history : Array[Json] = match old {
+      Some({ "history": Array(history), .. }) => history.copy()
+      _ => []
+    }
+    if !history.contains(evidence) {
+      history.push(evidence)
+    }
+    let reason = match record {
+      { "reason": String(reason), .. } => reason
+      _ => ""
+    }
+    let item : Json = {
+      "id": case_id,
+      "status": state,
+      "command": command,
+      "history": history,
+      "argv": [],
+      "live": { "status": state, "reason": reason, "evidence": [evidence] },
+      "cleanup": { "status": cleanup, "reason": "", "evidence": [evidence] },
+      "differential": {
+        "status": "blocked",
+        "reason": "live_execution_is_not_an_oracle_comparison",
+        "evidence": [],
+      },
+      "observation": record,
+    }
+    let retained = cases.filter(value => {
+      !(value is { "id": String(name), .. } && name == case_id)
+    })
+    retained.push(item)
+    fields["cases"] = Json::array(retained)
+  }
+  @fs.write_file(
+    matrix_path + ".tmp",
+    matrix.stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+  @fs.rename(matrix_path + ".tmp", matrix_path)
+  println(
+    "registered Actions command evidence; full command and profile gates remain unverified",
+  )
+}

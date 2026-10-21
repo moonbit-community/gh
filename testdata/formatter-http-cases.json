@@ -1,0 +1,10 @@
+[
+  {"id":"http-401-jq","response_status":401,"format":"jq","input":{"message":"Bad credentials","status":"401"},"expression":".message"},
+  {"id":"http-403-template","response_status":403,"format":"template","input":{"message":"Resource not accessible","status":"403"},"expression":"{{.message}}"},
+  {"id":"http-404-invalid-jq","response_status":404,"format":"jq","input":{"message":"Not Found"},"expression":".["},
+  {"id":"http-422-errors","response_status":422,"format":"jq","input":{"message":"Validation Failed","errors":[{"resource":"Issue","field":"title","code":"missing_field"}]},"expression":".message"},
+  {"id":"http-500-missing-message","response_status":500,"format":"template","input":{"error":"oops"},"expression":"{{.error}}"},
+  {"id":"http-403-control","response_status":403,"format":"jq","input":{"message":"No\u001b[31m access"},"expression":"."},
+  {"id":"http-success-empty-jq","format":"jq","input":{"a":"x","b":null},"expression":""},
+  {"id":"http-success-empty-template","format":"template","input":{"a":"x","b":null},"expression":""}
+]

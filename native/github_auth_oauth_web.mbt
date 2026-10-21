@@ -269,26 +269,37 @@ pub fn web_oauth_adapter(
           Err(error) => return Err(error)
         }
         let response = match
-          oauth_post(transport, "/login/oauth/access_token", [
-            ("client_id", client_id),
-            ("client_secret", client_secret),
-            ("code", code),
-            ("redirect_uri", redirect_uri),
-            ("code_verifier", verifier),
-          ]) {
+          oauth_post(
+            transport,
+            "/login/oauth/access_token",
+            [
+              ("client_id", client_id),
+              ("client_secret", client_secret),
+              ("code", code),
+              ("redirect_uri", redirect_uri),
+              ("code_verifier", verifier),
+            ],
+            stage=WebExchange,
+          ) {
           Ok(value) => value
           Err(error) => return Err(error)
         }
         match response {
           { "error": String("access_denied"), .. } => Err(OAuthError::Denied)
-          { "error": _, .. } => Err(OAuthError::Failed)
+          { "error": _, .. } => {
+            oauth_diagnostic(WebExchange, ProviderError)
+            Err(OAuthError::Failed)
+          }
           { "expires_in": _, .. } | { "refresh_token": _, .. } =>
             Err(OAuthError::ExpiringTokenUnsupported)
           { "access_token": String(token), "token_type": String(kind), .. } if kind.equal_ignore_ascii_case(
               "bearer",
             ) &&
             oauth_safe_text(token, 4096) => Ok(token)
-          _ => Err(OAuthError::Failed)
+          _ => {
+            oauth_diagnostic(WebExchange, InvalidTokenResponse)
+            Err(OAuthError::Failed)
+          }
         }
       }
     catch {

@@ -1,0 +1,58 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn main {
+  guard @json.parse(@fs.read_file("testdata/run-rerun-cases.json").text())
+    is Array(base) else {
+    fail("fixtures")
+  }
+  let cases : Array[Json] = []
+  fn copy(id : String) -> Map[String, Json] raise {
+    guard @json.parse(base[0].stringify()) is Object(fields) else {
+      fail("fixture")
+    }
+    fields["id"] = Json(id)
+    fields
+  }
+  for
+    (id, environment) in [
+      ("spinner_text", { "GH_SPINNER_DISABLED": "yes" }),
+      ("spinner_false", { "GH_SPINNER_DISABLED": "false" }),
+      ("spinner_false_case_sensitive", { "GH_SPINNER_DISABLED": "False" }),
+      ("spinner_agent", { "CODEX_THREAD_ID": "synthetic-thread" }),
+      (
+        "spinner_override_agent",
+        { "CODEX_THREAD_ID": "synthetic-thread", "GH_SPINNER_DISABLED": "0" },
+      ),
+      ("spinner_valid_agent", { "AI_AGENT": "fixture-bot" }),
+      ("spinner_invalid_agent", { "AI_AGENT": "invalid/name" }),
+      ("spinner_no_color", { "NO_COLOR": "1" }),
+      ("spinner_text_no_color", { "NO_COLOR": "1", "GH_SPINNER_DISABLED": "1" }),
+    ] {
+    let fields = copy(id)
+    fields["environment"] = Json(environment)
+    cases.push(Json::object(fields))
+  }
+  for
+    (id, explicit) in [
+      ("spinner_config_disabled", false),
+      ("spinner_env_overrides_config", true),
+    ] {
+    let fields = copy(id)
+    fields["config"] = Json("spinner: disabled\n")
+    if explicit {
+      fields["environment"] = { "GH_SPINNER_DISABLED": "no" }
+    }
+    cases.push(Json::object(fields))
+  }
+  @fs.write_file(
+    "testdata/actions-progress-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

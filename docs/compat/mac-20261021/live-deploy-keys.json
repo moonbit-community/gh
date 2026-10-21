@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "repository": "ZSeanYves/gh_test",
+  "marker": "codex-repair-gh-repair-.2219.a7a92edb",
+  "binary_sha256": "4f577d66e89803bb9e3b4c80ba3a562364488a0b3fa1495d749d782a1ba49b38",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "core_parity_verified": false,
+  "cases": [
+    {
+      "name": "deploy-key-file-read-only",
+      "status": "passed",
+      "candidate_exit": 0,
+      "candidate_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "oracle_exit": 0,
+      "oracle_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "oracle_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "deploy-key-stdin-write",
+      "status": "passed",
+      "candidate_exit": 0,
+      "candidate_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "oracle_exit": 0,
+      "oracle_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "oracle_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "cleanup_passed": true,
+  "residual_resources": []
+}

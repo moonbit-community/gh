@@ -3,7 +3,7 @@
 The [workflow source](../../.github/workflows/ci.yml) validates the GitHub
 mainline on pushes, pull requests, and manual dispatch. Native jobs execute on
 Linux x64, macOS arm64, and Windows x64 with the pinned MoonBit toolchain/core
-`0.10.15+943464bfa` (MoonBit release `0.1.20261012`). Action revisions are
+`0.10.16+b1a0e846e` (MoonBit release `0.1.20261020`). Action revisions are
 pinned in the workflow.
 
 ## Required checks
@@ -13,10 +13,14 @@ unexpected generated-interface changes. Native checks deny MoonBit warnings;
 Native tests and the Native release build run on each platform. Portable
 checks and tests cover Wasm, Wasm GC, and JavaScript separately. The live
 GitHub runner executes only `--self-test` in ordinary CI.
+Each clean runner first resolves dependencies with a non-frozen check.
+`moon update` refreshes the registry; it does not install the checkout's
+modules before a frozen check.
 
 Reproduce the principal checks from the repository root:
 
 ```text
+moon check --target native --deny-warn
 moon check --target native --frozen --deny-warn
 moon test --target native --frozen
 moon check --target wasm --frozen --deny-warn
@@ -30,8 +34,11 @@ moon check --target native --deny-warn scripts/live_github_fixture.mbtx
 moon run --target native scripts/live_github_fixture.mbtx -- --self-test
 moon check --target native --deny-warn scripts/live_github_write_fixture.mbtx
 moon run --target native scripts/live_github_write_fixture.mbtx -- --self-test
+moon check --target native --deny-warn scripts/live_github_repair_fixture.mbtx
+moon run --target native scripts/live_github_repair_fixture.mbtx -- --self-test
 moon info
-moon fmt --check . scripts/gh_oracle.mbtx scripts/live_github_fixture.mbtx scripts/live_github_write_fixture.mbtx
+moon fmt --check
+moon fmt --check scripts/*.mbtx
 ```
 
 Run Moon commands sequentially because they share a build lock. Review changes

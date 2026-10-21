@@ -1,0 +1,143 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+/// Compare a single immutable candidate against every saved formatter corpus.
+/// Reports are saved even when a profile fails. This is one acceptance family,
+/// and must not be promoted into the project-wide parity flag.
+async fn main {
+  let args = @env.args()
+  guard args.length() == 3 else {
+    fail("usage: verify_formatter.mbtx CANDIDATE_BINARY NEW_REPORT_DIRECTORY")
+  }
+  let binary = @fs.realpath(args[1])
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  guard !@fs.exists(args[2]) else { fail("report directory already exists") }
+  @fs.mkdir(args[2])
+  let destination = @fs.realpath(args[2])
+  let profiles : Array[(String, String, Array[String])] = [
+    ("core", "formatter-oracle-v2.102.0.json", []),
+    ("regex", "formatter-regex-oracle-v2.102.0.json", []),
+    ("language", "formatter-language-oracle-v2.102.0.json", []),
+    ("boundary", "formatter-boundary-oracle-v2.102.0.json", []),
+    ("stream", "formatter-stream-oracle-v2.102.0.json", []),
+    ("builtins", "formatter-builtins-oracle-v2.102.0.json", []),
+    ("terminal-pipe", "formatter-terminal-pipe-oracle-v2.102.0.json", []),
+    ("terminal-pty", "formatter-terminal-pty-oracle-v2.102.0.json", ["--pty"]),
+    (
+      "terminal-pipe-color",
+      "formatter-terminal-pipe-color-oracle-v2.102.0.json",
+      ["--color"],
+    ),
+    (
+      "terminal-pty-color",
+      "formatter-terminal-oracle-v2.102.0.json",
+      ["--pty", "--color"],
+    ),
+    ("http-pipe", "formatter-http-oracle-v2.102.0.json", []),
+    (
+      "http-pty-color",
+      "formatter-http-pty-oracle-v2.102.0.json",
+      ["--pty", "--color"],
+    ),
+  ]
+  let records : Array[Json] = []
+  let mut passed = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      destination + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "formatter",
+        "binary_sha256": hash,
+        "status": if passed {
+          "pass"
+        } else {
+          "fail"
+        },
+        "core_parity_verified": false,
+        "expected_profiles": profiles.length(),
+        "profiles": records,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+    )
+  })
+  let mut failures = 0
+  for (name, corpus, options) in profiles {
+    guard @crypto.bytes_to_hex_string(
+        @crypto.sha256(@fs.read_file(binary).binary()),
+      ) ==
+      hash else {
+      fail("candidate binary changed during formatter acceptance")
+    }
+    let source = "testdata/" + corpus
+    let expected = @json.parse(@fs.read_file(source).text())
+    guard expected
+      is {
+        "failures": Number(0, ..),
+        "expected_cases": Number(expected_count, ..),
+        "completed_cases": Number(completed_count, ..),
+        ..
+      } &&
+      completed_count == expected_count else {
+      fail("incomplete oracle capture")
+    }
+    let report = destination + "/" + name + ".json"
+    let result = @shell.Cmd(
+      "moon",
+      [
+        "run", "--target", "native", "scripts/formatter_oracle.mbtx", "--", binary,
+        source, report, "--compare",
+      ] +
+      options,
+    ).output(timeout_ms=900000, max_output_bytes=65536)
+    let evidence = if @fs.exists(report) {
+      @json.parse(@fs.read_file(report).text())
+    } else {
+      Json::null()
+    }
+    let valid = result.exit_code() == 0 &&
+      evidence
+      is {
+        "binary_sha256": String(observed),
+        "failures": Number(0, ..),
+        "expected_cases": Number(total, ..),
+        "completed_cases": Number(completed, ..),
+        ..
+      } &&
+      observed == hash &&
+      total == expected_count &&
+      completed == total
+    if !valid {
+      failures += 1
+    }
+    records.push({
+      "profile": name,
+      "status": if valid {
+        "pass"
+      } else {
+        "fail"
+      },
+      "cases": expected_count,
+      "exit_code": result.exit_code(),
+      "corpus": source,
+      "report": name + ".json",
+      "corpus_sha256": @crypto.bytes_to_hex_string(
+        @crypto.sha256(@fs.read_file(source).binary()),
+      ),
+    })
+    println(name + ": " + (if valid { "pass" } else { "fail" }))
+  }
+  passed = failures == 0
+  guard passed else { fail("formatter differential failures; see reports") }
+}

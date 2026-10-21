@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+  "ZSeanYves/gh/internal/formatter_common",
+  "moonbit-community/unicodewidth",
+  "moonbitlang/regexp",
+  "moonbitlang/x/time",
+  "moonbitlang/core/string",
+}
+
+import {
+  "moonbitlang/core/json",
+} for "test"

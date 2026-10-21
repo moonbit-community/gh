@@ -1,0 +1,108 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/http",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+fn number(value : Json, key : String) -> Int32 raise {
+  match value {
+    Object(fields) =>
+      match fields.get(key) {
+        Some(Number(n, ..)) => n.to_int()
+        _ => fail("missing number")
+      }
+    _ => fail("object required")
+  }
+}
+
+///|
+fn field(value : Json, key : String) -> Json raise {
+  match value {
+    Object(fields) =>
+      fields.get(key).unwrap_or_else(() => fail("missing field"))
+    _ => fail("object required")
+  }
+}
+
+///|
+/// Capture public TUF inputs only. This script does NOT establish trust:
+/// signatures, versions, expiry and target hashes must be verified by the
+/// product before any captured certificate is accepted as a trust anchor.
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 && !@fs.exists(args[1]) else {
+    fail("usage: capture_github_trust.mbtx NEW_DIRECTORY")
+  }
+  @fs.mkdir(args[1])
+  let records : Array[Json] = []
+  defer @fs.write_file(
+    args[1] + "/capture.json",
+    Json::object({ "schema": 1, "trust_verified": false, "files": records }).stringify(
+      indent=2,
+    ) +
+    "\n",
+  )
+  async fn fetch(name : String, optional : Bool) -> Bytes? {
+    let url = "https://tuf-repo.github.com/" + name
+    let (response, body) = @http.get(url)
+    if optional && response.code == 404 {
+      return None
+    }
+    guard response.code == 200 else {
+      fail("public TUF request failed: \{response.code}")
+    }
+    let bytes = body.binary()
+    guard bytes.length() <= 10485760 else {
+      fail("TUF metadata capture too large")
+    }
+    let filename = name.replace_all(old="/", new="__")
+    @fs.write_file(args[1] + "/" + filename, bytes, create_mode=CreateNew)
+    records.push({
+      "url": url,
+      "file": filename,
+      "sha256": @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+      "bytes": bytes.length(),
+    })
+    Some(bytes)
+  }
+  for version in 4..<=64 {
+    if fetch("\{version}.root.json", true) is None {
+      break
+    }
+  }
+  let timestamp = @json.parse(
+    @utf8.decode(fetch("timestamp.json", false).unwrap()),
+  )
+  let snapshot_version = number(
+    field(field(field(timestamp, "signed"), "meta"), "snapshot.json"),
+    "version",
+  )
+  let snapshot = @json.parse(
+    @utf8.decode(fetch("\{snapshot_version}.snapshot.json", false).unwrap()),
+  )
+  let targets_version = number(
+    field(field(field(snapshot, "signed"), "meta"), "targets.json"),
+    "version",
+  )
+  let targets = @json.parse(
+    @utf8.decode(fetch("\{targets_version}.targets.json", false).unwrap()),
+  )
+  let target = field(
+    field(field(targets, "signed"), "targets"),
+    "trusted_root.json",
+  )
+  let digest = match field(field(target, "hashes"), "sha256") {
+    String(value) => value
+    _ => fail("target digest")
+  }
+  ignore(fetch("targets/" + digest + ".trusted_root.json", false))
+  println(
+    "Captured public trust inputs; cryptographic verification is still required.",
+  )
+}

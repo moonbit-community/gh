@@ -1,0 +1,96 @@
+///|
+/// Two read-only processes append to one file. Neither response body nor
+/// credential is retained; the test also checks the stored trace for secrets.
+async fn verify_live_trace(
+  credential_path : String,
+  report_directory : String,
+) -> Unit {
+  guard !@fs.exists(report_directory) else { fail("trace report exists") }
+  guard @json.parse(@fs.read_file(credential_path).text())
+    is { "GH_TOKEN": String(token), .. } &&
+    !token.is_empty() else {
+    fail("credential")
+  }
+  @fs.mkdir(report_directory, permission=0o700)
+  let directory = @fs.realpath(report_directory)
+  let isolated = @fs.tmpdir(prefix="gh-trace-live-")
+  defer @fs.rmdir(isolated, recursive=true)
+  let acceptance : Acceptance = {
+    binary: @fs.realpath(
+      "_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    ),
+    config: isolated,
+    ledger_path: directory + "/ledger.json",
+    policy_path: isolated + "/policy.json",
+    token,
+    ledger: Ledger::new("trace-readonly", "1421650935"),
+    verified_binary: Ref(None),
+  }
+  acceptance.verify_binary()
+  let build = acceptance_build_evidence(acceptance.verified_binary.val.unwrap())
+  guard build != Json::null() else {
+    fail("trace acceptance requires a source-bound build")
+  }
+  let trace = directory + "/trace.jsonl"
+  let cases : Array[Json] = []
+  let mut passed = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "trace-readonly",
+        "remote_mutations": 0,
+        "source_build": build,
+        "binary_sha256": acceptance.verified_binary.val.unwrap(),
+        "status": if passed {
+          "pass"
+        } else {
+          "fail"
+        },
+        "core_parity_verified": false,
+        "cleanup": "pass",
+        "cases": cases,
+      }).stringify(indent=2) +
+      "\n",
+      permission=0o600,
+    )
+  })
+  for
+    (path, identity_field, identity) in [
+      ("/user", "login", Json("ZSeanYves")),
+      ("/repos/ZSeanYves/gh_test", "id", Json(1421650935)),
+    ] {
+    let (code, output, _) = acceptance.invoke(["api", path], trace~)
+    guard code == 0 &&
+      @json.parse(output) is Object(fields) &&
+      fields.get(identity_field) == Some(identity) else {
+      fail("trace read identity mismatch")
+    }
+    cases.push({ "id": path, "status": "pass" })
+  }
+  let text = @fs.read_file(trace).text()
+  guard !text.contains(token) &&
+    !text.contains("access_token") &&
+    !text.contains("Authorization") else {
+    fail("trace contains a secret")
+  }
+  let records = text.trim_end().split("\n").to_array()
+  guard records.length() == 2 else {
+    fail("trace events missing or duplicated")
+  }
+  for index in 0..<records.length() {
+    guard @json.parse(records[index])
+      is { "path": String(path), "status": Number(200, ..), .. } &&
+      path == (if index == 0 { "/user" } else { "/repos/ZSeanYves/gh_test" }) else {
+      fail("trace ordering or status")
+    }
+  }
+  cases.push({
+    "id": "trace.append-and-redact",
+    "status": "pass",
+    "records": records.length(),
+  })
+  passed = true
+  println("read-only trace append and redaction passed")
+}

@@ -1,0 +1,168 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+fn fixture(
+  id : String,
+  args : Array[String],
+  job~ : Bool = false,
+  failed~ : Bool = false,
+  response_status~ : Int32 = 201,
+  metadata_status~ : Int32 = 200,
+) -> Json {
+  let root = "/repos/acme/widgets/actions/"
+  let routes : Map[String, Json] = Map([])
+  if job {
+    routes[root + "jobs/23"] = {
+      "headers": { "Content-Type": "application/json" },
+      "status": metadata_status,
+      "json": if metadata_status == 200 {
+        {
+          "id": 23,
+          "run_id": 51,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [],
+        }
+      } else {
+        { "message": "Not Found" }
+      },
+    }
+  } else {
+    routes[root + "runs/51?exclude_pull_requests=true"] = {
+      "headers": { "Content-Type": "application/json" },
+      "status": metadata_status,
+      "json": if metadata_status == 200 {
+        {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1,
+        }
+      } else {
+        { "message": "Not Found" }
+      },
+    }
+    routes[root + "workflows/12"] = {
+      "json": {
+        "id": 12,
+        "name": "CI",
+        "path": ".github/workflows/ci.yml",
+        "state": "active",
+      },
+    }
+  }
+  routes[root +
+  (if job {
+    "jobs/23/rerun"
+  } else if failed {
+    "runs/51/rerun-failed-jobs"
+  } else {
+    "runs/51/rerun"
+  })] = {
+    "headers": { "Content-Type": "application/json" },
+    "method": "POST",
+    "status": response_status,
+    "json": if response_status == 201 {
+      Json::null()
+    } else {
+      { "message": "Run is not eligible" }
+    },
+  }
+  { "id": id, "args": args, "routes": Json::object(routes) }
+}
+
+///|
+async fn main {
+  let cases : Array[Json] = []
+  cases.push(fixture("rerun_all", ["run", "rerun", "51"]))
+  cases.push(
+    fixture("rerun_failed", ["run", "rerun", "51", "--failed"], failed=true),
+  )
+  cases.push(fixture("rerun_debug", ["run", "rerun", "51", "--debug"]))
+  cases.push(
+    fixture(
+      "rerun_failed_debug",
+      ["run", "rerun", "--failed", "51", "-d"],
+      failed=true,
+    ),
+  )
+  cases.push(
+    fixture("rerun_false_flags", [
+      "run", "rerun", "51", "--failed=false", "--debug=0",
+    ]),
+  )
+  cases.push(
+    fixture(
+      "rerun_bool_spellings",
+      ["run", "rerun", "51", "--failed=T", "--debug=True"],
+      failed=true,
+    ),
+  )
+  cases.push(fixture("rerun_job", ["run", "rerun", "--job", "23"], job=true))
+  cases.push(
+    fixture(
+      "rerun_job_overrides_run",
+      ["run", "rerun", "999", "-j23", "--failed", "-d"],
+      job=true,
+    ),
+  )
+  cases.push(
+    fixture("rerun_short_cluster", ["run", "rerun", "-dj23"], job=true),
+  )
+  cases.push(
+    fixture("rerun_run_forbidden", ["run", "rerun", "51"], response_status=403),
+  )
+  cases.push(
+    fixture(
+      "rerun_job_forbidden",
+      ["run", "rerun", "-j", "23"],
+      job=true,
+      response_status=403,
+    ),
+  )
+  cases.push(
+    fixture("rerun_unprocessable", ["run", "rerun", "51"], response_status=422),
+  )
+  cases.push(
+    fixture("rerun_run_not_found", ["run", "rerun", "51"], metadata_status=404),
+  )
+  cases.push(
+    fixture(
+      "rerun_job_not_found",
+      ["run", "rerun", "-j", "23"],
+      job=true,
+      metadata_status=404,
+    ),
+  )
+  for
+    (id, args) in [
+      ("rerun_missing_target", ["run", "rerun"]),
+      ("rerun_unknown_flag", ["run", "rerun", "51", "--nonesuch"]),
+      ("rerun_unknown_shorthand", ["run", "rerun", "51", "-x"]),
+      ("rerun_missing_job_value", ["run", "rerun", "51", "--job="]),
+      ("rerun_excess_positionals", ["run", "rerun", "51", "52"]),
+      ("rerun_invalid_boolean", ["run", "rerun", "51", "--failed=maybe"]),
+    ] {
+    // --job= with a run id clears the job selection and is a valid run rerun.
+    cases.push(
+      if id == "rerun_missing_job_value" {
+        fixture(id, args)
+      } else {
+        { "id": id, "args": args, "routes": Json::empty_object() }
+      },
+    )
+  }
+  @fs.write_file(
+    "testdata/run-rerun-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

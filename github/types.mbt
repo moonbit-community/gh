@@ -82,8 +82,12 @@ pub fn Request::with_text_body(
 /// A raw response. No JSON decoding or text conversion occurs at this layer.
 pub struct RawResponse {
   status : Int32
+  reason_phrase : String?
   headers : Array[(String, String)]
   body : Bytes
+  // Filled by Client, not trusted from the transport. Never included in trace
+  // records or a derived debug representation.
+  priv request_url : String?
 }
 
 ///|
@@ -91,8 +95,21 @@ pub fn RawResponse::new(
   status~ : Int32,
   headers~ : Array[(String, String)] = [],
   body~ : Bytes = b"",
+  reason_phrase? : String,
 ) -> RawResponse {
-  { status, headers: headers.copy(), body, }
+  { status, reason_phrase, headers: headers.copy(), body, request_url: None, }
+}
+
+///|
+/// The request that produced this response, when sent through Client.
+/// This can contain query values; callers must not log it as diagnostic data.
+pub fn RawResponse::request_url(self : RawResponse) -> String? {
+  self.request_url
+}
+
+///|
+pub fn RawResponse::reason_phrase(self : RawResponse) -> String? {
+  self.reason_phrase
 }
 
 ///|
@@ -150,13 +167,56 @@ pub fn TransportError::message(self : TransportError) -> String {
 /// redirects by itself.
 pub struct Transport {
   priv send_request : async (Request) -> Result[RawResponse, TransportError]
+  priv receive_request : (async (Request, @gh.RawResponseSink) -> Result[
+    @gh.RawDownloadResult,
+    TransportError,
+  ])?
 }
 
 ///|
 pub fn Transport::new(
   send~ : async (Request) -> Result[RawResponse, TransportError],
+  receive? : async (Request, @gh.RawResponseSink) -> Result[
+    @gh.RawDownloadResult,
+    TransportError,
+  ],
 ) -> Transport {
-  { send_request: send, }
+  { send_request: send, receive_request: receive, }
+}
+
+///|
+async fn Transport::receive(
+  self : Transport,
+  request : Request,
+  sink : @gh.RawResponseSink,
+) -> Result[@gh.RawDownloadResult, TransportError] {
+  if self.receive_request is Some(receive) {
+    return receive(request, sink)
+  }
+  let response = match self.send(request) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  let head = @gh.RawResponseHead::new(
+    status=response.status(),
+    headers=response.headers(),
+    reason_phrase?=response.reason_phrase(),
+  )
+  if !sink.headers(head) {
+    return Ok(
+      @gh.RawDownloadResult::new(head~, bytes_received=0L, complete=false),
+    )
+  }
+  if !response.body().is_empty() {
+    sink.chunk(response.body())
+  }
+  Ok(
+    @gh.RawDownloadResult::new(
+      head~,
+      bytes_received=response.body().length().to_int64(),
+      complete=true,
+    ),
+  )
 }
 
 ///|
@@ -173,6 +233,7 @@ async fn Transport::send(
 pub enum RetryPolicy {
   Disabled
   Attempts(Int32)
+  ServerErrors(Int32, Int32)
 }
 
 ///|
@@ -194,6 +255,43 @@ fn RetryPolicy::max_attempts(self : RetryPolicy) -> Int32 {
   match self {
     Disabled => 1
     Attempts(value) => value
+    ServerErrors(value, _) => value
+  }
+}
+
+///|
+/// Retry only HTTP 500–599 on read requests. Transport failures, rate limits,
+/// and writes are not retried. The delay is cancellable and each attempt
+/// produces its own trace record.
+pub fn RetryPolicy::server_errors(
+  max_attempts~ : Int32,
+  delay_ms~ : Int32 = 200,
+) -> RetryPolicy {
+  ServerErrors(max_attempts.max(1), delay_ms.max(0))
+}
+
+///|
+fn RetryPolicy::should_retry(
+  self : RetryPolicy,
+  outcome : Result[RawResponse, TransportError],
+) -> Bool {
+  match (self, outcome) {
+    (Disabled, _) => false
+    (ServerErrors(_, _), Ok(response)) =>
+      response.status >= 500 && response.status <= 599
+    (ServerErrors(_, _), _) => false
+    (Attempts(_), Ok(response)) => retryable_status(response.status)
+    (Attempts(_), Err(TransportError::Failed | TransportError::Message(..))) =>
+      true
+    _ => false
+  }
+}
+
+///|
+fn RetryPolicy::delay_ms(self : RetryPolicy) -> Int32 {
+  match self {
+    ServerErrors(_, delay) => delay
+    _ => 0
   }
 }
 
@@ -214,6 +312,25 @@ pub enum GitHubError {
   Decode(message~ : String)
   GraphQL(response~ : RawResponse, errors~ : Array[Json])
   Cancelled
+}
+
+///|
+pub fn GitHubError::invalid_request(message : String) -> GitHubError {
+  InvalidRequest(message~)
+}
+
+///|
+pub fn GitHubError::decode(message : String) -> GitHubError {
+  Decode(message~)
+}
+
+///|
+/// Preserve partial GraphQL errors at typed-operation boundaries.
+pub fn GitHubError::graphql(
+  response : RawResponse,
+  errors : Array[Json],
+) -> GitHubError {
+  GraphQL(response~, errors~)
 }
 
 ///|

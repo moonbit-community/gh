@@ -1,0 +1,260 @@
+///|
+fn acceptance_ref_item(
+  value : Json,
+  repository : String,
+  ref_name : String,
+) -> Json raise {
+  guard value
+    is {
+      "ref": String(actual),
+      "node_id": String(_),
+      "object": { "type": String("commit"), "sha": String(sha), .. },
+      ..
+    } &&
+    actual == ref_name &&
+    sha.length() == 40 &&
+    sha.iter().all(ch => ch is ('0'..<='9' | 'a'..<='f')) else {
+    fail("Git ref receipt does not match the intended commit ref")
+  }
+  inventory_item("git_ref", value, repository)
+}
+
+///|
+async fn Acceptance::cleanup_branch(
+  self : Acceptance,
+  records : Array[Json],
+) -> Bool {
+  guard self.ledger.resources.get("branch") is Some(resource) else {
+    return true
+  }
+  if resource.state is (Intended | Removed) {
+    return true
+  }
+  try {
+    guard resource.remote_id is Some(id) &&
+      resource.content_sha256 is Some(hash) &&
+      resource.parent == Some("fixture") else {
+      fail("branch creation outcome unknown; no deletion permitted")
+    }
+    let repository = "/repos/ZSeanYves/gh_test"
+    let ref_name = resource.locator
+      .strip_prefix(repository + "/git/")
+      .unwrap_or_else(() => fail("branch scope"))
+    guard ref_name.has_prefix(
+      "refs/heads/gh-acceptance-" + self.ledger.run_id + "-",
+    ) else {
+      fail("branch locator outside this run")
+    }
+    let read_path = repository +
+      "/git/ref/" +
+      ref_name.strip_prefix("refs/").unwrap().to_owned()
+    let (status, current) = self.api("GET", read_path)
+    // Only a successful DELETE plus a subsequent 404 closes the cleanup gate.
+    // A pre-delete 404 may conceal a permission loss and must not be guessed.
+    guard status == 200 else { fail("branch ownership read-back unavailable") }
+    let item = acceptance_ref_item(current, repository, ref_name.to_owned())
+    guard inventory_string(item, "id") == id &&
+      inventory_string(item, "content_sha256") == hash else {
+      fail("branch identity or contents changed; no automatic deletion")
+    }
+    if resource.state == Uncertain {
+      self.ledger.confirm_created("branch", id)
+    }
+    let permit = self.ledger.approve_mutation(
+      "branch",
+      id,
+      "DELETE",
+      resource.locator,
+    )
+    let (status, _) = self.api("DELETE", resource.locator, permits=[permit])
+    guard status == 204 else { fail("branch deletion did not return HTTP 204") }
+    let (status, _) = self.api("GET", read_path)
+    guard status == 404 else { fail("branch absence not confirmed") }
+    self.ledger.confirm_removed("branch", id)
+    self.persist([])
+    records.push({
+      "id": "branch.cleanup",
+      "status": "pass",
+      "resource_id": id,
+      "readback_status": 404,
+    })
+    true
+  } catch {
+    error => {
+      records.push({
+        "id": "branch.cleanup",
+        "status": "blocked",
+        "reason": acceptance_diagnostic(error.to_string(), self.token),
+      })
+      false
+    }
+  }
+}
+
+///|
+/// The fixture's default branch is a read-only source for a uniquely named
+/// temporary ref. No commit, contents update, Git process or default ref write
+/// is approved. This exercises the shared write boundary independently of OAuth.
+async fn run_branch_lifecycle(
+  credential_path : String,
+  report_directory : String,
+) -> Unit {
+  guard !@fs.exists(report_directory) else { fail("branch report exists") }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("test credential missing")
+  }
+  @fs.mkdir(report_directory, permission=0o700)
+  let directory = @fs.realpath(report_directory)
+  let config = directory + "/config"
+  @fs.mkdir(config, permission=0o700)
+  let run_id = @crypto.bytes_to_hex_string(@env.rand(12).unwrap())
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config,
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger: Ledger::new(run_id, "unverified"),
+    verified_binary: Ref(None),
+  }
+  acceptance.verify_binary()
+  let build_evidence = acceptance_build_evidence(
+    acceptance.verified_binary.val.unwrap(),
+  )
+  guard build_evidence != Json::null() else {
+    fail("branch write requires a source-bound build")
+  }
+  let records : Array[Json] = []
+  let mut baseline : (String, String)? = None
+  let mut passed = false
+  defer @async.protect_from_cancel(() => {
+    let cleaned = acceptance.cleanup_branch(records)
+    let unchanged = match baseline {
+      None => false
+      Some((path, hash)) => {
+        let same = try {
+          let (status, response) = acceptance.api("GET", path)
+          status == 200 && inventory_content_hash("git_ref", response) == hash
+        } catch {
+          _ => false
+        }
+        records.push({
+          "id": "fixture.default-branch-unchanged",
+          "status": if same {
+            "pass"
+          } else {
+            "blocked"
+          },
+        })
+        same
+      }
+    }
+    acceptance.persist([])
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "scope-branch-lifecycle",
+        "run_id": run_id,
+        "repository": "ZSeanYves/gh_test",
+        "source_build": build_evidence,
+        "binary_sha256": acceptance.verified_binary.val.unwrap(),
+        "status": if passed && cleaned && unchanged {
+          "pass"
+        } else {
+          "fail"
+        },
+        "cleanup": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "default_branch_unchanged": unchanged,
+        "core_parity_verified": false,
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      permission=0o600,
+    )
+    guard cleaned && unchanged else {
+      fail("branch acceptance incomplete; preserve receipts")
+    }
+  })
+  let (status, viewer) = acceptance.api("GET", "/user")
+  guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+    fail("credential account mismatch")
+  }
+  let repository = "/repos/ZSeanYves/gh_test"
+  let (status, fixture) = acceptance.api("GET", repository)
+  guard status == 200 &&
+    fixture
+    is {
+      "full_name": String("ZSeanYves/gh_test"),
+      "default_branch": String(default_branch),
+      ..
+    } else {
+    fail("fixture identity unavailable")
+  }
+  acceptance.ledger = Ledger::new(run_id, acceptance_id(fixture))
+  let default_path = repository +
+    "/git/ref/heads/" +
+    @percent.encode(default_branch)
+  let (status, initial) = acceptance.api("GET", default_path)
+  guard status == 200 && initial is { "object": { "sha": String(sha), .. }, .. } else {
+    fail("default branch is unavailable")
+  }
+  ignore(
+    acceptance_ref_item(initial, repository, "refs/heads/" + default_branch),
+  )
+  baseline = Some((default_path, inventory_content_hash("git_ref", initial)))
+  let ref_name = "refs/heads/gh-acceptance-" + run_id + "-branch"
+  let read_path = repository +
+    "/git/ref/" +
+    ref_name.strip_prefix("refs/").unwrap().to_owned()
+  let (status, _) = acceptance.api("GET", read_path)
+  guard status == 404 else {
+    fail("temporary ref already exists or lookup failed")
+  }
+  acceptance.ledger.intend_resource("branch", "fixture", "/git/refs", "git_ref")
+  let body : Json = { "ref": ref_name, "sha": sha }
+  let permit = acceptance.ledger.approve_creation("branch", body)
+  let (status, created) = acceptance.api(
+    "POST",
+    repository + "/git/refs",
+    body~,
+    permits=[permit],
+  )
+  guard status == 201 &&
+    created is { "object": { "sha": String(created_sha), .. }, .. } &&
+    created_sha == sha else {
+    fail("branch creation receipt unavailable")
+  }
+  let item = acceptance_ref_item(created, repository, ref_name)
+  let id = inventory_string(item, "id")
+  let hash = inventory_string(item, "content_sha256")
+  acceptance.ledger.confirm_created(
+    "branch",
+    id,
+    locator=inventory_string(item, "locator"),
+  )
+  acceptance.ledger.record_content_receipt("branch", id, hash)
+  acceptance.ledger.bind_node(
+    "branch",
+    id,
+    inventory_string(created, "node_id"),
+  )
+  acceptance.persist([])
+  let (status, readback) = acceptance.api("GET", read_path)
+  guard status == 200 &&
+    acceptance_ref_item(readback, repository, ref_name) == item else {
+    fail("branch creation read-back mismatch")
+  }
+  records.push({
+    "id": "branch.create-read",
+    "status": "pass",
+    "resource_id": id,
+  })
+  passed = true
+}

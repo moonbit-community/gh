@@ -52,12 +52,15 @@ pub extend ProcessAdapterError with Eq::{not_equal, equal}
 /// Run a program with an argv array, bounded pipes, and a cancellation-aware
 /// timeout. `program` is passed directly to the native process API; no shell
 /// is involved, so metacharacters in arguments remain literal bytes.
+/// Results remain ordinary data for existing adapter callbacks and embedders.
+#warnings("-result_error_return")
 pub async fn run_native_process(
   program : String,
   args : Array[String],
   input? : Bytes,
   timeout_ms~ : Int32 = 30000,
   max_output_bytes~ : Int32 = 1048576,
+  acceptance_policy? : String,
 ) -> Result[NativeProcessResult, ProcessAdapterError] {
   guard !program.is_empty() &&
     !program.iter().any(ch => ch.to_int() < 32 || ch.to_int() == 127) else {
@@ -71,27 +74,48 @@ pub async fn run_native_process(
   guard timeout_ms > 0 && max_output_bytes > 0 else {
     return Err(InvalidArgument)
   }
+  guard acceptance_process_allowed(
+    program,
+    args,
+    policy_path?=acceptance_policy,
+  ) else {
+    return Err(InvalidCommand)
+  }
   try {
     let (result_code, stdout_bytes, stderr_bytes) = @async.with_timeout(
       timeout_ms,
     ) <| () => {
       let (child_stdin, input_writer) = @process.write_to_process()
+      let (stdout_reader, child_stdout) = @process.read_from_process()
+      defer stdout_reader.close()
+      let (stderr_reader, child_stderr) = @process.read_from_process()
+      defer stderr_reader.close()
       @async.with_task_group() <| group => {
         let writer = group.spawn(() => {
+          defer input_writer.close()
           match input {
             Some(bytes) => input_writer.write(bytes)
             None => ()
           }
-          input_writer.close()
         })
-        let (code, stdout, stderr) = @process.collect_output(
-          program,
-          args,
-          stdin=child_stdin,
-          inherit_env=true,
-        )
+        let child = group.spawn(() => {
+          @process.run(
+            program,
+            args,
+            stdin=child_stdin,
+            stdout=child_stdout,
+            stderr=child_stderr,
+            inherit_env=true,
+            cancel_handler=@process.hard_cancel(),
+          )
+        })
+        let errors = group.spawn(() => {
+          capture_process_output(stderr_reader, max_output_bytes)
+        })
+        let stdout = capture_process_output(stdout_reader, max_output_bytes)
+        let stderr = errors.wait()
         writer.wait()
-        (code, stdout.binary(), stderr.binary())
+        (child.wait(), stdout, stderr)
       }
     }
     guard stdout_bytes.length() <= max_output_bytes else {
@@ -114,6 +138,7 @@ pub async fn run_native_process(
 /// Quotes and backslash escapes are accepted for convenience; shell syntax is
 /// never evaluated. An empty command is rejected so callers can fall back to
 /// their platform default explicitly.
+#warnings("-result_error_return")
 pub fn split_native_command(
   command : String,
 ) -> Result[(String, Array[String]), ProcessAdapterError] {
@@ -156,6 +181,7 @@ pub fn split_native_command(
 
 ///|
 /// Run an editor command with a file path appended as one argv element.
+#warnings("-result_error_return")
 pub async fn run_editor(
   command : String,
   path : String,
@@ -177,6 +203,7 @@ pub async fn run_editor(
 ///|
 /// Run a browser opener with a URL appended as one argv element. URL handling
 /// stays in the caller; this adapter only guarantees argv separation.
+#warnings("-result_error_return")
 pub async fn open_browser(
   command : String,
   url : String,
@@ -200,14 +227,23 @@ pub async fn open_browser(
 /// preserves an existing PTY and forwards stdin/stdout/stderr directly; the
 /// adapter still passes executable and argv separately and never invokes a
 /// shell.
+#warnings("-result_error_return")
 pub async fn run_terminal_process(
   program : String,
   args : Array[String],
   timeout_ms~ : Int32 = 300000,
   runner? : async (String, Array[String]) -> Int32,
+  acceptance_policy? : String,
 ) -> Result[Int32, ProcessAdapterError] {
   guard !program.is_empty() && timeout_ms > 0 else {
     return Err(InvalidArgument)
+  }
+  guard acceptance_process_allowed(
+    program,
+    args,
+    policy_path?=acceptance_policy,
+  ) else {
+    return Err(InvalidCommand)
   }
   guard !program.iter().any(ch => ch.to_int() < 32 || ch.to_int() == 127) &&
     args.all(arg => {
@@ -237,4 +273,19 @@ pub async fn run_terminal_process(
     @async.TimeoutError => Err(TimedOut)
     _ => Err(Failed)
   }
+}
+
+///|
+async fn capture_process_output(
+  reader : @process.ReadFromProcess,
+  limit : Int32,
+) -> Bytes {
+  let buffer = @buffer.Buffer()
+  while reader.read_some(max_len=8192) is Some(bytes) {
+    guard bytes.length() <= limit - buffer.length() else {
+      raise ProcessAdapterError::OutputLimit
+    }
+    buffer.write_bytes(bytes)
+  }
+  buffer.to_bytes()
 }

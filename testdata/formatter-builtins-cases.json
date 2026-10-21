@@ -1,0 +1,27 @@
+[
+  {"id":"builtin-dynamic-split","format":"jq","input":{"text":"a:b,c","separator":":"},"expression":".separator as $sep | .text | split($sep)"},
+  {"id":"builtin-split-stream","format":"jq","input":"a:b,c","expression":"split((\":\",\",\"))"},
+  {"id":"builtin-split-empty","format":"jq","input":"a😀b","expression":"split(\"\")"},
+  {"id":"builtin-dynamic-join","format":"jq","input":["a",null,1,true],"expression":"\"|\" as $sep | join($sep)"},
+  {"id":"builtin-join-container-error","format":"jq","input":["a",{}],"expression":"join(\",\")"},
+  {"id":"builtin-prefix-dynamic","format":"jq","input":"abcdef","expression":"startswith((\"ab\",\"bc\")),endswith((\"ef\",\"de\"))"},
+  {"id":"builtin-trim-dynamic","format":"jq","input":"abcd","expression":"(\"ab\",\"cd\") as $part | ltrimstr($part),rtrimstr($part)"},
+  {"id":"builtin-string-type-errors","format":"jq","input":null,"expression":"(try split(\",\") catch .),(try startswith(\"a\") catch .),(try join(\",\") catch .)"},
+  {"id":"builtin-argument-type-errors","format":"jq","input":"abc","expression":"(try split(1) catch .),(try startswith(1) catch .),(try endswith(null) catch .)"},
+  {"id":"builtin-contains-deep","format":"jq","input":{"a":[{"x":"foobar","y":3},{"x":"other"}],"b":2},"expression":"contains({a:[{x:\"foo\"}]}),contains({a:[{x:\"bar\"}]}),contains({a:[{x:\"no\"}]})"},
+  {"id":"builtin-contains-array","format":"jq","input":[1,2,3],"expression":"contains([1,3]),contains([3,1]),contains([1,1]),contains([])"},
+  {"id":"builtin-contains-stream","format":"jq","input":"abc","expression":"contains((\"a\",\"z\")),contains(empty)"},
+  {"id":"builtin-contains-mismatch","format":"jq","input":[1,2],"expression":"(try contains(1) catch .),(try contains(null) catch .)"},
+  {"id":"builtin-inside-deep","format":"jq","input":{"x":"foo"},"expression":"inside({x:\"foobar\",y:1}),inside({x:\"no\"})"},
+  {"id":"builtin-has-dynamic","format":"jq","input":{"a":null,"b":2},"expression":"(\"a\",\"c\") as $key | has($key)"},
+  {"id":"builtin-has-array","format":"jq","input":[1,2],"expression":"has((-1,0,1,2,0.5)),(try has(\"0\") catch .)"},
+  {"id":"builtin-has-null","format":"jq","input":null,"expression":"has((\"x\",0,true,null))"},
+  {"id":"builtin-in-stream","format":"jq","input":"x","expression":"in(({x:1},{y:2},null))"},
+  {"id":"builtin-type-selectors","format":"jq","input":[null,false,0,"",[],{}],"expression":"[.[]|scalars],[.[]|arrays],[.[]|objects],[.[]|booleans],[.[]|numbers],[.[]|strings],[.[]|nulls],[.[]|iterables]"},
+  {"id":"builtin-keys-unsorted","format":"jq","input":{"z":1,"a":2},"expression":"keys_unsorted"},
+  {"id":"builtin-from-entries-aliases","format":"jq","input":[{"Key":"a","Value":1},{"name":"b","value":2},{"Name":"c","Value":3},{"key":"d"}],"expression":"from_entries"},
+  {"id":"builtin-from-entries-invalid","format":"jq","input":[{"key":1,"value":"a"}],"expression":"from_entries"},
+  {"id":"builtin-json-string-key-order","format":"jq","input":{"z":1,"abc":2},"expression":"tojson,tostring"},
+  {"id":"builtin-json-string-escapes","format":"jq","input":{"x":"<>&  "},"expression":"tojson"},
+  {"id":"builtin-split-regex","format":"jq","input":"A1b22C","expression":"split(\"[0-9]+\";\"i\")"}
+]

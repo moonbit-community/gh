@@ -1,0 +1,1184 @@
+///|
+/// Binding a run requires the repository and workflow IDs, exact commit and
+/// dispatch inputs from the durable intent, as well as the authenticated actor.
+/// A matching display name alone never establishes ownership.
+fn actions_validate_run(
+  value : Json,
+  repository_id : String,
+  workflow_id : String,
+  branch : String,
+  sha : String,
+  nonce : String,
+  mode : String,
+) -> Unit raise {
+  guard value
+    is {
+      "repository": repository,
+      "head_repository": head_repository,
+      "workflow_id": workflow,
+      "head_branch": String(actual_branch),
+      "head_sha": String(actual_sha),
+      "event": String("workflow_dispatch"),
+      "display_title": String(title),
+      "actor": { "login": String("ZSeanYves"), .. },
+      "run_attempt": Number(attempt, ..),
+      ..
+    } &&
+    acceptance_id(repository) == repository_id &&
+    acceptance_id(head_repository) == repository_id &&
+    workflow.stringify() == workflow_id &&
+    actual_branch == branch &&
+    actual_sha == sha &&
+    title == nonce + " / " + mode &&
+    attempt >= 1 &&
+    attempt == attempt.to_int().to_double() else {
+    fail("workflow run does not match the recorded dispatch intent")
+  }
+}
+
+///|
+async fn Acceptance::actions_workflow_state(
+  self : Acceptance,
+  enabled : Bool,
+  records : Array[Json],
+) -> Unit {
+  let resource = self.ledger.owned("workflow")
+  let id = resource.remote_id.unwrap()
+  let operation = if enabled { "enable" } else { "disable" }
+  let permit = self.ledger.approve_operation(
+    "workflow",
+    id,
+    "PUT",
+    resource.locator + "/" + operation,
+  )
+  let repository = self.ledger.owned("repository").locator[7:].to_owned()
+  let (exit_code, _, error) = self.invoke(
+    ["workflow", operation, id, "-R", repository],
+    permits=[permit],
+  )
+  let (status, value) = self.api("GET", resource.locator)
+  guard status == 200 &&
+    acceptance_id(value) == id &&
+    value is { "state": String(state), .. } &&
+    state == (if enabled { "active" } else { "disabled_manually" }) else {
+    fail("workflow state change could not be reconciled")
+  }
+  self.ledger.confirm_created("workflow", id)
+  self.ledger.record_content_receipt(
+    "workflow",
+    id,
+    inventory_content_hash("workflow", value),
+  )
+  self.persist([])
+  guard exit_code == 0 else {
+    fail("workflow command failed: " + acceptance_diagnostic(error, self.token))
+  }
+  records.push({
+    "id": "workflow." + operation + "-read",
+    "status": "pass",
+    "resource_id": id,
+  })
+}
+
+///|
+async fn Acceptance::actions_run_intent(
+  self : Acceptance,
+  directory : String,
+  mode : String,
+) -> Json {
+  let repository = self.ledger.owned("repository")
+  let workflow = self.ledger.owned("workflow")
+  let reference = self.ledger.owned("actions-branch")
+  let branch = reference.locator
+    .strip_prefix(repository.locator + "/git/refs/heads/")
+    .unwrap()
+    .to_owned()
+  let (status, value) = self.api(
+    "GET",
+    repository.locator + "/git/ref/heads/" + branch,
+  )
+  guard status == 200 &&
+    value is { "object": { "sha": String(sha), .. }, .. } &&
+    inventory_content_hash("git_ref", value) ==
+    reference.content_sha256.unwrap() else {
+    fail("workflow branch changed before dispatch")
+  }
+  let nonce = "gh-acceptance-" + self.ledger.run_id + "-" + mode
+  let intent : Json = {
+    "schema": 1,
+    "run_id": self.ledger.run_id,
+    "resource_key": "run-" + mode,
+    "repository_id": repository.remote_id.unwrap(),
+    "workflow_id": workflow.remote_id.unwrap(),
+    "branch": branch,
+    "sha": sha,
+    "nonce": nonce,
+    "mode": mode,
+    "created_at_ms": @env.now().to_double(),
+    "artifact_name": nonce + "-artifact-1",
+    "cache_key": nonce + "-cache-1",
+  }
+  @fs.write_file(
+    directory + "/dispatch-" + mode + ".json",
+    intent.stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  self.ledger.intend_resource(
+    "run-" + mode,
+    "repository",
+    "/actions/runs",
+    "run",
+  )
+  self.persist([])
+  intent
+}
+
+///|
+fn actions_match_intent(value : Json, intent : Json) -> Unit raise {
+  actions_validate_run(
+    value,
+    inventory_string(intent, "repository_id"),
+    inventory_string(intent, "workflow_id"),
+    inventory_string(intent, "branch"),
+    inventory_string(intent, "sha"),
+    inventory_string(intent, "nonce"),
+    inventory_string(intent, "mode"),
+  )
+}
+
+///|
+async fn Acceptance::actions_dispatch(
+  self : Acceptance,
+  directory : String,
+  mode : String,
+  records : Array[Json],
+) -> Json {
+  let intent = self.actions_run_intent(directory, mode)
+  let workflow = self.ledger.owned("workflow")
+  let workflow_id = workflow.remote_id.unwrap()
+  let branch = inventory_string(intent, "branch")
+  let nonce = inventory_string(intent, "nonce")
+  let body : Json = {
+    "ref": branch,
+    "inputs": { "mode": mode, "nonce": nonce },
+    "return_run_details": true,
+  }
+  let permit = self.ledger.approve_operation(
+    "workflow",
+    workflow_id,
+    "POST",
+    workflow.locator + "/dispatches",
+    body=@utf8.encode(body.stringify()),
+  )
+  let repository = self.ledger.owned("repository")
+  let (exit_code, output, error) = self.invoke(
+    [
+      "workflow",
+      "run",
+      workflow_id,
+      "-r",
+      branch,
+      "-f",
+      "mode=" + mode,
+      "-f",
+      "nonce=" + nonce,
+      "-R",
+      repository.locator[7:].to_owned(),
+    ],
+    permits=[permit],
+  )
+  // Persist the receipt before any further lookup. No retry of the POST is
+  // performed if the response is empty or interrupted.
+  @fs.write_file(
+    directory + "/dispatch-" + mode + "-response.json",
+    Json::object({
+      "exit_code": exit_code,
+      "url": output.trim().to_owned(),
+      "stderr": acceptance_diagnostic(error, self.token),
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  let (status, current_workflow) = self.api("GET", workflow.locator)
+  guard status == 200 &&
+    acceptance_id(current_workflow) == workflow_id &&
+    inventory_content_hash("workflow", current_workflow) ==
+    workflow.content_sha256.unwrap() else {
+    fail("workflow changed during dispatch")
+  }
+  self.ledger.confirm_created("workflow", workflow_id)
+  self.persist([])
+  let url_prefix = "https://github.com/" +
+    repository.locator[7:].to_owned() +
+    "/actions/runs/"
+  let candidate = output
+    .trim()
+    .strip_prefix(url_prefix)
+    .map(value => value.to_owned())
+  let mut run : Json? = None
+  if candidate is Some(id) &&
+    !id.is_empty() &&
+    id.iter().all(ch => ch is ('0'..<='9')) {
+    let (status, value) = self.api(
+      "GET",
+      repository.locator + "/actions/runs/" + id,
+    )
+    guard status == 200 && acceptance_id(value) == id else {
+      fail("dispatch run ID lookup failed")
+    }
+    actions_match_intent(value, intent)
+    run = Some(value)
+  } else {
+    // A lost response is reconciled against this exact intent, workflow,
+    // repository ID, actor and immutable commit. Multiple matches fail closed.
+    for attempt in 0..<12 {
+      let (status, values) = self.api(
+        "GET",
+        workflow.locator +
+        "/runs?event=workflow_dispatch&per_page=100&branch=" +
+        branch,
+      )
+      guard status == 200 &&
+        values
+        is {
+          "workflow_runs": Array(values),
+          "total_count": Number(count, ..),
+          ..
+        } &&
+        count <= 100 else {
+        fail("dispatch outcome cannot be enumerated completely")
+      }
+      let matches = values.filter(value => {
+        try {
+          actions_match_intent(value, intent)
+          true
+        } catch {
+          _ => false
+        }
+      })
+      guard matches.length() <= 1 else { fail("ambiguous dispatch outcome") }
+      if matches is [value] {
+        run = Some(value)
+        break
+      }
+      if attempt < 11 {
+        @async.sleep(2000)
+      }
+    }
+  }
+  guard run is Some(value) else {
+    fail("dispatch outcome remains unknown; no duplicate dispatch permitted")
+  }
+  let id = acceptance_id(value)
+  let key = "run-" + mode
+  self.ledger.confirm_created(
+    key,
+    id,
+    locator=repository.locator + "/actions/runs/" + id,
+  )
+  self.ledger.record_content_receipt(
+    key,
+    id,
+    inventory_content_hash("run", value),
+  )
+  self.persist([])
+  records.push({
+    "id": "workflow.dispatch-" + mode,
+    "status": if exit_code == 0 {
+      "pass"
+    } else {
+      "fail"
+    },
+    "resource_id": id,
+    "outcome_reconciled": true,
+  })
+  guard exit_code == 0 else {
+    fail("workflow dispatch command failed after outcome reconciliation")
+  }
+  intent
+}
+
+///|
+async fn Acceptance::actions_wait(
+  self : Acceptance,
+  key : String,
+  intent : Json,
+  completed : Bool,
+  records : Array[Json],
+) -> Json {
+  let resource = self.ledger.resource(key)
+  let id = resource.remote_id.unwrap()
+  let observed : Array[Json] = []
+  for attempt in 0..<72 {
+    let (status, value) = self.api("GET", resource.locator)
+    guard status == 200 && acceptance_id(value) == id else {
+      fail("run status lookup failed")
+    }
+    actions_match_intent(value, intent)
+    let state = inventory_string(value, "status")
+    if observed.last() != Some(Json(state)) {
+      observed.push(Json(state))
+    }
+    if self.ledger.resource(key).state == Uncertain {
+      self.ledger.confirm_created(key, id)
+    }
+    self.ledger.record_content_receipt(
+      key,
+      id,
+      inventory_content_hash("run", value),
+    )
+    self.persist([])
+    if state == "completed" || (!completed && state == "in_progress") {
+      records.push({
+        "id": key + ".observed-states",
+        "status": "pass",
+        "resource_id": id,
+        "states": observed,
+        "conclusion": inventory_field(value, "conclusion"),
+      })
+      return value
+    }
+    if attempt < 71 {
+      @async.sleep(5000)
+    }
+  }
+  fail("run did not reach the expected state within the bounded polling window")
+}
+
+///|
+async fn Acceptance::actions_diagnostics(
+  self : Acceptance,
+  key : String,
+  directory : String,
+) -> Unit {
+  let run = self.ledger.owned(key)
+  let repository = self.ledger.owned("repository")
+  let (status, response) = self.api("GET", run.locator + "/jobs?per_page=100")
+  guard status == 200 &&
+    response is { "total_count": Number(count, ..), "jobs": Array(jobs), .. } &&
+    count <= 100 else {
+    fail("run diagnostics require complete job enumeration")
+  }
+  let observations : Array[Json] = []
+  for job in jobs {
+    guard job is Object(fields) else { fail("invalid job diagnostic") }
+    let safe : Map[String, Json] = Map([])
+    for field in ["id", "run_id", "name", "status", "conclusion", "steps"] {
+      if fields.get(field) is Some(value) {
+        safe[field] = value
+      }
+    }
+    if fields.get("check_run_url") is Some(String(url)) &&
+      url.strip_prefix(
+        "https://api.github.com" + repository.locator + "/check-runs/",
+      )
+      is Some(suffix) &&
+      suffix.iter().all(ch => ch is ('0'..<='9')) {
+      let (status, annotations) = self.api(
+        "GET",
+        repository.locator +
+        "/check-runs/" +
+        suffix.to_owned() +
+        "/annotations?per_page=100",
+      )
+      safe["annotations_status"] = Json(status)
+      if status == 200 && annotations is Array(items) {
+        safe["annotations"] = Json::array(
+          items.map(item => {
+            let selected : Map[String, Json] = Map([])
+            if item is Object(values) {
+              for field in ["annotation_level", "message", "title"] {
+                if values.get(field) is Some(String(text)) {
+                  selected[field] = Json(
+                    acceptance_diagnostic(text, self.token),
+                  )
+                }
+              }
+            }
+            Json::object(selected)
+          }),
+        )
+      }
+    }
+    observations.push(Json::object(safe))
+  }
+  @fs.write_file(
+    directory + "/" + key + "-jobs-" + @env.now().to_string() + ".json",
+    Json::array(observations).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+}
+
+///|
+async fn Acceptance::actions_cancel(
+  self : Acceptance,
+  key : String,
+  records : Array[Json],
+  accept_completed~ : Bool = false,
+) -> Unit {
+  let resource = self.ledger.owned(key)
+  let id = resource.remote_id.unwrap()
+  let permit = self.ledger.approve_operation(
+    key,
+    id,
+    "POST",
+    resource.locator + "/cancel",
+  )
+  let repository = self.ledger.owned("repository").locator[7:].to_owned()
+  let (exit_code, _, error) = self.invoke(
+    ["run", "cancel", id, "-R", repository],
+    permits=[permit],
+  )
+  self.ledger.confirm_created(key, id)
+  self.persist([])
+  // Cleanup may race with normal completion between GET and POST. Never retry
+  // the write; reconcile the exact run ID. Interactive cancel tests still
+  // require the command itself to succeed.
+  if exit_code != 0 && accept_completed {
+    let (status, value) = self.api("GET", resource.locator)
+    if status == 200 &&
+      acceptance_id(value) == id &&
+      value is { "status": String("completed"), .. } {
+      records.push({
+        "id": key + ".cleanup-cancel-completed",
+        "status": "pass",
+        "resource_id": id,
+        "command_exit_code": exit_code,
+        "outcome_reconciled": true,
+      })
+      return
+    }
+  }
+  guard exit_code == 0 else {
+    fail("run cancellation failed: " + acceptance_diagnostic(error, self.token))
+  }
+  records.push({
+    "id": key + ".cancel-command",
+    "status": "pass",
+    "resource_id": id,
+  })
+}
+
+///|
+/// Artifact IDs come from the known run endpoint. Cache ownership additionally
+/// requires the exact pre-dispatch key, ref, and a successful cache-save step;
+/// cleanup rechecks the saved record and never deletes by a key prefix.
+async fn Acceptance::actions_outputs(
+  self : Acceptance,
+  intent : Json,
+  records : Array[Json],
+  required~ : Bool = true,
+  require_artifact~ : Bool = true,
+) -> Unit {
+  let repository = self.ledger.owned("repository")
+  let mode = inventory_string(intent, "mode")
+  let run = self.ledger.owned("run-" + mode)
+  let (status, artifacts) = self.api(
+    "GET",
+    run.locator + "/artifacts?per_page=100",
+  )
+  guard status == 200 &&
+    artifacts
+    is { "total_count": Number(count, ..), "artifacts": Array(items), .. } &&
+    count == items.length().to_double() &&
+    items.length() <= 1 else {
+    fail("artifact enumeration is incomplete or contains an unexpected object")
+  }
+  let mut artifact_id : String? = None
+  guard require_artifact || items.is_empty() else {
+    fail("unexpected artifact in a fixture without artifact upload")
+  }
+  if items is [artifact] {
+    guard artifact
+      is {
+        "name": String(name),
+        "expired": False,
+        "workflow_run": artifact_run,
+        ..
+      } &&
+      name == inventory_string(intent, "artifact_name") &&
+      acceptance_id(artifact_run) == run.remote_id.unwrap() &&
+      artifact_run
+      is { "head_sha": String(sha), "head_branch": String(branch), .. } &&
+      sha == inventory_string(intent, "sha") &&
+      branch == inventory_string(intent, "branch") else {
+      fail("artifact receipt does not match the known run and dispatch intent")
+    }
+    let id = acceptance_id(artifact)
+    self.ledger.intend_resource(
+      "artifact-" + mode,
+      "repository",
+      "/actions/artifacts",
+      "artifact",
+    )
+    self.ledger.confirm_created(
+      "artifact-" + mode,
+      id,
+      locator=repository.locator + "/actions/artifacts/" + id,
+    )
+    self.ledger.record_content_receipt(
+      "artifact-" + mode,
+      id,
+      inventory_content_hash("artifact", artifact),
+    )
+    self.persist([])
+    artifact_id = Some(id)
+  }
+  let expected_key = inventory_string(intent, "cache_key")
+  let (status, caches) = self.api(
+    "GET",
+    repository.locator + "/actions/caches?per_page=100",
+  )
+  guard status == 200 &&
+    caches
+    is { "total_count": Number(count, ..), "actions_caches": Array(items), .. } &&
+    count == items.length().to_double() &&
+    items.length() <= 1 else {
+    fail("cache enumeration is incomplete or contains an unexpected object")
+  }
+  let mut cache_id : String? = None
+  if items is [cache] {
+    guard cache is { "key": String(key), "ref": String(ref_name), .. } &&
+      key == expected_key &&
+      ref_name == "refs/heads/" + inventory_string(intent, "branch") else {
+      fail("cache receipt does not match the exact dispatch key and ref")
+    }
+    let (status, jobs) = self.api("GET", run.locator + "/jobs?per_page=100")
+    guard status == 200 &&
+      jobs is { "total_count": Number(1, ..), "jobs": Array([job]), .. } &&
+      job is { "steps": Array(steps), .. } &&
+      steps.any(step => {
+        step
+        is {
+          "name": String("Save exact cache"),
+          "conclusion": String("success"),
+          ..
+        }
+      }) else {
+      fail("cache-save step receipt is not successful")
+    }
+    let id = acceptance_id(cache)
+    self.ledger.intend_resource(
+      "cache-" + mode,
+      "repository",
+      "/actions/caches",
+      "cache",
+    )
+    self.ledger.confirm_created(
+      "cache-" + mode,
+      id,
+      locator=repository.locator + "/actions/caches/" + id,
+    )
+    self.ledger.record_content_receipt(
+      "cache-" + mode,
+      id,
+      inventory_content_hash("cache", cache),
+    )
+    self.persist([])
+    cache_id = Some(id)
+  }
+  records.push({
+    "id": "actions.output-receipts",
+    "status": "pass",
+    "run_id": run.remote_id.unwrap(),
+    "artifact_id": artifact_id.map_or(Json::null(), id => Json(id)),
+    "cache_id": cache_id.map_or(Json::null(), id => Json(id)),
+    "required_outputs_present": (!require_artifact || artifact_id is Some(_)) &&
+    cache_id is Some(_),
+  })
+  guard !required ||
+    ((!require_artifact || artifact_id is Some(_)) && cache_id is Some(_)) else {
+    fail("successful run is missing its required artifact or cache")
+  }
+}
+
+///|
+async fn Acceptance::actions_download_logs(
+  self : Acceptance,
+  intent : Json,
+  directory : String,
+  records : Array[Json],
+  download_artifact~ : Bool = true,
+  attempt~ : Int32 = 1,
+) -> Unit {
+  let mode = inventory_string(intent, "mode")
+  let run = self.ledger.owned("run-" + mode)
+  let repository = self.ledger.owned("repository").locator[7:].to_owned()
+  let id = run.remote_id.unwrap()
+  let args = [
+    "run",
+    "view",
+    id,
+    "-R",
+    repository,
+    if mode == "failure" {
+      "--log-failed"
+    } else {
+      "--log"
+    },
+  ]
+  let trace = directory +
+    "/logs-" +
+    mode +
+    "-" +
+    @env.now().to_string() +
+    ".trace.jsonl"
+  args.append(["--attempt", attempt.to_string()])
+  let (exit_code, output, error) = self.invoke(args, trace~)
+  let passed = exit_code == 0 &&
+    output.contains(
+      if mode == "failure" {
+        "GH_ACCEPTANCE_EXPECTED_FAILURE"
+      } else {
+        "Create known files"
+      },
+    )
+  records.push({
+    "id": "run.logs-" + mode + "-attempt-" + attempt.to_string(),
+    "status": if passed {
+      "pass"
+    } else {
+      "fail"
+    },
+    "resource_id": id,
+    "trace": trace,
+    "attempt": attempt,
+    "exit_code": exit_code,
+    "reason": acceptance_diagnostic(error, self.token),
+    "output_sha256": @crypto.bytes_to_hex_string(
+      @crypto.sha256(@utf8.encode(output)),
+    ),
+  })
+  guard passed else {
+    fail(
+      "run log verification failed: " + acceptance_diagnostic(error, self.token),
+    )
+  }
+  if mode != "success" || !download_artifact {
+    return
+  }
+  let output_directory = directory + "/artifact"
+  let (exit_code, _, error) = self.invoke([
+    "run",
+    "download",
+    id,
+    "-R",
+    repository,
+    "-n",
+    inventory_string(intent, "artifact_name"),
+    "-D",
+    output_directory,
+  ])
+  guard exit_code == 0 else {
+    fail(
+      "artifact download failed: " + acceptance_diagnostic(error, self.token),
+    )
+  }
+  assert_eq(
+    @fs.read_file(output_directory + "/nested/proof.txt").binary(),
+    b"MoonBit gh acceptance\n",
+  )
+  assert_eq(
+    @fs.read_file(output_directory + "/binary.bin").binary(),
+    b"\x00\x01\x7f\xff",
+  )
+  let paths : Array[String] = []
+  @fs.walk(output_directory, (path, entries) => {
+    for entry in entries {
+      let full = path + "/" + entry
+      if @fs.kind(full, follow_symlink=false) == @fs.Regular {
+        paths.push(full[output_directory.length() + 1:].to_owned())
+      }
+    }
+  })
+  assert_eq(paths.length(), 2)
+  assert_true(
+    paths.contains("nested/proof.txt") && paths.contains("binary.bin"),
+  )
+  records.push({
+    "id": "run.download-bytes-and-paths",
+    "status": "pass",
+    "resource_id": id,
+  })
+}
+
+///|
+async fn Acceptance::cleanup_actions(
+  self : Acceptance,
+  directory : String,
+  records : Array[Json],
+) -> Unit {
+  // Runs are deleted only after their separately registered outputs. Unknown
+  // outputs remain visible to the final complete repository inventory.
+  for kind in ["artifact", "cache", "run"] {
+    for resource in self.ledger.resources.values().collect() {
+      if resource.kind != kind || resource.state == Removed {
+        continue
+      }
+      guard resource.state == Created && resource.remote_id is Some(id) else {
+        fail("Actions cleanup requires a reconciled immutable ID")
+      }
+      if kind == "run" {
+        let (status, run) = self.api("GET", resource.locator)
+        guard status == 200 && acceptance_id(run) == id else {
+          fail("run cleanup lookup failed")
+        }
+        let mode = resource.key.strip_prefix("run-").unwrap().to_owned()
+        let intent = @json.parse(
+          @fs.read_file(directory + "/dispatch-" + mode + ".json").text(),
+        )
+        actions_match_intent(run, intent)
+        if !(run is { "status": String("completed"), .. }) {
+          self.actions_cancel(resource.key, records, accept_completed=true)
+          ignore(self.actions_wait(resource.key, intent, true, records))
+        }
+        let (status, artifacts) = self.api(
+          "GET",
+          resource.locator + "/artifacts?per_page=100",
+        )
+        guard status == 200 &&
+          artifacts
+          is { "total_count": Number(0, ..), "artifacts": Array([]), .. } else {
+          fail("run deletion would remove an uncleaned or unknown artifact")
+        }
+      } else if kind == "artifact" {
+        let (status, value) = self.api("GET", resource.locator)
+        guard status == 200 &&
+          acceptance_id(value) == id &&
+          resource.content_sha256 == Some(inventory_content_hash(kind, value)) else {
+          fail("artifact changed before cleanup")
+        }
+      } else {
+        let repository = self.ledger.owned("repository")
+        let (status, value) = self.api(
+          "GET",
+          repository.locator + "/actions/caches?per_page=100",
+        )
+        guard status == 200 &&
+          value
+          is {
+            "total_count": Number(count, ..),
+            "actions_caches": Array(caches),
+            ..
+          } &&
+          count <= 100 &&
+          caches.filter(cache => acceptance_id(cache) == id) is [cache] &&
+          resource.content_sha256 == Some(inventory_content_hash(kind, cache)) else {
+          fail("cache changed before cleanup")
+        }
+      }
+      let permit = self.ledger.approve_mutation(
+        resource.key,
+        id,
+        "DELETE",
+        resource.locator,
+      )
+      let command_success = if kind == "cache" {
+        let repository = self.ledger.owned("repository").locator[7:].to_owned()
+        let (exit_code, _, error) = self.invoke(
+          ["cache", "delete", id, "-R", repository],
+          permits=[permit],
+        )
+        if exit_code != 0 {
+          records.push({
+            "id": "cache.delete-command",
+            "status": "fail",
+            "reason": acceptance_diagnostic(error, self.token),
+          })
+        }
+        exit_code == 0
+      } else {
+        let (status, _) = self.api("DELETE", resource.locator, permits=[permit])
+        status == 204
+      }
+      if kind == "cache" {
+        let repository = self.ledger.owned("repository")
+        let (status, value) = self.api(
+          "GET",
+          repository.locator + "/actions/caches?per_page=100",
+        )
+        guard status == 200 &&
+          value
+          is {
+            "total_count": Number(count, ..),
+            "actions_caches": Array(caches),
+            ..
+          } &&
+          count <= 100 &&
+          !caches.any(cache => acceptance_id(cache) == id) else {
+          fail("cache deletion absence not confirmed")
+        }
+      } else {
+        let (status, _) = self.api("GET", resource.locator)
+        guard status == 404 else {
+          fail("Actions deletion absence not confirmed")
+        }
+      }
+      if kind == "run" {
+        let repository = self.ledger.owned("repository")
+        for job in self.ledger.resources.values().collect() {
+          if job.parent != Some(resource.key) ||
+            job.kind != "job" ||
+            job.state == Removed {
+            continue
+          }
+          guard job.remote_id is Some(job_id) &&
+            job.state is (Created | Uncertain) else {
+            fail("job cleanup identity is unresolved")
+          }
+          let (status, _) = self.api(
+            "GET",
+            repository.locator + "/actions/jobs/" + job_id,
+          )
+          guard status == 404 else {
+            fail("deleted run's job is still accessible")
+          }
+          self.ledger.confirm_removed(job.key, job_id)
+          self.persist([])
+          records.push({
+            "id": "job.cleanup",
+            "status": "pass",
+            "resource_id": job_id,
+            "run_id": id,
+            "readback_status": 404,
+          })
+        }
+      }
+      self.ledger.confirm_removed(resource.key, id)
+      self.persist([])
+      if kind == "cache" && command_success {
+        records.push({
+          "id": "cache.delete-command",
+          "status": "pass",
+          "resource_id": id,
+        })
+      }
+      records.push({
+        "id": kind + ".cleanup",
+        "status": "pass",
+        "resource_id": id,
+      })
+      guard command_success else {
+        fail("resource deletion reconciled, but command failed")
+      }
+    }
+  }
+}
+
+///|
+async fn Acceptance::run_actions_lifecycle(
+  self : Acceptance,
+  directory : String,
+  records : Array[Json],
+  storage_independent~ : Bool = false,
+) -> Unit {
+  ignore(
+    self.create_actions_fixture(
+      directory,
+      records,
+      include_artifacts=!storage_independent,
+    ),
+  )
+  self.actions_workflow_state(false, records)
+  self.actions_workflow_state(true, records)
+  let mut failed = false
+  if storage_independent {
+    records.push({
+      "id": "run.download-bytes-and-paths",
+      "status": "blocked",
+      "reason": "account_artifact_storage_quota; user will restore quota; private repository retained as visibility requirement",
+    })
+  }
+  for mode in ["failure", "wait", "success"] {
+    println("Actions lifecycle: " + mode)
+    self.actions_scenario(
+      directory,
+      mode,
+      records,
+      include_artifacts=!storage_independent,
+    ) catch {
+      error if @async.is_being_cancelled() => raise error
+      error => {
+        failed = true
+        records.push({
+          "id": "actions.scenario-" + mode,
+          "status": "fail",
+          "reason": acceptance_diagnostic(error.to_string(), self.token),
+        })
+      }
+    }
+    // Continue independent scenarios only after exact cleanup has succeeded.
+    // Unreconciled outcomes or unexpected objects stop further writes.
+    self.cleanup_actions(directory, records)
+  }
+  guard !failed else {
+    fail("one or more Actions scenarios failed; see individual evidence")
+  }
+}
+
+///|
+async fn Acceptance::actions_scenario(
+  self : Acceptance,
+  directory : String,
+  mode : String,
+  records : Array[Json],
+  include_artifacts~ : Bool = true,
+) -> Unit {
+  let intent = self.actions_dispatch(directory, mode, records)
+  let key = "run-" + mode
+  self.actions_watch(directory, intent, records)
+  let value = self.actions_wait(key, intent, true, records)
+  let expected = if mode == "wait" { "cancelled" } else { mode }
+  self.actions_diagnostics(key, directory)
+  if mode == "success" {
+    self.actions_outputs(
+      intent,
+      records,
+      required=value is { "conclusion": String("success"), .. },
+      require_artifact=include_artifacts,
+    )
+  }
+  guard value is { "conclusion": String(conclusion), .. } &&
+    conclusion == expected else {
+    fail("workflow fixture conclusion differs from " + expected)
+  }
+  records.push({
+    "id": key + ".conclusion",
+    "status": "pass",
+    "conclusion": expected,
+  })
+  if mode != "wait" {
+    self.actions_download_logs(
+      intent,
+      directory,
+      records,
+      download_artifact=include_artifacts,
+    )
+  }
+  if mode == "failure" {
+    self.actions_rerun(
+      directory,
+      intent,
+      records,
+      only_failed=false,
+      debug_logging=true,
+    )
+    self.actions_rerun(directory, intent, records, only_failed=true)
+    self.actions_rerun(directory, intent, records, only_failed=false, job=true)
+  }
+}
+
+///|
+/// A rerun keeps the same immutable run ID. Persist the intended next attempt
+/// before the POST and reconcile it without repeating an uncertain write.
+async fn Acceptance::actions_rerun(
+  self : Acceptance,
+  directory : String,
+  dispatch : Json,
+  records : Array[Json],
+  only_failed~ : Bool,
+  debug_logging~ : Bool = false,
+  job~ : Bool = false,
+) -> Unit {
+  let key = inventory_string(dispatch, "resource_key")
+  let run = self.ledger.owned(key)
+  let id = run.remote_id.unwrap()
+  let (status, previous) = self.api("GET", run.locator)
+  actions_match_intent(previous, dispatch)
+  guard status == 200 &&
+    previous
+    is { "status": String("completed"), "run_attempt": Number(attempt, ..), .. } &&
+    run.content_sha256 == Some(inventory_content_hash("run", previous)) else {
+    fail("rerun requires the unchanged completed run")
+  }
+  let expected = attempt.to_int() + 1
+  let operation = if job {
+    "rerun-job"
+  } else if only_failed {
+    "rerun-failed-jobs"
+  } else {
+    "rerun"
+  }
+  let job_key = key + "-job-attempt-" + attempt.to_int().to_string()
+  let job_id = if job {
+    let (status, response) = self.api(
+      "GET",
+      run.locator +
+      "/attempts/" +
+      attempt.to_int().to_string() +
+      "/jobs?per_page=100",
+    )
+    guard status == 200 &&
+      response is { "total_count": Number(1, ..), "jobs": Array([value]), .. } &&
+      value
+      is {
+        "run_id": Number(parent, ..),
+        "run_attempt": Number(job_attempt, ..),
+        "head_sha": String(sha),
+        "name": String("fixture"),
+        "status": String("completed"),
+        "conclusion": String("failure"),
+        ..
+      } &&
+      parent.to_int64().to_string() == id &&
+      job_attempt == attempt &&
+      sha == inventory_string(dispatch, "sha") else {
+      fail("job does not match this run's fixture and attempt")
+    }
+    let job_id = acceptance_id(value)
+    guard !job_id.is_empty() else { fail("missing job ID") }
+    self.ledger.intend_resource(job_key, key, "/jobs", "job")
+    self.persist([])
+    // Jobs are generated by the already-recorded dispatch, never adopted by name alone.
+    self.ledger.confirm_created(
+      job_key,
+      job_id,
+      locator=run.locator + "/jobs/" + job_id,
+    )
+    self.ledger.record_content_receipt(
+      job_key,
+      job_id,
+      inventory_content_hash("job", value),
+    )
+    self.persist([])
+    Some(job_id)
+  } else {
+    None
+  }
+  @fs.write_file(
+    directory + "/" + key + "-" + operation + "-intent.json",
+    Json::object({
+      "repository_id": inventory_string(dispatch, "repository_id"),
+      "resource_id": id,
+      "operation": operation,
+      "previous_attempt": attempt,
+      "expected_attempt": expected,
+      "debug_logging": debug_logging,
+      "job_id": job_id.map_or(Json::null(), value => Json(value)),
+      "dispatch_intent": "dispatch-" +
+      inventory_string(dispatch, "mode") +
+      ".json",
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  let permit = self.ledger.approve_operation(
+    if job {
+      job_key
+    } else {
+      key
+    },
+    job_id.unwrap_or(id),
+    "POST",
+    if job_id is Some(job_id) {
+      self.ledger.owned("repository").locator +
+      "/actions/jobs/" +
+      job_id +
+      "/rerun"
+    } else {
+      run.locator + "/" + operation
+    },
+    body?=if debug_logging {
+      Some(b"{\"enable_debug_logging\":true}\n")
+    } else {
+      None
+    },
+  )
+  let args = [
+    "run",
+    "rerun",
+    id,
+    "-R",
+    self.ledger.owned("repository").locator[7:].to_owned(),
+  ]
+  if only_failed {
+    args.push("--failed")
+  }
+  if debug_logging {
+    args.push("--debug")
+  }
+  if job_id is Some(job_id) {
+    args.append(["--job", job_id])
+  }
+  let (exit_code, _, error) = self.invoke(args, permits=[permit])
+  let mut observed = false
+  for poll in 0..<24 {
+    let (status, value) = self.api("GET", run.locator)
+    guard status == 200 && acceptance_id(value) == id else {
+      fail("rerun lookup failed")
+    }
+    actions_match_intent(value, dispatch)
+    guard value is { "run_attempt": Number(actual, ..), .. } &&
+      actual >= attempt &&
+      actual <= expected.to_double() else {
+      fail("unexpected rerun attempt")
+    }
+    if actual == expected.to_double() {
+      if job_id is Some(job_id) {
+        let (status, receipt) = self.api(
+          "GET",
+          self.ledger.owned("repository").locator + "/actions/jobs/" + job_id,
+        )
+        guard status == 200 &&
+          acceptance_id(receipt) == job_id &&
+          receipt is { "run_id": Number(parent, ..), .. } &&
+          parent.to_int64().to_string() == id else {
+          fail("job rerun receipt changed identity")
+        }
+        self.ledger.confirm_created(job_key, job_id)
+        self.ledger.record_content_receipt(
+          job_key,
+          job_id,
+          inventory_content_hash("job", receipt),
+        )
+      } else {
+        self.ledger.confirm_created(key, id)
+      }
+      self.ledger.record_content_receipt(
+        key,
+        id,
+        inventory_content_hash("run", value),
+      )
+      self.persist([])
+      observed = true
+      break
+    }
+    if poll < 23 {
+      @async.sleep(3000)
+    }
+  }
+  guard observed else {
+    fail("rerun outcome remains uncertain; POST was not retried")
+  }
+  let value = self.actions_wait(key, dispatch, true, records)
+  guard value
+    is {
+      "run_attempt": Number(actual, ..),
+      "conclusion": String("failure"),
+      ..
+    } &&
+    actual == expected.to_double() else {
+    fail("rerun did not finish with the expected attempt and conclusion")
+  }
+  self.actions_diagnostics(key, directory)
+  guard exit_code == 0 else {
+    fail(
+      "rerun command failed after reconciliation: " +
+      acceptance_diagnostic(error, self.token),
+    )
+  }
+  self.actions_download_logs(dispatch, directory, records, attempt=expected)
+  records.push({
+    "id": "run." + operation,
+    "status": "pass",
+    "resource_id": id,
+    "attempt": expected,
+    "debug_logging": debug_logging,
+    "job_id": job_id.map_or(Json::null(), value => Json(value)),
+    "conclusion": "failure",
+  })
+}

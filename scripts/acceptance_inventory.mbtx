@@ -1,0 +1,610 @@
+///|
+/// Classify failures without persisting private response/error bodies.
+fn inventory_failure(stderr : String) -> (Bool, String) {
+  for status in [401, 403, 404, 409, 422, 429, 500, 502, 503, 504] {
+    if stderr.contains("HTTP " + status.to_string()) {
+      return (status >= 500, "HTTP " + status.to_string())
+    }
+  }
+  for
+    (needle, reason) in [
+      ("EOF", "connection_closed"),
+      ("connection reset", "connection_reset"),
+      ("connection refused", "connection_refused"),
+      ("TLS handshake timeout", "tls_timeout"),
+      ("i/o timeout", "io_timeout"),
+      ("context deadline exceeded", "request_timeout"),
+      ("error connecting to", "connection_failure"),
+      ("temporary failure", "temporary_failure"),
+    ] {
+    if stderr.contains(needle) {
+      return (true, reason)
+    }
+  }
+  (
+    false,
+    if stderr.contains("--paginate") && stderr.contains("--input") {
+      "unsupported_oracle_arguments"
+    } else if stderr.contains("GraphQL:") {
+      "graphql_response_error"
+    } else {
+      "transport_or_protocol_failure"
+    },
+  )
+}
+
+///|
+/// Cleanup reads use the hash-pinned oracle independently of the product's
+/// pagination implementation. No oracle mutation is exposed by this reader.
+/// Private response bodies stay in memory; only IDs and content digests enter
+/// the protected ledger/audit.
+async fn Acceptance::inventory_read(
+  self : Acceptance,
+  path : String,
+  payload? : Json,
+  empty_git_repository~ : Bool = false,
+  paginate~ : Bool = true,
+) -> Json {
+  let oracle = @fs.realpath(
+    "_build/acceptance-20261020/oracle/gh_2.102.0_macOS_arm64/bin/gh",
+  )
+  guard @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(oracle).binary()),
+    ) ==
+    "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6" else {
+    fail("cleanup oracle checksum differs")
+  }
+  let arguments = if payload is Some(body) {
+    guard path == "/graphql" &&
+      !paginate &&
+      body is { "query": String(query), .. } &&
+      query.has_prefix("query(") &&
+      !query.contains("mutation") &&
+      !query.contains("subscription") else {
+      fail("cleanup reader accepts queries only")
+    }
+    ["api", "graphql", "--method", "POST", "--input", "-"]
+  } else {
+    guard path.has_prefix(
+        "/repos/ZSeanYves/gh-acceptance-" + self.ledger.run_id + "-",
+      ) &&
+      !path.contains("..") &&
+      !path.contains("\\") &&
+      !path.contains("#") else {
+      fail("cleanup reader repository outside this run")
+    }
+    ["api", path, "--method", "GET"] +
+    (if paginate { ["--paginate", "--slurp"] } else { [] })
+  }
+  let command = @shell.Cmd(
+    oracle,
+    arguments,
+    cwd=self.config,
+    inherit_env=false,
+    env=self.environment(),
+    stdin?=payload.map(body => @shell.Stdin::Text(body.stringify())),
+  )
+  let mut result = command.output(timeout_ms=120000, max_output_bytes=4194304)
+  for attempt in 1..<3 {
+    if result.exit_code() == 0 || !inventory_failure(result.stderr()).0 {
+      break
+    }
+    @async.sleep(attempt * 200)
+    result = command.output(timeout_ms=120000, max_output_bytes=4194304)
+  }
+  // isEmpty is independently read by the caller on this exact repository node.
+  // Only the empty Git database's HTTP 409 is an empty collection; permissions,
+  // timeouts and every other enumeration failure still block deletion.
+  if empty_git_repository &&
+    payload is None &&
+    path.has_suffix("/git/matching-refs/?per_page=100") &&
+    result.exit_code() != 0 &&
+    result.stderr().trim().has_suffix("(HTTP 409)") {
+    return Json::array([Json::array([])])
+  }
+  guard result.exit_code() == 0 else {
+    let route = path.split_once("?").map_or(path, pair => pair.0.to_owned())
+    fail(
+      "cleanup inventory request failed at " +
+      route +
+      ": " +
+      inventory_failure(result.stderr()).1,
+    )
+  }
+  let value = @json.parse(result.stdout())
+  if paginate {
+    value
+  } else {
+    Json::array([value])
+  }
+}
+
+///|
+/// Deletion needs a proven empty nested connection, not merely an empty first
+/// page. Reject null, GraphQL errors, stale IDs and inconsistent pagination.
+fn inventory_require_empty_connection(
+  pages : Json,
+  repository_node : String,
+  field : String,
+) -> Unit raise {
+  guard pages is Array([Object(envelope)]) &&
+    !envelope.contains("errors") &&
+    envelope.get("data") is Some({ "repository": Object(repository), .. }) &&
+    repository.get("id") == Some(Json(repository_node)) &&
+    repository.get(field)
+    is Some(
+      {
+        "totalCount": Number(0, ..),
+        "nodes": Array([]),
+        "pageInfo": { "hasNextPage": False, .. },
+        ..
+      }
+    ) else {
+    fail(
+      "cleanup requires a complete empty " +
+      field +
+      " connection for the recorded repository",
+    )
+  }
+}
+
+///|
+async fn run_repository_inventory(
+  credential_path : String,
+  ledger_path : String,
+  key : String,
+  report_path : String,
+) -> Unit {
+  guard !@fs.exists(report_path) else { fail("inventory report exists") }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("missing test credential")
+  }
+  let directory = @fs.tmpdir(prefix="gh-repository-audit-")
+  defer @fs.rmdir(directory, recursive=true)
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory,
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger: Ledger::from_json(@json.parse(@fs.read_file(ledger_path).text())),
+    verified_binary: Ref(None),
+  }
+  let mut result : Json = {
+    "status": "blocked",
+    "reason": "inventory_not_completed",
+  }
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      report_path,
+      Json::object({
+        "schema": 1,
+        "family": "repository-cleanup-inventory",
+        "remote_mutations": 0,
+        "core_parity_verified": false,
+        "result": result,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  let audit : Json? = try {
+    let (status, viewer) = acceptance.api("GET", "/user")
+    guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+      fail("inventory credential account mismatch")
+    }
+    Some(acceptance.collect_repository_inventory(key))
+  } catch {
+    error if @async.is_being_cancelled() => raise error
+    error => {
+      result = {
+        "status": "blocked",
+        "reason": acceptance_diagnostic(error.to_string(), token),
+      }
+      None
+    }
+  }
+  guard audit is Some(audit) else {
+    fail("repository inventory blocked; see protected report")
+  }
+  result = { "status": "pass", "inventory": audit }
+}
+
+///|
+fn inventory_field(value : Json, key : String) -> Json raise {
+  guard value is Object(fields) && fields.get(key) is Some(value) else {
+    fail("cleanup inventory missing required field " + key)
+  }
+  value
+}
+
+///|
+fn inventory_string(value : Json, key : String) -> String raise {
+  guard inventory_field(value, key) is String(text) else {
+    fail("cleanup inventory field is not a string: " + key)
+  }
+  text
+}
+
+///|
+/// Deterministic object-key ordering for private content fingerprints. Arrays
+/// and number spellings are retained; no fields are silently normalized away.
+fn inventory_json(value : Json, depth~ : Int32 = 0) -> String raise {
+  guard depth < 64 else { fail("cleanup inventory nesting bound") }
+  match value {
+    Object(fields) => {
+      let keys = fields.keys().collect()
+      keys.sort()
+      "{" +
+      keys
+      .map(key => {
+        Json(key).stringify() +
+        ":" +
+        inventory_json(fields[key], depth=depth + 1)
+      })
+      .join(",") +
+      "}"
+    }
+    Array(values) =>
+      "[" +
+      values.map(value => inventory_json(value, depth=depth + 1)).join(",") +
+      "]"
+    _ => value.stringify()
+  }
+}
+
+///|
+fn inventory_content_hash(kind : String, value : Json) -> String raise {
+  guard value is Object(fields) else { fail("invalid inventory object") }
+  let selection = match kind {
+    "repository" =>
+      [
+        "id", "node_id", "name", "full_name", "private", "description", "homepage",
+        "default_branch", "archived", "disabled", "visibility", "is_template", "has_issues",
+        "has_projects", "has_wiki", "has_discussions", "has_pages", "allow_forking",
+        "allow_squash_merge", "allow_merge_commit", "allow_rebase_merge", "delete_branch_on_merge",
+        "allow_auto_merge", "allow_update_branch", "web_commit_signoff_required",
+        "topics",
+      ]
+    "git_ref" => ["ref", "node_id", "object"]
+    "label" => ["id", "node_id", "name", "color", "description", "default"]
+    "workflow" => ["id", "node_id", "name", "path", "state"]
+    "cache" => ["id", "key", "ref", "version", "size_in_bytes", "created_at"]
+    "job" =>
+      [
+        "id", "run_id", "run_attempt", "head_sha", "name", "status", "conclusion",
+      ]
+    _ => fields.keys().collect()
+  }
+  let projection : Map[String, Json] = Map([])
+  for key in selection {
+    if fields.get(key) is Some(value) {
+      projection[key] = value
+    }
+  }
+  @crypto.bytes_to_hex_string(
+    @crypto.sha256(@utf8.encode(inventory_json(Json::object(projection)))),
+  )
+}
+
+///|
+fn inventory_item(
+  kind : String,
+  value : Json,
+  repository : String,
+  parent? : String,
+) -> Json raise {
+  // These containers must be removed explicitly before repository cleanup.
+  guard !(kind
+    is ("environment"
+    | "release"
+    | "discussion"
+    | "project"
+    | "pages"
+    | "security_advisory")) else {
+    fail(
+      "nested or unsupported content prevents automatic repository deletion: " +
+      kind,
+    )
+  }
+  let id = match kind {
+    // A commit SHA is mutable and shared by multiple branches. The ref node
+    // identifies this repository/ref; its object SHA belongs in the content
+    // receipt, so updates cannot silently change ownership or collide IDs.
+    "git_ref" => {
+      let node = inventory_string(value, "node_id")
+      guard node_identifier(node) else { fail("invalid Git ref node ID") }
+      @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(node)))
+    }
+    "secret" | "variable" => inventory_string(value, "name")
+    _ => acceptance_id(value)
+  }
+  let path = match kind {
+    "git_ref" =>
+      repository +
+      "/git/" +
+      inventory_string(value, "ref")
+      .split("/")
+      .map(part => @percent.encode(part.to_owned()))
+      .join("/")
+    "label" =>
+      repository + "/labels/" + @percent.encode(inventory_string(value, "name"))
+    "issue" | "pull_request" => {
+      let number = inventory_field(value, "number")
+      guard number is Number(_) else { fail("inventory issue or PR number") }
+      repository +
+      (if kind == "issue" { "/issues/" } else { "/pulls/" }) +
+      number.stringify()
+    }
+    "collaborator" =>
+      repository +
+      "/collaborators/" +
+      @percent.encode(inventory_string(value, "login"))
+    "fork" => "/repos/" + inventory_string(value, "full_name")
+    "pull_review" =>
+      parent.unwrap_or_else(() => fail("review parent missing")) +
+      "/reviews/" +
+      id
+    _ => {
+      let collection = match kind {
+        "issue_comment" => "/issues/comments/"
+        "review_comment" => "/pulls/comments/"
+        "milestone" => "/milestones/"
+        "deploy_key" => "/keys/"
+        "webhook" => "/hooks/"
+        "secret" => "/actions/secrets/"
+        "variable" => "/actions/variables/"
+        "workflow" => "/actions/workflows/"
+        "run" => "/actions/runs/"
+        "artifact" => "/actions/artifacts/"
+        "cache" => "/actions/caches/"
+        "deployment" => "/deployments/"
+        "ruleset" => "/rulesets/"
+        "invitation" => "/invitations/"
+        _ => fail("unsupported inventory resource kind")
+      }
+      repository + collection + id
+    }
+  }
+  {
+    "id": id,
+    "locator": path,
+    "content_sha256": inventory_content_hash(kind, value),
+  }
+}
+
+///|
+fn inventory_pages(
+  kind : String,
+  slurped : Json,
+  repository : String,
+  collection_field~ : String = "",
+  parent? : String,
+) -> Json raise {
+  guard slurped is Array(pages) && !pages.is_empty() && pages.length() <= 1000 else {
+    fail("cleanup inventory page chain missing or too large")
+  }
+  let result : Array[Json] = []
+  let mut observed = 0
+  let mut total : Int32? = None
+  for index in 0..<pages.length() {
+    let page = pages[index]
+    if page is { "total_count": Number(count, ..), .. } {
+      guard count >= 0 &&
+        count <= 100000 &&
+        count == count.to_int().to_double() &&
+        total.map_or(true, previous => previous == count.to_int()) else {
+        fail("inventory collection changed during pagination")
+      }
+      total = Some(count.to_int())
+    }
+    let items = if collection_field.is_empty() {
+      page
+    } else {
+      inventory_field(page, collection_field)
+    }
+    guard items is Array(items) && items.length() <= 100 else {
+      fail("invalid inventory page collection")
+    }
+    observed += items.length()
+    let filtered = items.filter(item => {
+      !(kind == "issue" &&
+      item is Object(fields) &&
+      fields.contains("pull_request"))
+    })
+    result.push({
+      "cursor": if index == 0 {
+        ""
+      } else {
+        index.to_string()
+      },
+      "next_cursor": if index + 1 == pages.length() {
+        Json::null()
+      } else {
+        Json((index + 1).to_string())
+      },
+      "items": filtered.map(item => {
+        inventory_item(kind, item, repository, parent?)
+      }),
+    })
+  }
+  guard total.map_or(true, expected => expected == observed) else {
+    fail("inventory pagination count does not match the server")
+  }
+  Json::array(result)
+}
+
+///|
+fn inventory_empty_page() -> Json {
+  [{ "cursor": "", "next_cursor": Json::null(), "items": [] }]
+}
+
+///|
+async fn Acceptance::collect_repository_inventory(
+  self : Acceptance,
+  key : String,
+  observation_path? : String,
+) -> Json {
+  let resource = self.ledger.owned(key)
+  guard resource.kind == "repository" && resource.remote_id is Some(id) else {
+    fail("cleanup inventory requires this run's created repository")
+  }
+  let repository = resource.locator
+  let name = repository
+    .strip_prefix("/repos/ZSeanYves/")
+    .unwrap_or_else(() => fail("repository owner"))
+  let emptiness = self.inventory_read(
+    "/graphql",
+    payload={
+      "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id isEmpty } }",
+      "variables": { "owner": "ZSeanYves", "name": name.to_owned() },
+    },
+    paginate=false,
+  )
+  guard emptiness is Array([Object(envelope)]) &&
+    !envelope.contains("errors") &&
+    envelope.get("data")
+    is Some(
+      { "repository": { "id": String(node_id), "isEmpty": empty, .. }, .. }
+    ) &&
+    resource.node_id == Some(node_id) &&
+    empty is (True | False) else {
+    fail("repository emptiness could not be verified")
+  }
+  let collections : Map[String, Json] = Map([])
+  for
+    (kind, path, field) in [
+      ("git_ref", "/git/matching-refs/?per_page=100", ""),
+      ("issue", "/issues?state=all&per_page=100", ""),
+      ("pull_request", "/pulls?state=all&per_page=100", ""),
+      ("issue_comment", "/issues/comments?per_page=100", ""),
+      ("review_comment", "/pulls/comments?per_page=100", ""),
+      ("label", "/labels?per_page=100", ""),
+      ("milestone", "/milestones?state=all&per_page=100", ""),
+      ("deploy_key", "/keys?per_page=100", ""),
+      ("webhook", "/hooks?per_page=100", ""),
+      ("environment", "/environments?per_page=100", "environments"),
+      ("release", "/releases?per_page=100", ""),
+      ("secret", "/actions/secrets?per_page=100", "secrets"),
+      ("variable", "/actions/variables?per_page=100", "variables"),
+      ("workflow", "/actions/workflows?per_page=100", "workflows"),
+      ("run", "/actions/runs?per_page=100", "workflow_runs"),
+      ("artifact", "/actions/artifacts?per_page=100", "artifacts"),
+      ("cache", "/actions/caches?per_page=100", "actions_caches"),
+      ("deployment", "/deployments?per_page=100", ""),
+      ("invitation", "/invitations?per_page=100", ""),
+      ("collaborator", "/collaborators?affiliation=all&per_page=100", ""),
+      ("fork", "/forks?per_page=100", ""),
+    ] {
+    collections[kind] = inventory_pages(
+      kind,
+      self.inventory_read(
+        repository + path,
+        empty_git_repository=kind == "git_ref" && empty == Json(true),
+      ),
+      repository,
+      collection_field=field,
+    )
+  }
+  for child in self.ledger.resources.values() {
+    if child.parent == Some(key) &&
+      child.kind == "pull_request" &&
+      child.state == Created {
+      collections["pull_review:" + child.remote_id.unwrap()] = inventory_pages(
+        "pull_review",
+        self.inventory_read(child.locator + "/reviews?per_page=100"),
+        repository,
+        parent=child.locator,
+      )
+    }
+  }
+  for field in ["discussions", "projectsV2"] {
+    let name = repository
+      .strip_prefix("/repos/ZSeanYves/")
+      .unwrap_or_else(() => fail("repository owner"))
+    let query = "query($owner:String!,$name:String!) {" +
+      " repository(owner:$owner,name:$name) { id " +
+      field +
+      "(first:1) { totalCount nodes { id } pageInfo { hasNextPage endCursor } } } }"
+    let pages = self.inventory_read(
+      "/graphql",
+      payload={
+        "query": query,
+        "variables": { "owner": "ZSeanYves", "name": name.to_owned() },
+      },
+      paginate=false,
+    )
+    inventory_require_empty_connection(pages, resource.node_id.unwrap(), field)
+    collections[if field == "discussions" { "discussion" } else { "project" }] = inventory_empty_page()
+  }
+  // REST rulesets can be unavailable on private repositories. Enumerate the
+  // documented GraphQL connection instead; null/errors never mean "empty".
+  // No ruleset write is enabled in this runner, so any node stops deletion.
+  // https://docs.github.com/en/graphql/reference/repos#repository
+  let rulesets = self.inventory_read(
+    "/graphql",
+    payload={
+      "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id rulesets(first:1,includeParents:false) { totalCount nodes { id } pageInfo { hasNextPage endCursor } } } }",
+      "variables": { "owner": "ZSeanYves", "name": name.to_owned() },
+    },
+    paginate=false,
+  )
+  inventory_require_empty_connection(
+    rulesets,
+    resource.node_id.unwrap(),
+    "rulesets",
+  )
+  collections["ruleset"] = inventory_empty_page()
+  // Read repository identity/settings last. The deletion approval has a short
+  // expiry and is usable only while this independently fetched metadata matches
+  // the recorded post-archive receipt.
+  guard self.inventory_read(repository) is Array([metadata]) &&
+    acceptance_id(metadata) == id &&
+    metadata
+    is {
+      "private": True,
+      "archived": True,
+      "has_wiki": False,
+      "has_pages": False,
+      "owner": { "login": String("ZSeanYves"), .. } as owner,
+      ..
+    } else {
+    fail("repository identity or archived private state changed")
+  }
+  // Repository security advisories are restricted to public repositories.
+  // https://docs.github.com/en/code-security/concepts/vulnerability-reporting-and-management/repository-security-advisories
+  collections["security_advisory"] = inventory_empty_page()
+  collections["pages"] = inventory_empty_page()
+  let audit : Json = {
+    "repository_id": id,
+    "locator": repository,
+    "owner": "ZSeanYves",
+    "owner_id": acceptance_id(owner),
+    "private": true,
+    "archived": true,
+    "has_wiki": false,
+    "has_pages": false,
+    "content_sha256": inventory_content_hash("repository", metadata),
+    "observed_at_ms": UInt64::reinterpret_as_int64(@env.now()).to_double(),
+    "collections": Json::object(collections),
+  }
+  // Retain the sanitized observation even when ownership validation fails.
+  // It contains only IDs, locators and content hashes; it is never a permit.
+  if observation_path is Some(path) {
+    @fs.write_file(
+      path,
+      audit.stringify(indent=2) + "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  }
+  self.ledger.validate_repository_inventory(
+    key,
+    audit,
+    UInt64::reinterpret_as_int64(@env.now()),
+  )
+  audit
+}

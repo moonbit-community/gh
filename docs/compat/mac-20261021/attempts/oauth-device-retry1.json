@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-21",
+  "flow": "device",
+  "expected_login": "ZSeanYves",
+  "binary_sha256": "b908bd783052051ab9e7786ebe3cffb60bb973eadbcdf349876a2594cf21d7e3",
+  "login_passed": false,
+  "login_diagnostic": "oauth_or_persistence_failed",
+  "status_keyring_identity_passed": false,
+  "api_identity_without_env_token_passed": false,
+  "keychain_item_present_after_login": false,
+  "hosts_contains_no_plaintext_token": false,
+  "logout_passed": false,
+  "keychain_item_absent_after_logout": true,
+  "token_unavailable_after_logout": true,
+  "daily_config_files_unchanged": true,
+  "remote_app_authorization_revoked": false,
+  "passed": false
+}

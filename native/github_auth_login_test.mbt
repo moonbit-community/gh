@@ -16,6 +16,57 @@ fn login_identity(
 }
 
 ///|
+async test "keyring login remains readable by subsequent auth commands" {
+  let directory = @fs.tmpdir(prefix="gh-keyring-roundtrip-")
+  defer @fs.rmdir(directory, recursive=true)
+  let stored : Map[String, String] = Map([])
+  let backend = @native.CredentialBackend::new(
+    read=(_, user) => stored.get(user),
+    write=(_, user, token) => {
+      stored[user] = token
+      true
+    },
+    delete=(_, user) => {
+      stored.remove(user)
+      true
+    },
+  )
+  let environment = @github_auth.Environment::new()
+  let login = @native.github_auth_command(
+    ["login", "--web", "--user", "alice"],
+    environment~,
+    config_dir=directory,
+    credential_backend=backend,
+    oauth_adapter=@native.OAuthAdapter::new(authorize=(_, _) => {
+      Ok("keyring-roundtrip-fixture")
+    }),
+    transport=login_identity("alice"),
+  )
+  assert_eq(login.exit_code(), 0)
+  assert_false(
+    @fs.read_file(directory + "/hosts.yml").text().contains("oauth_token"),
+  )
+  let token = @native.github_auth_command(
+    ["token", "--hostname", "github.com"],
+    environment~,
+    config_dir=directory,
+    credential_backend=backend,
+  )
+  assert_eq(token.exit_code(), 0)
+  assert_eq(token.stdout(), "keyring-roundtrip-fixture\n")
+  let status = @native.github_auth_command(
+    ["status", "--hostname", "github.com", "--json", "hosts"],
+    environment~,
+    config_dir=directory,
+    credential_backend=backend,
+    transport=login_identity("alice"),
+  )
+  assert_eq(status.exit_code(), 0)
+  assert_true(status.stdout().contains("\"tokenSource\":\"keyring\""))
+  assert_false(status.stdout().contains("keyring-roundtrip-fixture"))
+}
+
+///|
 async test "auth login resolves verified identity and warns about plaintext fallback" {
   let directory = @fs.tmpdir(prefix="gh-login-identity-")
   defer @fs.rmdir(directory, recursive=true)

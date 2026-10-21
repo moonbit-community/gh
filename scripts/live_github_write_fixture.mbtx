@@ -17,6 +17,9 @@ import {
 let allowed_repo = "ZSeanYves/gh_test"
 
 ///|
+let scope_binary_hashes : Map[String, String] = Map([])
+
+///|
 struct CommandResult {
   exit_code : Int32
   stdout : String
@@ -51,6 +54,10 @@ fn isolated_environment(config : String, token : String) -> Map[String, String] 
     "LC_ALL": "C",
     "LANG": "C",
     "NO_COLOR": "1",
+    "GH_LIVE_ACCEPTANCE": "1",
+    "GH_ACCEPTANCE_POLICY": @env.get_env_var("GH_ACCEPTANCE_POLICY").unwrap_or(
+      config + "/missing-acceptance-policy.json",
+    ),
   }
   if @env.get_env_var("SystemRoot") is Some(root) {
     result["SystemRoot"] = root
@@ -114,6 +121,16 @@ async fn run_command(
   token : String,
   args : Array[String],
 ) -> CommandResult {
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  guard scope_binary_hashes.get(binary) == Some(hash) else {
+    return {
+      exit_code: 1,
+      stdout: "",
+      stderr: "candidate scope protocol missing or binary changed",
+    }
+  }
   let result = @shell.Cmd(
     binary,
     args,
@@ -859,6 +876,13 @@ async fn main {
   guard @env.get_env_var("LIVE_GITHUB") == Some("1") else {
     fail("live writes require LIVE_GITHUB=1")
   }
+  // Historical cases are retained, but cannot bypass the shared request gate.
+  // The old repository-settings case must be migrated to a disposable repo.
+  guard @env.get_env_var("GH_ACCEPTANCE_POLICY") is Some(_) else {
+    fail(
+      "live writes require a shared ledger policy; use scripts/run_acceptance.mbtx",
+    )
+  }
   guard @env.get_env_var("GH_LIVE_REPO") == Some(allowed_repo) else {
     fail("GH_LIVE_REPO must be ZSeanYves/gh_test")
   }
@@ -871,7 +895,11 @@ async fn main {
   }
   let root = @fs.realpath(@env.current_dir().unwrap_or("."))
   let binary = @fs.realpath(
-    argv.get(1).unwrap_or(root + "/_build/native/debug/build/cmd/main/main.exe"),
+    argv
+    .get(1)
+    .unwrap_or(
+      root + "/_build/native/debug/build/ZSeanYves/gh/cmd/main/main.exe",
+    ),
   )
   guard @fs.kind(binary) is @fs.Regular && @fs.can_execute(binary) else {
     fail("project binary must be an executable regular file")
@@ -886,6 +914,29 @@ async fn main {
   let config = @fs.tmpdir(prefix="gh-live-write-")
   defer @fs.rmdir(config, recursive=true)
   @fs.chmod(config, 0o700)
+  let probe = @shell.Cmd(
+    "moon",
+    [
+      "run",
+      "--target",
+      "native",
+      root + "/scripts/run_acceptance.mbtx",
+      "--",
+      "core_acceptance",
+      "--verify-binary",
+      binary,
+    ],
+    cwd=root,
+    inherit_env=true,
+  ).output(timeout_ms=120000, max_output_bytes=65536)
+  guard probe.exit_code() == 0 &&
+    @json.parse(probe.stdout())
+    is { "scope_protocol": Number(1, ..), "binary_sha256": String(hash), .. } else {
+    fail(
+      "candidate must pass the shared scope preflight before receiving credentials",
+    )
+  }
+  scope_binary_hashes[binary] = hash
   if @env.get_env_var("GH_ORACLE_BINARY") is Some(path) {
     verify_oracle(path, binary, config, token)
   }

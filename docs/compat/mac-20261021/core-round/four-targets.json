@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "family": "target-regression",
+  "source_base": "c1b8712ab01fa9debd5d8d4bdba643371bb5bd15",
+  "source_files_sha256": "335ff6b9f5384091744d8ee6f97af3370c6f8f94378e192a6b1a153d64efa856",
+  "source_unchanged": true,
+  "toolchain": "moon 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moon\nmoonc v0.10.16+b1a0e846e (2026-10-16) ~/.moon/bin/moonc\nmoonrun 0.1.20261020 (2284bd2 2026-10-20) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "dependencies_sha256": "f2ae545ec274b7abae73567e759228d4a04f214f9f163fa1bbeaba90a45a5856",
+  "selection": [],
+  "status": "pass",
+  "core_parity_verified": false,
+  "cases": [
+    {
+      "id": "native-check",
+      "argv": [
+        "check",
+        "--target",
+        "native",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "native-test",
+      "argv": [
+        "test",
+        "--target",
+        "native",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "js-check",
+      "argv": [
+        "check",
+        "--target",
+        "js",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "js-test",
+      "argv": [
+        "test",
+        "--target",
+        "js",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "wasm-check",
+      "argv": [
+        "check",
+        "--target",
+        "wasm",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "wasm-test",
+      "argv": [
+        "test",
+        "--target",
+        "wasm",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "wasm-gc-check",
+      "argv": [
+        "check",
+        "--target",
+        "wasm-gc",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    },
+    {
+      "id": "wasm-gc-test",
+      "argv": [
+        "test",
+        "--target",
+        "wasm-gc",
+        "--frozen",
+        "--deny-warn"
+      ],
+      "exit_code": 0,
+      "status": "pass"
+    }
+  ],
+  "binary_sha256": ""
+}

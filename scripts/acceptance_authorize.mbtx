@@ -1,0 +1,144 @@
+///|
+/// The only credential-bearing child operation here is the product's login
+/// command for the dedicated test App. Business commands never run in this
+/// environment; they receive the resulting token through Acceptance and its
+/// exact request policy. Secrets stay in a private temporary directory.
+async fn authorize_acceptance_app(
+  app_path : String,
+  credential_directory : String,
+) -> Unit {
+  guard !@fs.exists(credential_directory) else {
+    fail("test credential directory exists")
+  }
+  let app = @json.parse(@fs.read_file(app_path).text())
+  guard app is { "GH_OAUTH_CLIENT_ID": String(client_id), .. } &&
+    !client_id.is_empty() &&
+    client_id.length() <= 256 else {
+    fail("test OAuth App ID missing")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  @fs.mkdir(credential_directory, permission=0o700)
+  let directory = @fs.realpath(credential_directory)
+  let binary = root +
+    "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe"
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  guard acceptance_build_evidence(hash) != Json::null() else {
+    fail("new test authorization requires a source-bound build")
+  }
+  let mut stage = "awaiting_device_authorization"
+  let mut complete = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      directory + "/authorization-status.json",
+      Json::object({
+        "schema": 1,
+        "family": "test-app-authorization",
+        "business_mutations": 0,
+        "binary_sha256": hash,
+        "stage": stage,
+        "status": if complete {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "credential_saved": @fs.exists(directory + "/credential.json"),
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  let environment : Map[String, String] = {
+    "HOME": directory,
+    "USERPROFILE": directory,
+    "GH_CONFIG_DIR": directory,
+    "XDG_CONFIG_HOME": directory,
+    "XDG_CACHE_HOME": directory,
+    "GIT_CONFIG_GLOBAL": directory + "/gitconfig",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_TERMINAL_PROMPT": "0",
+    "GH_HOST": "github.com",
+    "GH_OAUTH_CLIENT_ID": client_id,
+    "GH_OAUTH_FLOW": "device",
+    "GH_TEST_OAUTH_DIAGNOSTICS": "1",
+    "PATH": "/usr/bin:/bin",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GH_NO_UPDATE_NOTIFIER": "1",
+    "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+    "GH_TELEMETRY": "0",
+    "DO_NOT_TRACK": "1",
+    "NO_COLOR": "1",
+  }
+  for name in ["HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "NO_PROXY"] {
+    if @env.get_env_var(name) is Some(value) {
+      environment[name] = value
+    }
+  }
+  // Insecure storage here means the isolated mode-0700 test directory instead
+  // of the user's everyday Keychain. It is never an acceptance report.
+  let login = @shell.Cmd(
+    binary,
+    [
+      "auth", "login", "--hostname", "github.com", "--user", "ZSeanYves", "--web",
+      "--git-protocol", "https", "--skip-ssh-key", "--insecure-storage", "--scopes",
+      "workflow,delete_repo,read:project",
+    ],
+    cwd=directory,
+    inherit_env=false,
+    env=environment,
+    stderr=Inherit,
+  ).output(timeout_ms=1200000, max_output_bytes=65536)
+  stage = "device_authorization_returned"
+  guard login.exit_code() == 0 else {
+    stage = "device_authorization_failed"
+    fail(
+      "test OAuth authorization did not finish; credential directory preserved",
+    )
+  }
+  stage = "loading_authorized_token"
+  let result = @shell.Cmd(
+    binary,
+    ["auth", "token", "--hostname", "github.com"],
+    cwd=directory,
+    inherit_env=false,
+    env=environment,
+  ).output(timeout_ms=10000, max_output_bytes=65536)
+  let token = result.stdout().trim().to_owned()
+  guard result.exit_code() == 0 &&
+    !token.is_empty() &&
+    token.iter().all(ch => ch.to_int() > 32 && ch.to_int() < 127) else {
+    fail("test OAuth access token unavailable")
+  }
+  @fs.write_file(
+    directory + "/credential.json",
+    Json::object({ "GH_TOKEN": token }).stringify() + "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  @fs.write_file(
+    directory + "/receipt.json",
+    Json::object({
+      "schema": 1,
+      "account": "ZSeanYves",
+      "app_client_id": client_id,
+      "access_token_sha256": @crypto.bytes_to_hex_string(
+        @crypto.sha256(@utf8.encode(token)),
+      ),
+      "binary_sha256": hash,
+      "scope_request": "repo,read:org,gist,workflow,delete_repo,read:project",
+      "created_at_ms": UInt64::reinterpret_as_int64(@env.now()).to_double(),
+      "revocation": "pending",
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  stage = "credential_and_receipt_saved"
+  complete = true
+  println(
+    "test OAuth credential saved in the isolated directory; token output suppressed",
+  )
+}

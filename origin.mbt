@@ -39,7 +39,10 @@ pub fn normalize_origin(base_url : String) -> Result[String, OriginError] {
       return Err(invalid)
     }
   }
-  guard scheme == "https" || host == "localhost" || host == "127.0.0.1" else {
+  guard scheme == "https" ||
+    host == "localhost" ||
+    host.has_suffix(".localhost") ||
+    host == "127.0.0.1" else {
     return Err(invalid)
   }
   let port_suffix = match port {

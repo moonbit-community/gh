@@ -1,0 +1,621 @@
+[
+  {
+    "id": "rerun_all",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_failed",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--failed"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun-failed-jobs": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_debug",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--debug"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_failed_debug",
+    "args": [
+      "run",
+      "rerun",
+      "--failed",
+      "51",
+      "-d"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun-failed-jobs": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_false_flags",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--failed=false",
+      "--debug=0"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_bool_spellings",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--failed=T",
+      "--debug=True"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun-failed-jobs": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_job",
+    "args": [
+      "run",
+      "rerun",
+      "--job",
+      "23"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/jobs/23": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 23,
+          "run_id": 51,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": []
+        }
+      },
+      "/repos/acme/widgets/actions/jobs/23/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_job_overrides_run",
+    "args": [
+      "run",
+      "rerun",
+      "999",
+      "-j23",
+      "--failed",
+      "-d"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/jobs/23": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 23,
+          "run_id": 51,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": []
+        }
+      },
+      "/repos/acme/widgets/actions/jobs/23/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_short_cluster",
+    "args": [
+      "run",
+      "rerun",
+      "-dj23"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/jobs/23": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 23,
+          "run_id": 51,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": []
+        }
+      },
+      "/repos/acme/widgets/actions/jobs/23/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_run_forbidden",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 403,
+        "json": {
+          "message": "Run is not eligible"
+        }
+      }
+    }
+  },
+  {
+    "id": "rerun_job_forbidden",
+    "args": [
+      "run",
+      "rerun",
+      "-j",
+      "23"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/jobs/23": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 23,
+          "run_id": 51,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": []
+        }
+      },
+      "/repos/acme/widgets/actions/jobs/23/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 403,
+        "json": {
+          "message": "Run is not eligible"
+        }
+      }
+    }
+  },
+  {
+    "id": "rerun_unprocessable",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 422,
+        "json": {
+          "message": "Run is not eligible"
+        }
+      }
+    }
+  },
+  {
+    "id": "rerun_run_not_found",
+    "args": [
+      "run",
+      "rerun",
+      "51"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 404,
+        "json": {
+          "message": "Not Found"
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_job_not_found",
+    "args": [
+      "run",
+      "rerun",
+      "-j",
+      "23"
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/jobs/23": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 404,
+        "json": {
+          "message": "Not Found"
+        }
+      },
+      "/repos/acme/widgets/actions/jobs/23/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_missing_target",
+    "args": [
+      "run",
+      "rerun"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "rerun_unknown_flag",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--nonesuch"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "rerun_unknown_shorthand",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "-x"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "rerun_missing_job_value",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--job="
+    ],
+    "routes": {
+      "/repos/acme/widgets/actions/runs/51?exclude_pull_requests=true": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200,
+        "json": {
+          "id": 51,
+          "workflow_id": 12,
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_attempt": 1
+        }
+      },
+      "/repos/acme/widgets/actions/workflows/12": {
+        "json": {
+          "id": 12,
+          "name": "CI",
+          "path": ".github/workflows/ci.yml",
+          "state": "active"
+        }
+      },
+      "/repos/acme/widgets/actions/runs/51/rerun": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "POST",
+        "status": 201,
+        "json": null
+      }
+    }
+  },
+  {
+    "id": "rerun_excess_positionals",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "52"
+    ],
+    "routes": {}
+  },
+  {
+    "id": "rerun_invalid_boolean",
+    "args": [
+      "run",
+      "rerun",
+      "51",
+      "--failed=maybe"
+    ],
+    "routes": {}
+  }
+]

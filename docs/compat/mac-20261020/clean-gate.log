@@ -1,0 +1,55 @@
+$ moon check --target native --frozen --deny-warn
+Error: Failed to calculate build plan
+
+Caused by:
+    0: Failed to resolve the module dependency graph
+    1: When installing packages
+    2: Failed to sync dependencies: `frozen` is set, so the build system cannot change the modules directory, but new modules need to be installed
+
+$ moon check --target native --deny-warn
+Using cached moonbitlang/async@0.22.5
+Using cached moonbitlang/x@0.5.5
+Using cached hustcer/fbr@0.8.2
+Using cached moonbit-community/punycode@0.5.2
+Using cached moonbit-community/normalization@0.5.2
+Using cached moonbit-community/flate@0.8.4
+Using cached moonbit-community/ucd@0.5.2
+Using cached moonbit-community/idna@0.5.2
+Using cached moonbit-community/bidi@0.5.2
+Using cached cc06b/mooncry@0.95.0
+Using cached ZSeanYves/MoonbitHTTP@0.7.0
+Using cached mizchi/crater-browser-http@0.19.0
+Using cached mizchi/experimental_crypto@0.0.2
+Finished. moon: ran 53 tasks, now up to date
+
+$ moon check --target native --frozen --deny-warn
+Finished. moon: no work to do
+
+$ moon test --target native --frozen
+Total tests: 272, passed: 272, failed: 0.
+libtool: warning: 'watch_windows.o' has no symbols
+libtool: warning: 'stub.o' has no symbols
+libtool: warning: 'windows.o' has no symbols
+libtool: warning: 'epoll.o' has no symbols
+libtool: warning: 'iocp.o' has no symbols
+libtool: warning: 'io_windows.o' has no symbols
+libtool: warning: 'schannel.o' has no symbols
+
+$ moon check --target wasm --frozen --deny-warn
+Finished. moon: ran 23 tasks, now up to date
+
+$ moon test --target wasm --frozen
+Total tests: 68, passed: 68, failed: 0.
+
+$ moon check --target wasm-gc --frozen --deny-warn
+Finished. moon: ran 23 tasks, now up to date
+
+$ moon test --target wasm-gc --frozen
+Total tests: 51, passed: 51, failed: 0.
+
+$ moon check --target js --frozen --deny-warn
+Finished. moon: ran 23 tasks, now up to date
+
+$ moon test --target js --frozen
+Total tests: 68, passed: 68, failed: 0.
+

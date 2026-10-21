@@ -1,0 +1,43 @@
+// Generated from the pinned oracle by scripts/actions_tests.mbtx.
+
+///|
+async test "Actions oracle download_one_name" {
+  check_actions_oracle(
+    "{\"id\":\"download_one_name\",\"args\":[\"run\",\"download\",\"-n\",\"one\",\"-D\",\"out\"],\"routes\":{\"/repos/acme/widgets/actions/artifacts?per_page=100\":{\"json\":{\"artifacts\":[{\"id\":1,\"name\":\"one\",\"expired\":false,\"archive_download_url\":\"http://api.github.localhost/repos/acme/widgets/actions/artifacts/1/zip\"},{\"id\":2,\"name\":\"one\",\"expired\":false,\"archive_download_url\":\"http://api.github.localhost/repos/acme/widgets/actions/artifacts/2/zip\"}]}},\"/repos/acme/widgets/actions/artifacts/1/zip\":{\"zip\":[{\"name\":\"nested/file\",\"text\":\"one\\n\"},{\"name\":\"empty/\",\"text\":\"\"}]}},\"stdout\":\"\",\"stderr\":\"\",\"exit_code\":0,\"requests\":[\"/repos/acme/widgets/actions/artifacts?per_page=100\",\"/repos/acme/widgets/actions/artifacts/1/zip\"],\"files_hex\":{\"out/nested/file\":\"6f6e650a\"},\"directories\":[\"out\",\"out/empty\",\"out/nested\"]}",
+  )
+}
+
+///|
+async test "Actions oracle download_pattern_isolated" {
+  check_actions_oracle(
+    "{\"id\":\"download_pattern_isolated\",\"args\":[\"run\",\"download\",\"7\",\"-p\",\"o?e\",\"-D\",\"out\"],\"routes\":{\"/repos/acme/widgets/actions/runs/7/artifacts?per_page=100\":{\"json\":{\"artifacts\":[{\"id\":1,\"name\":\"one\",\"expired\":false,\"archive_download_url\":\"http://api.github.localhost/repos/acme/widgets/actions/artifacts/1/zip\"},{\"id\":2,\"name\":\"old\",\"expired\":true,\"archive_download_url\":\"http://api.github.localhost/repos/acme/widgets/actions/artifacts/2/zip\"}]}},\"/repos/acme/widgets/actions/artifacts/1/zip\":{\"zip\":[{\"name\":\"file\",\"text\":\"one\\n\"}]}},\"stdout\":\"\",\"stderr\":\"\",\"exit_code\":0,\"requests\":[\"/repos/acme/widgets/actions/runs/7/artifacts?per_page=100\",\"/repos/acme/widgets/actions/artifacts/1/zip\"],\"files_hex\":{\"out/one/file\":\"6f6e650a\"},\"directories\":[\"out\",\"out/one\"]}",
+  )
+}
+
+///|
+async test "Actions oracle download_no_valid" {
+  check_actions_oracle(
+    "{\"id\":\"download_no_valid\",\"args\":[\"run\",\"download\",\"7\"],\"routes\":{\"/repos/acme/widgets/actions/runs/7/artifacts?per_page=100\":{\"json\":{\"artifacts\":[]}}},\"stdout\":\"\",\"stderr\":\"no valid artifacts found to download\\n\",\"exit_code\":1,\"requests\":[\"/repos/acme/widgets/actions/runs/7/artifacts?per_page=100\"],\"files_hex\":{},\"directories\":[]}",
+  )
+}
+
+///|
+async test "Actions oracle download_no_match" {
+  check_actions_oracle(
+    "{\"id\":\"download_no_match\",\"args\":[\"run\",\"download\",\"7\",\"-n\",\"missing\"],\"routes\":{\"/repos/acme/widgets/actions/runs/7/artifacts?per_page=100\":{\"json\":{\"artifacts\":[{\"id\":1,\"name\":\"one\",\"expired\":false,\"archive_download_url\":\"http://api.github.localhost/repos/acme/widgets/actions/artifacts/1/zip\"}]}}},\"stdout\":\"\",\"stderr\":\"no artifact matches any of the names or patterns provided\\n\",\"exit_code\":1,\"requests\":[\"/repos/acme/widgets/actions/runs/7/artifacts?per_page=100\"],\"files_hex\":{},\"directories\":[]}",
+  )
+}
+
+///|
+async test "Actions oracle failed_step_log" {
+  check_actions_oracle(
+    "{\"id\":\"failed_step_log\",\"args\":[\"run\",\"view\",\"7\",\"--log-failed\",\"--exit-status\"],\"routes\":{\"/repos/acme/widgets/actions/runs/7?exclude_pull_requests=true\":{\"json\":{\"id\":7,\"workflow_id\":5,\"status\":\"completed\",\"conclusion\":\"failure\",\"jobs_url\":\"http://api.github.localhost/repos/acme/widgets/actions/runs/7/jobs\"}},\"/repos/acme/widgets/actions/workflows/5\":{\"json\":{\"name\":\"CI\"}},\"/repos/acme/widgets/actions/runs/7/jobs?per_page=100\":{\"json\":{\"jobs\":[{\"id\":11,\"run_id\":7,\"name\":\"build\",\"status\":\"completed\",\"conclusion\":\"failure\",\"steps\":[{\"name\":\"Setup\",\"number\":1,\"conclusion\":\"success\"},{\"name\":\"Run tests\",\"number\":2,\"conclusion\":\"failure\"}]}]}},\"/repos/acme/widgets/actions/runs/7/logs\":{\"zip\":[{\"name\":\"build/1_setup.txt\",\"text\":\"setup\\n\"},{\"name\":\"build/2_tests.txt\",\"text\":\"timestamp fail\\u001b[31m\\r\\n\"},{\"name\":\"0_build.txt\",\"text\":\"full job\"}]}},\"stdout\":\"build\\tRun tests\\ttimestamp fail^[[31m\\n\",\"stderr\":\"\",\"exit_code\":1,\"requests\":[\"/repos/acme/widgets/actions/runs/7?exclude_pull_requests=true\",\"/repos/acme/widgets/actions/workflows/5\",\"/repos/acme/widgets/actions/runs/7/jobs?per_page=100\",\"/repos/acme/widgets/actions/runs/7/logs\"],\"files_hex\":{\".cache/gh/run-log-7--62135596800.zip\":\"504b030414000008080000000000692b2b140800000006000000110000006275696c642f315f73657475702e7478742b4e2d292de00200504b03041400000808000000000048ba72e41700000015000000110000006275696c642f325f74657374732e7478742bc9cc4d2d2e49cc2d50484bcccc918e3636cce5e50200504b030414000008080000000000604aa94a0a000000080000000b000000305f6275696c642e7478744b2bcdc951c8ca4f0200504b0102140014000008080000000000692b2b1408000000060000001100000000000000000000000000000000006275696c642f315f73657475702e747874504b010214001400000808000000000048ba72e417000000150000001100000000000000000000000000370000006275696c642f325f74657374732e747874504b0102140014000008080000000000604aa94a0a000000080000000b000000000000000000000000007d000000305f6275696c642e747874504b05060000000003000300b7000000b00000000000\"},\"directories\":[\".cache\",\".cache/gh\"]}",
+  )
+}
+
+///|
+async test "Actions oracle job_log_fallback" {
+  check_actions_oracle(
+    "{\"id\":\"job_log_fallback\",\"args\":[\"run\",\"view\",\"--job\",\"11\",\"--log\"],\"routes\":{\"/repos/acme/widgets/actions/jobs/11\":{\"json\":{\"id\":11,\"run_id\":7,\"name\":\"build\",\"status\":\"completed\",\"conclusion\":\"success\",\"steps\":[]}},\"/repos/acme/widgets/actions/runs/7?exclude_pull_requests=true\":{\"json\":{\"id\":7,\"workflow_id\":5,\"status\":\"completed\",\"conclusion\":\"success\"}},\"/repos/acme/widgets/actions/workflows/5\":{\"json\":{\"name\":\"CI\"}},\"/repos/acme/widgets/actions/runs/7/logs\":{\"zip\":[]},\"/repos/acme/widgets/actions/jobs/11/logs\":{\"text\":\"fallback\\nlast\"}},\"stdout\":\"build\\tUNKNOWN STEP\\tfallback\\nbuild\\tUNKNOWN STEP\\tlast\\n\",\"stderr\":\"\",\"exit_code\":0,\"requests\":[\"/repos/acme/widgets/actions/jobs/11\",\"/repos/acme/widgets/actions/runs/7?exclude_pull_requests=true\",\"/repos/acme/widgets/actions/workflows/5\",\"/repos/acme/widgets/actions/runs/7/logs\",\"/repos/acme/widgets/actions/jobs/11/logs\"],\"files_hex\":{\".cache/gh/run-log-7--62135596800.zip\":\"504b0506000000000000000000000000000000000000\"},\"directories\":[\".cache\",\".cache/gh\"]}",
+  )
+}

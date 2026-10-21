@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": null,
+    "terminal": true,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 8,
+  "completed_cases": 8,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "http-401-jq",
+      "input": {
+        "message": "Bad credentials",
+        "status": "401"
+      },
+      "expression": ".message",
+      "format": "jq",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"message\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"Bad credentials\"\u001b[m\u001b[1;37m,\u001b[m\r\n  \u001b[1;34m\"status\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"401\"\u001b[m\r\n\u001b[1;37m}\u001b[m\r\ngh: Bad credentials (HTTP 401)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "response_status": 401,
+      "status": "recorded"
+    },
+    {
+      "id": "http-403-template",
+      "input": {
+        "message": "Resource not accessible",
+        "status": "403"
+      },
+      "expression": "{{.message}}",
+      "format": "template",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"message\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"Resource not accessible\"\u001b[m\u001b[1;37m,\u001b[m\r\n  \u001b[1;34m\"status\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"403\"\u001b[m\r\n\u001b[1;37m}\u001b[m\r\ngh: Resource not accessible (HTTP 403)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "response_status": 403,
+      "status": "recorded"
+    },
+    {
+      "id": "http-404-invalid-jq",
+      "input": {
+        "message": "Not Found"
+      },
+      "expression": ".[",
+      "format": "jq",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"message\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"Not Found\"\u001b[m\r\n\u001b[1;37m}\u001b[m\r\ngh: Not Found (HTTP 404)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "response_status": 404,
+      "status": "recorded"
+    },
+    {
+      "id": "http-422-errors",
+      "input": {
+        "message": "Validation Failed",
+        "errors": [
+          {
+            "resource": "Issue",
+            "field": "title",
+            "code": "missing_field"
+          }
+        ]
+      },
+      "expression": ".message",
+      "format": "jq",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"message\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"Validation Failed\"\u001b[m\u001b[1;37m,\u001b[m\r\n  \u001b[1;34m\"errors\"\u001b[m\u001b[1;37m:\u001b[m \u001b[1;37m[\u001b[m\r\n    \u001b[1;37m{\u001b[m\r\n      \u001b[1;34m\"resource\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"Issue\"\u001b[m\u001b[1;37m,\u001b[m\r\n      \u001b[1;34m\"field\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"title\"\u001b[m\u001b[1;37m,\u001b[m\r\n      \u001b[1;34m\"code\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"missing_field\"\u001b[m\r\n    \u001b[1;37m}\u001b[m\r\n  \u001b[1;37m]\u001b[m\r\n\u001b[1;37m}\u001b[m\r\ngh: Validation Failed (HTTP 422)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "response_status": 422,
+      "status": "recorded"
+    },
+    {
+      "id": "http-500-missing-message",
+      "input": {
+        "error": "oops"
+      },
+      "expression": "{{.error}}",
+      "format": "template",
+      "stdout": "oopsgh: HTTP 500\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "response_status": 500,
+      "status": "recorded"
+    },
+    {
+      "id": "http-403-control",
+      "input": {
+        "message": "No\u001b[31m access"
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"message\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"No^[[31m access\"\u001b[m\r\n\u001b[1;37m}\u001b[m\r\ngh: No^[[31m access (HTTP 403)\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "response_status": 403,
+      "status": "recorded"
+    },
+    {
+      "id": "http-success-empty-jq",
+      "input": {
+        "a": "x",
+        "b": null
+      },
+      "expression": "",
+      "format": "jq",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"a\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"x\"\u001b[m\u001b[1;37m,\u001b[m\r\n  \u001b[1;34m\"b\"\u001b[m\u001b[1;37m:\u001b[m \u001b[36mnull\u001b[m\r\n\u001b[1;37m}\u001b[m\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "http-success-empty-template",
+      "input": {
+        "a": "x",
+        "b": null
+      },
+      "expression": "",
+      "format": "template",
+      "stdout": "\u001b[1;37m{\u001b[m\r\n  \u001b[1;34m\"a\"\u001b[m\u001b[1;37m:\u001b[m \u001b[32m\"x\"\u001b[m\u001b[1;37m,\u001b[m\r\n  \u001b[1;34m\"b\"\u001b[m\u001b[1;37m:\u001b[m \u001b[36mnull\u001b[m\r\n\u001b[1;37m}\u001b[m\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

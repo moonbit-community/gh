@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/attestation"
+
+// Values
+pub fn github_tuf_bootstrap() -> Bytes
+
+// Errors
+pub suberror VerificationError {
+  Invalid(String)
+}
+
+// Types and methods
+type Authority
+
+pub struct TrustedMaterial {
+  authorities : Array[Authority]
+  timestamp_authorities : Array[Authority]
+}
+pub fn TrustedMaterial::from_custom_root(Bytes) -> Self raise VerificationError
+pub fn TrustedMaterial::verify_release(Self, Bytes, tag~ : String, ref_digest~ : String, asset_sha256? : String, now_unix~ : Int64) -> VerifiedRelease raise VerificationError
+
+pub struct TufTrust {
+  // private fields
+}
+pub fn TufTrust::metadata_filename(Self, String, Int64) -> String raise VerificationError
+pub fn TufTrust::new(Bytes, now_unix~ : Int64) -> Self raise VerificationError
+pub fn TufTrust::restore_previous(Self, Bytes, Bytes, Bytes) -> Unit raise VerificationError
+pub fn TufTrust::root_version(Self) -> Int64 raise VerificationError
+pub fn TufTrust::rotate_root(Self, Bytes) -> Unit raise VerificationError
+pub fn TufTrust::target_filename(Self, String) -> String raise VerificationError
+pub fn TufTrust::trusted_material(Self, Bytes) -> TrustedMaterial raise VerificationError
+pub fn TufTrust::verify_snapshot(Self, Bytes) -> Int64 raise VerificationError
+pub fn TufTrust::verify_target(Self, String, Bytes) -> Json raise VerificationError
+pub fn TufTrust::verify_targets(Self, Bytes) -> Unit raise VerificationError
+pub fn TufTrust::verify_timestamp(Self, Bytes) -> Int64 raise VerificationError
+
+pub struct VerifiedRelease {
+  statement : Json
+  signed_at : Int64
+  timestamp_uri : String
+  timestamp_text : String
+  issuer : String
+}
+pub fn VerifiedRelease::signed_at(Self) -> Int64
+pub fn VerifiedRelease::statement(Self) -> Json
+pub fn VerifiedRelease::verification_result(Self) -> Json
+
+// Type aliases
+
+// Traits

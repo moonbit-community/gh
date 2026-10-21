@@ -8,15 +8,31 @@ pub fn native_raw_transport(
   base_url~ : String,
   timeout_ms~ : Int32 = 30000,
   max_response_bytes~ : Int32 = 8388608,
+  max_download_bytes~ : Int32 = 2147483647,
+  acceptance_policy? : String,
 ) -> @gh.RawTransport raise {
-  guard timeout_ms > 0 && max_response_bytes > 0 else {
+  guard timeout_ms > 0 && max_response_bytes > 0 && max_download_bytes > 0 else {
     raise InvalidConfiguration
   }
   let origin = match @gh.normalize_origin(base_url) {
     Ok(value) => value
     Err(_) => raise InvalidConfiguration
   }
-  @gh.RawTransport::new(origin~, send=request => {
+  let proxy = proxy_from_environment(origin, @env.get_env_var)
+  let acceptance_policy = match acceptance_policy {
+    Some(_) => acceptance_policy
+    None => @env.get_env_var("GH_ACCEPTANCE_POLICY")
+  }
+  guard @env.get_env_var("GH_LIVE_ACCEPTANCE") != Some("1") ||
+    acceptance_policy is Some(_) else {
+    raise InvalidConfiguration
+  }
+  let exchange : async (@gh.RawRequest, @gh.RawResponseSink, Int32) -> @gh.RawDownloadResult = (
+    request,
+    sink,
+    limit,
+  ) => {
+    check_acceptance_request(acceptance_policy, origin, request)
     let verb = raw_method(request.verb)
     guard raw_valid_path(request.path) else { raise InvalidRequest }
     let fields = raw_request_headers(request.headers, origin)
@@ -33,7 +49,11 @@ pub fn native_raw_transport(
           None => NoBody
         }
     }
-    let uri = match @http_types.Uri::parse_request_target(request.path, verb) {
+    let uri = match
+      @http_types.Uri::parse_request_target(
+        proxy_request_target(origin, request.path, proxy),
+        verb,
+      ) {
       Ok(uri) => uri
       Err(_) => raise InvalidRequest
     }
@@ -46,7 +66,7 @@ pub fn native_raw_transport(
       Err(_) => raise InvalidRequest
     }
     @async.with_timeout(timeout_ms) <| () => {
-      let client = @http.Client(origin)
+      let client = connect_via_proxy(origin, proxy)
       defer client.close()
       client.enter_passthrough_mode()
       client.write(head)
@@ -58,9 +78,29 @@ pub fn native_raw_transport(
             _ => ()
           }
       }
-      read_raw_response(client, verb, max_response_bytes)
+      read_raw_response_stream(client, verb, limit, sink)
     }
-  })
+  }
+  @gh.RawTransport::new(
+    origin~,
+    send=request => {
+      let buffer = @buffer.Buffer()
+      let result = exchange(
+        request,
+        @gh.RawResponseSink::new(headers=_ => true, chunk=bytes => {
+          buffer.write_bytes(bytes)
+        }),
+        max_response_bytes,
+      )
+      @gh.RawHttpResponse::new(
+        status=result.head().status(),
+        headers=result.head().headers(),
+        body=buffer.to_bytes(),
+        reason_phrase?=result.head().reason_phrase(),
+      )
+    },
+    receive=(request, sink) => exchange(request, sink, max_download_bytes),
+  )
 }
 
 ///|

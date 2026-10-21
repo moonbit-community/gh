@@ -189,7 +189,7 @@ async test "variable set preserves failed POST responses without PATCH" {
         ),
       ],
     )
-    assert_eq(output.exit_code(), if status == 401 { 4 } else { 1 })
+    assert_eq(output.exit_code(), 1)
     assert_eq(output.stdout(), "{\"message\":\"fixture request denied\"}")
     assert_true(output.stderr().contains("fixture request denied"))
     assert_false(output.stderr().contains("fixture-value"))

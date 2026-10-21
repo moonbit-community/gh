@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/moonjq"
+
+import {
+  "bobzhang/moonjq/ast",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn eval(Query, Json) -> Iter[Json] raise
+
+pub fn eval_all(Query, Json) -> Array[Json] raise
+
+pub fn parse(String) -> Query raise
+
+pub fn run(String, String) -> Array[Json] raise
+
+pub fn run_json(Query, Json) -> Array[Json] raise
+
+// Errors
+
+// Types and methods
+pub struct Query {
+  expr : @ast.Expr
+} derive(@debug.Debug)
+pub fn Query::eval(Self, Json) -> Iter[Json] raise
+pub fn Query::eval_all(Self, Json) -> Array[Json] raise
+pub fn Query::eval_logs(Self, String) -> Iter[Json] raise
+pub fn Query::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

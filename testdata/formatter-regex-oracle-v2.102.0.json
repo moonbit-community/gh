@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": "1",
+    "terminal": false,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 23,
+  "completed_cases": 23,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "regex-match",
+      "input": "abc123def",
+      "expression": "match(\"[0-9]+\")",
+      "format": "jq",
+      "stdout": "{\"captures\":[],\"length\":3,\"offset\":3,\"string\":\"123\"}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-captures-unicode",
+      "input": "😀A12x",
+      "expression": "match(\"(?<letters>[A-Z]+)([0-9]+)(?<missing>z)?\")",
+      "format": "jq",
+      "stdout": "{\"captures\":[{\"length\":1,\"name\":\"letters\",\"offset\":1,\"string\":\"A\"},{\"length\":2,\"name\":null,\"offset\":2,\"string\":\"12\"},{\"length\":0,\"name\":\"missing\",\"offset\":-1,\"string\":null}],\"length\":3,\"offset\":1,\"string\":\"A12\"}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-global-match",
+      "input": "aba",
+      "expression": "[match(\"a\";\"g\")]",
+      "format": "jq",
+      "stdout": "[{\"captures\":[],\"length\":1,\"offset\":0,\"string\":\"a\"},{\"captures\":[],\"length\":1,\"offset\":2,\"string\":\"a\"}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-case-insensitive",
+      "input": "AbC",
+      "expression": "test(\"abc\";\"i\")",
+      "format": "jq",
+      "stdout": "true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-dynamic-pattern",
+      "input": {
+        "pattern": "[0-9]+",
+        "value": "a12"
+      },
+      "expression": ".pattern as $p | .value | test($p)",
+      "format": "jq",
+      "stdout": "true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-scan",
+      "input": "a12b3",
+      "expression": "[scan(\"[0-9]+\")]",
+      "format": "jq",
+      "stdout": "[\"12\",\"3\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-scan-groups",
+      "input": "a12b3",
+      "expression": "[scan(\"([a-z])([0-9]+)\")]",
+      "format": "jq",
+      "stdout": "[[\"a\",\"12\"],[\"b\",\"3\"]]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-capture-global",
+      "input": "A a",
+      "expression": "[capture(\"(?<x>a)(?<z>z)?\";\"gi\")]",
+      "format": "jq",
+      "stdout": "[{\"x\":\"A\",\"z\":null},{\"x\":\"a\",\"z\":null}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-splits",
+      "input": "a,,b;c;",
+      "expression": "[splits(\"[,;]+\")]",
+      "format": "jq",
+      "stdout": "[\"a\",\"b\",\"c\",\"\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-splits-empty",
+      "input": "ab",
+      "expression": "[splits(\"\")]",
+      "format": "jq",
+      "stdout": "[\"\",\"a\",\"b\",\"\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-sub",
+      "input": "a12b3",
+      "expression": "sub(\"[0-9]+\";\"N\")",
+      "format": "jq",
+      "stdout": "aNb3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-gsub",
+      "input": "a12b3",
+      "expression": "gsub(\"[0-9]+\";\"N\")",
+      "format": "jq",
+      "stdout": "aNbN\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-replacement-capture",
+      "input": "a12b3",
+      "expression": "sub(\"(?<x>[0-9]+)\";\"<\\(.x)>\")",
+      "format": "jq",
+      "stdout": "a<12>b3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-replacement-expression",
+      "input": "a12b3",
+      "expression": "gsub(\"(?<x>[0-9]+)\";(.x | tonumber | .+1 | tostring))",
+      "format": "jq",
+      "stdout": "a13b4\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-empty-matches",
+      "input": "😀x",
+      "expression": "[match(\"\";\"g\")]",
+      "format": "jq",
+      "stdout": "[{\"captures\":[],\"length\":0,\"offset\":0,\"string\":\"\"},{\"captures\":[],\"length\":0,\"offset\":1,\"string\":\"\"},{\"captures\":[],\"length\":0,\"offset\":2,\"string\":\"\"}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-anchor",
+      "input": "aba",
+      "expression": "gsub(\"^\";\"X\")",
+      "format": "jq",
+      "stdout": "Xaba\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-word-boundaries",
+      "input": "a b",
+      "expression": "gsub(\"\\\\b\";\"|\")",
+      "format": "jq",
+      "stdout": "|a| |b|\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-invalid-flag",
+      "input": "a",
+      "expression": "test(\"a\";\"z\")",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "unsupported regular expression flag: \"z\"\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-invalid-pattern",
+      "input": "a",
+      "expression": "test(\"[\")",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "invalid regular expression \"[\": error parsing regexp: missing closing ]: `[`\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-default-lines",
+      "input": "a\nb",
+      "expression": "test(\"^b\")",
+      "format": "jq",
+      "stdout": "false\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-m-lines",
+      "input": "a\nb",
+      "expression": "test(\"a.b\";\"m\")",
+      "format": "jq",
+      "stdout": "true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-s-lines",
+      "input": "a\nb",
+      "expression": "test(\"^b\";\"s\")",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "unsupported regular expression flag: \"s\"\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "regex-stream-replacement",
+      "input": "aa",
+      "expression": "gsub(\"a\";(\"x\",\"y\"))",
+      "format": "jq",
+      "stdout": "xx\nyy\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

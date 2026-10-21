@@ -66,6 +66,8 @@ async fn oauth_post(
   transport : @gh.RawTransport,
   path : String,
   fields : Array[(String, String)],
+  stage~ : OAuthStage,
+  observe~ : async (OAuthStage, OAuthFailure) -> Unit = oauth_diagnostic,
 ) -> Result[Json, OAuthError] {
   let response = transport.send(
     @gh.RawRequest::new(verb="POST", path~, body=oauth_form(fields), headers=[
@@ -74,13 +76,24 @@ async fn oauth_post(
     ]),
   ) catch {
     err if @async.is_being_cancelled() => raise err
-    _ => return Err(OAuthError::Failed)
+    _ => {
+      observe(stage, Transport)
+      return Err(OAuthError::Failed)
+    }
   }
-  guard response.status() == 200 && response.body().length() <= 65536 else {
+  guard response.status() == 200 else {
+    observe(stage, HttpStatus(response.status()))
+    return Err(OAuthError::Failed)
+  }
+  guard response.body().length() <= 65536 else {
+    observe(stage, ResponseTooLarge)
     return Err(OAuthError::Failed)
   }
   let body = @json.parse(@utf8.decode(response.body())) catch {
-    _ => return Err(OAuthError::Failed)
+    _ => {
+      observe(stage, InvalidJson)
+      return Err(OAuthError::Failed)
+    }
   }
   Ok(body)
 }
@@ -129,10 +142,12 @@ pub fn device_oauth_adapter(
       return Err(OAuthError::InvalidConfiguration)
     }
     let initial = match
-      oauth_post(transport, "/login/device/code", [
-        ("client_id", client_id),
-        ("scope", scope_names.join(" ")),
-      ]) {
+      oauth_post(
+        transport,
+        "/login/device/code",
+        [("client_id", client_id), ("scope", scope_names.join(" "))],
+        stage=DeviceCode,
+      ) {
       Ok(value) => value
       Err(error) => return Err(error)
     }
@@ -187,11 +202,16 @@ pub fn device_oauth_adapter(
             return Err(OAuthError::Expired)
           }
           let response = match
-            oauth_post(transport, "/login/oauth/access_token", [
-              ("client_id", client_id),
-              ("device_code", device_code),
-              ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
-            ]) {
+            oauth_post(
+              transport,
+              "/login/oauth/access_token",
+              [
+                ("client_id", client_id),
+                ("device_code", device_code),
+                ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+              ],
+              stage=DevicePoll,
+            ) {
             Ok(value) => value
             Err(error) => return Err(error)
           }
@@ -214,14 +234,20 @@ pub fn device_oauth_adapter(
               return Err(OAuthError::Denied)
             { "error": String("expired_token"), .. } =>
               return Err(OAuthError::Expired)
-            { "error": _, .. } => return Err(OAuthError::Failed)
+            { "error": _, .. } => {
+              oauth_diagnostic(DevicePoll, ProviderError)
+              return Err(OAuthError::Failed)
+            }
             { "expires_in": _, .. } | { "refresh_token": _, .. } =>
               return Err(OAuthError::ExpiringTokenUnsupported)
             { "access_token": String(token), "token_type": String(kind), .. } if kind.equal_ignore_ascii_case(
                 "bearer",
               ) &&
               oauth_safe_text(token, 4096) => return Ok(token)
-            _ => return Err(OAuthError::Failed)
+            _ => {
+              oauth_diagnostic(DevicePoll, InvalidTokenResponse)
+              return Err(OAuthError::Failed)
+            }
           }
         }
         Err(OAuthError::Expired)

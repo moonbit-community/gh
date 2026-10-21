@@ -1,7 +1,9 @@
 ///|
 /// Parse the block-mapping hosts.yml written by gh. This is a bounded schema
-/// parser, not a general YAML implementation: aliases, tags, flow mappings,
-/// multiline scalars and tab indentation are rejected. Standard unquoted,
+/// parser, not a general YAML implementation: aliases, tags, nonempty flow
+/// mappings, multiline scalars and tab indentation are rejected. Empty account
+/// mappings under `users` represent credentials held in the OS keyring.
+/// Standard unquoted,
 /// single-quoted, and JSON-compatible double-quoted scalars are supported.
 /// Returns only the selected host's credential, never another host's token.
 pub fn hosts_token(
@@ -51,6 +53,12 @@ pub fn hosts_token(
     }
     if value.is_empty() {
       scopes.push((indent, key))
+      continue
+    }
+    if value == "{}" && path.length() == 3 && path[1] == "users" {
+      // Both our writer and upstream gh use empty account mappings when
+      // the credential is held outside hosts.yml. Let the native resolver
+      // consult its keyring instead of rejecting the account reference.
       continue
     }
     let scalar = match yaml_scalar(value) {

@@ -8,6 +8,28 @@ evidence and its limits. Complete core parity is still an acceptance target:
 parser, requests, output, errors, tracing, controlled fixtures, and applicable
 interactive behavior must pass for each claimed command.
 
+## Mac authentication and deploy-key acceptance (2026-10-21)
+
+The [OAuth continuation record](../development/handoff-20261021-oauth.md)
+records real device and browser-callback OAuth, macOS Keychain store/read/delete,
+and selected-account identity checks on the final local binary. Both deploy-key
+success lifecycles now pass after the test PAT permissions were updated, with
+successful cleanup. The same binary passed the 20-probe read-only differential
+against v2.102.0. OAuth acceptance is a real lifecycle check, not a differential
+claim for every auth interaction. The earlier complete write matrix remains
+tied to its earlier binary; hosted CI and complete core parity remain open.
+
+## Mac repair acceptance (2026-10-20)
+
+The [Mac continuation record](../development/handoff-20261020-mac-repairs.md)
+records the final local binary, checksum-verified v2.102.0 macOS arm64 oracle,
+20 passing read-only differential probes, 28 passing repair cases with two
+deploy-key success cases pending permission, and the existing write lifecycle
+regression (59 passing, 10 skipped). Both write cleanups passed. The repair
+matrix includes permission-denial output comparisons; these do not count as
+successful deploy-key creation. Complete core parity and hosted cross-platform
+CI for the uncommitted local changes remain unverified.
+
 ## GitHub-only branch validation (2026-10-17)
 
 After preserving the complete provider snapshot at `da3ef15`, the GitHub-only

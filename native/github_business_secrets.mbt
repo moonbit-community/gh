@@ -309,7 +309,7 @@ async fn execute_secret_set(
       }
   }
   guard key_response.status() >= 200 && key_response.status() < 300 else {
-    return @github_cli.render_response(
+    return render_github_response(
       key_response.status(),
       key_response.headers(),
       key_response.body(),
@@ -350,7 +350,7 @@ async fn execute_secret_set(
         None => return @github_cli.failure(message=error.code())
       }
   }
-  @github_cli.render_response(
+  render_github_response(
     response.status(),
     response.headers(),
     response.body(),

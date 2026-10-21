@@ -1,0 +1,67 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/live_scope"
+
+// Values
+
+// Errors
+pub suberror ScopeError {
+  InvalidLedger
+  OutsideScope
+  UnknownResource
+  InvalidTransition
+}
+
+// Types and methods
+pub struct Ledger {
+  // private fields
+}
+pub fn Ledger::approve_creation(Self, String, Json) -> Permit raise ScopeError
+pub fn Ledger::approve_graphql_mutation(Self, String, String, Bytes) -> Permit raise ScopeError
+pub fn Ledger::approve_mutation(Self, String, String, String, String, body? : Bytes) -> Permit raise ScopeError
+pub fn Ledger::approve_operation(Self, String, String, String, String, body? : Bytes) -> Permit raise ScopeError
+pub fn Ledger::approve_repository_deletion(Self, String, String, Json, now_ms~ : Int64) -> Permit raise ScopeError
+pub fn Ledger::bind_node(Self, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::check_owned(Self, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::confirm_created(Self, String, String, locator? : String) -> Unit raise ScopeError
+pub fn Ledger::confirm_not_created(Self, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::confirm_removed(Self, String, String) -> Unit raise ScopeError
+pub fn Ledger::confirm_repository_removed(Self, String, String) -> Unit raise ScopeError
+pub fn Ledger::from_json(Json) -> Self raise ScopeError
+pub fn Ledger::intend_account_resource(Self, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::intend_repository(Self, String, String) -> Unit raise ScopeError
+pub fn Ledger::intend_resource(Self, String, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::mark_uncertain(Self, String) -> Unit raise ScopeError
+pub fn Ledger::mutation_target(Self, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::new(String, String) -> Self raise ScopeError
+pub fn Ledger::record_content_receipt(Self, String, String, String) -> Unit raise ScopeError
+pub fn Ledger::to_json(Self) -> Json
+
+pub struct Permit {
+  // private fields
+}
+pub fn Permit::allows(Self, String, String, String, Bytes?) -> Bool
+pub fn Permit::resource_key(Self) -> String
+pub fn Permit::to_json(Self) -> Json
+
+pub struct Policy {
+  // private fields
+}
+pub fn Policy::allows(Self, String, String, String, Bytes?, now_ms? : Int64) -> Bool
+pub fn Policy::allows_process(Self, String, Array[String]) -> Bool
+pub fn Policy::from_json(Json) -> Self raise ScopeError
+
+type Resource
+
+pub(all) enum State {
+  Intended
+  Created
+  Uncertain
+  Removed
+  NotCreated
+} derive(Eq)
+pub fn State::equal(Self, Self) -> Bool
+pub fn State::not_equal(Self, Self) -> Bool
+
+// Type aliases
+
+// Traits

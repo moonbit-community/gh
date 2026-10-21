@@ -1,6 +1,14 @@
 ///|
 /// GitHub executable dispatcher.
-pub async fn run_github(args : Array[String]) -> @github_cli.Output {
+pub async fn run_github(
+  args : Array[String],
+  stdout_writer? : async (Bytes) -> Unit,
+  stderr_writer? : async (Bytes) -> Unit,
+) -> @github_cli.Output {
+  if @env.get_env_var("GH_LIVE_ACCEPTANCE") == Some("1") &&
+    @env.get_env_var("GH_ACCEPTANCE_PROBE") is Some(challenge) {
+    return acceptance_probe(@env.get_env_var("GH_ACCEPTANCE_POLICY"), challenge)
+  }
   let invocation = @github_cli.parse(args) catch {
     @github_cli.MissingValue(option) =>
       return @github_cli.Output::new(
@@ -38,7 +46,8 @@ pub async fn run_github(args : Array[String]) -> @github_cli.Output {
         credential_backend=system_credential_backend(),
       )
     @github_cli.Api(options) => run_api(options)
-    @github_cli.Business(options) => run_business(options)
+    @github_cli.Business(options) =>
+      run_business(options, stdout_writer?, stderr_writer?)
     @github_cli.Unsupported(command) =>
       @github_cli.failure(message="unknown command: " + command)
   }
@@ -95,6 +104,8 @@ fn command_help(topic : String) -> @github_cli.Output {
 /// transport while the executable resolves credentials and git here.
 async fn run_business(
   options : @github_cli.BusinessOptions,
+  stdout_writer? : async (Bytes) -> Unit,
+  stderr_writer? : async (Bytes) -> Unit,
 ) -> @github_cli.Output {
   if business_help_requested(options) {
     return @github_cli.success(stdout=business_help(options.command()) + "\n")
@@ -124,7 +135,13 @@ async fn run_business(
   if business_hostname_arg(options) is Some(host) {
     environment = environment.with_host(host)
   } else if business_repository_arg(options) is Some(repo) {
-    match @github_cli.RepositoryContext::parse(repo) {
+    match
+      @github_cli.RepositoryContext::parse(
+        repo,
+        default_host=environment.gh_host
+          .filter(value => !value.is_empty())
+          .unwrap_or("github.com"),
+      ) {
       Ok(context) => environment = environment.with_host(context.host())
       Err(_) =>
         return @github_cli.failure(
@@ -151,6 +168,21 @@ async fn run_business(
   } else {
     None
   }
+  let repository = if options.command() == "pr" &&
+    parsed.subcommand == "status" &&
+    business_repository_arg(options) is None &&
+    @env.get_env_var("GH_REPO") is None {
+    match (repository, resolve_current_branch()) {
+      (Some(repo), Ok(branch)) =>
+        match repo.with_branch(branch) {
+          Ok(repo) => Some(repo)
+          Err(_) => repository
+        }
+      _ => repository
+    }
+  } else {
+    repository
+  }
   let client = match
     github_client(
       base_url=config.rest_base_url(),
@@ -166,6 +198,9 @@ async fn run_business(
     client~,
     base_url=config.rest_base_url(),
     repository?,
+    cache_directory?=api_cache_root(),
+    stdout_writer?,
+    stderr_writer?,
   )
 }
 
@@ -370,6 +405,7 @@ pub async fn configured_editor(host : String?) -> String {
 /// Invoke the configured editor with one temporary file path appended as an
 /// argv element. This public seam lets issue/pr/release commands and host
 /// applications share the same timeout and shell-free behavior.
+#warnings("-result_error_return")
 pub async fn run_configured_editor(
   path : String,
   host? : String,

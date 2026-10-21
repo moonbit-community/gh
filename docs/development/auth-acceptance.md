@@ -1,9 +1,15 @@
 # OAuth, keyring and account acceptance
 
-As of 2026-10-19. This guide applies to the executable built from this
+As of 2026-10-21. This guide applies to the executable built from this
 working tree. Controlled tests do not establish real GitHub authorization or
 OS credential-store acceptance. Keep credentials outside the repository,
 command arguments, CI, reports and conversation messages.
+
+The [Mac acceptance record](handoff-20261021-oauth.md) now confirms real device
+and browser-callback login for the selected `ZSeanYves` test account, Keychain
+store/read/delete, identity verification without an environment token, and
+remote test-App grant revocation. Linux, Windows, and multiple real accounts
+remain separate acceptance gates.
 
 ## Implemented boundaries
 
@@ -25,10 +31,10 @@ These are implementation boundaries, not a claim of full command/TTY parity.
 Refresh-token rotation is not implemented; expiring OAuth token responses are
 rejected before storage. Real account mutations have not been performed.
 
-## 1. Prepare this Ubuntu host
+## 1. Prepare the desktop host
 
-The current host has gnome-keyring installed but lacks libsecret-tools.
-Run these commands in your normal logged-in desktop terminal:
+On Ubuntu, install the Secret Service helper in your normal logged-in
+desktop terminal:
 
 ```bash
 sudo apt install libsecret-tools
@@ -44,7 +50,7 @@ hide the warning.
 
 macOS needs the credential-osxkeychain Git helper and unlocked user Keychain.
 Windows needs the credential-wincred Git helper (not Git Credential Manager).
-Both platforms still require actual-host acceptance.
+The macOS helper passed the 2026-10-21 acceptance; Windows remains unverified.
 
 ## 2. Register a dedicated test OAuth App
 
@@ -71,7 +77,7 @@ Secret. Keep callback wildcard matching disabled on the App.
 
 ## 3. Build and authorize via device flow
 
-From /home/zseanyves/Moonbit/gh, in the same desktop terminal:
+From the repository root, in the same desktop terminal:
 
 ```bash
 moon build --target native --release --frozen --deny-warn cmd/main
@@ -91,6 +97,9 @@ from GitHub; no synthetic default identity is stored. Successful OS storage
 appears as keyring in auth status. Do not share auth token or --show-token
 output. The separate configuration directory protects your normal account
 list, but OS stores are keyed by host/account independently of that directory.
+This implementation's macOS item also uses the `gh-moonbit` path. Check that
+the selected test account has no existing project credential before starting
+an acceptance run; configuration isolation alone does not protect that item.
 
 ## 4. Verify browser callback authorization
 
@@ -156,8 +165,10 @@ Logout removes local credentials; revoke the test App under GitHub Settings
 Reports should contain pass/fail, platform, source/binary hashes and cleanup,
 never tokens, device codes, callback queries or client secrets.
 
-Real OAuth consent, real OS keyring store/read/delete and macOS/Windows host
-acceptance remain pending until the App and desktop sessions are ready.
+Real device/web OAuth consent and macOS Keychain store/read/delete passed
+on 2026-10-21. The dedicated App grant was revoked after both flows; the App
+registration was preserved. Linux/Windows host acceptance and multi-account
+acceptance remain pending.
 
 Remaining compatibility work includes automatic device-to-web fallback,
 refresh-token rotation, interactive gist editing/clone/web, gist list pagination,

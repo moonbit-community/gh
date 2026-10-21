@@ -1,0 +1,22 @@
+[
+  {"id":"function-value-partial-error","format":"jq","input":null,"expression":"def f($x): $x; f((1,error(\"late\")))"},
+  {"id":"function-body-partial-error","format":"jq","input":null,"expression":"def f: 1,error(\"late\"); f"},
+  {"id":"function-filter-used-twice","format":"jq","input":3,"expression":"def f(g): [g,g]; f((.,.+1))"},
+  {"id":"function-shadow-builtin","format":"jq","input":[1,2],"expression":"def length: 99; length"},
+  {"id":"function-lexical-function","format":"jq","input":null,"expression":"def f: 1; def g: f; def f: 2; g,f"},
+  {"id":"function-local-definition","format":"jq","input":null,"expression":"(def f: 1; f), f"},
+  {"id":"function-param-not-outside","format":"jq","input":null,"expression":"def f($x): $x; f(1),$x"},
+  {"id":"dynamic-index-original-input","format":"jq","input":{"key":"x","a":{"x":5}},"expression":".a[.key]"},
+  {"id":"dynamic-index-cross-product","format":"jq","input":[[1,2],[3,4]],"expression":".[][(0,1)]"},
+  {"id":"dynamic-negative-index","format":"jq","input":[1,2,3],"expression":"1 as $n | .[-$n]"},
+  {"id":"dynamic-invalid-index","format":"jq","input":{"x":1},"expression":"(try .[true] catch .), (try .[{}] catch .), (try .[1] catch .)"},
+  {"id":"dynamic-path-update","format":"jq","input":{"x":[1,2]},"expression":"\"x\" as $key | .[$key][1] += 4"},
+  {"id":"decimal-exponent-literals","format":"jq","input":null,"expression":"[1e3,1E-2,-2.5e+1,.5,-.5,3-2,3--2,-0]"},
+  {"id":"big-integer-containers","format":"jq","input":null,"expression":"[9007199254740993,-9007199254740993,{x:999999999999999999999999999999}]"},
+  {"id":"big-integer-ops","format":"jq","input":null,"expression":"[9007199254740993-2,9007199254740993*3,9007199254740993%7,9007199254740993/3,9007199254740993>9007199254740992]"},
+  {"id":"big-integer-mixed-input","format":"jq","input":1,"expression":"9007199254740993 + ."},
+  {"id":"big-integer-tonumber","format":"jq","input":"9007199254740993","expression":"tonumber"},
+  {"id":"big-integer-fromjson","format":"jq","input":"{\"x\":9007199254740993}","expression":"fromjson"},
+  {"id":"number-negative-builtins","format":"jq","input":[1,2,3],"expression":"(try nth(-1) catch .), (try limit(-1;.[]) catch .)"},
+  {"id":"index-string-subsequence","format":"jq","input":[1,2,1,2,3],"expression":".[[1,2]]"}
+]

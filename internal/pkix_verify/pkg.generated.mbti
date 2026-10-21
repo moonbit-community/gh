@@ -1,0 +1,77 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ZSeanYves/gh/internal/pkix_verify"
+
+import {
+  "mizchi/experimental_crypto/asn1",
+  "mizchi/experimental_crypto/ed25519",
+  "mizchi/experimental_crypto/p256",
+  "mizchi/experimental_crypto/p384",
+  "mizchi/experimental_crypto/pkix",
+  "mizchi/experimental_crypto/rsa",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn extract_dns_san(@pkix.Certificate) -> Array[String] raise PkixVerifyError
+
+pub fn extract_public_key(@pkix.SubjectPublicKeyInfo) -> PublicKey raise PkixVerifyError
+
+pub fn verify_certificate(@pkix.Certificate, PublicKey, String, purpose? : @asn1.ObjectIdentifier?) -> Unit raise PkixVerifyError
+
+pub fn verify_chain(@pkix.Certificate, Array[@pkix.Certificate], PublicKey, String) -> Unit raise PkixVerifyError
+
+pub fn verify_chain_for_signature(@pkix.Certificate, Array[@pkix.Certificate], PublicKey, String, VerifyChainOptions) -> Unit raise PkixVerifyError
+
+pub fn verify_chain_for_signature_with_anchor_cert(@pkix.Certificate, Array[@pkix.Certificate], @pkix.Certificate, String, opts? : VerifyChainOptions) -> Unit raise PkixVerifyError
+
+pub fn verify_chain_with_anchor_cert(@pkix.Certificate, Array[@pkix.Certificate], @pkix.Certificate, String, opts? : VerifyChainOptions) -> Unit raise PkixVerifyError
+
+pub fn verify_chain_with_options(@pkix.Certificate, Array[@pkix.Certificate], PublicKey, String, VerifyChainOptions) -> Unit raise PkixVerifyError
+
+pub fn verify_signature(Bytes, @pkix.AlgorithmIdentifier, @asn1.BitString, PublicKey) -> Unit raise PkixVerifyError
+
+// Errors
+pub suberror PkixVerifyError {
+  UnsupportedSignatureAlgorithm(@asn1.ObjectIdentifier)
+  UnsupportedPublicKeyAlgorithm(@asn1.ObjectIdentifier)
+  SignatureMismatch
+  NotYetValid
+  Expired
+  NotACA
+  PathLengthExceeded
+  IssuerSubjectMismatch
+  MalformedExtension(String)
+  UnknownCriticalExtension(@asn1.ObjectIdentifier)
+  KeyUsageMissingCertSign
+  KeyUsageMissingDigitalSignature
+  NameConstraintViolation(String)
+  ExtendedKeyUsageMissing(@asn1.ObjectIdentifier)
+  CertificatePolicyMissing(@asn1.ObjectIdentifier)
+  PolicyConstraintsUnsupported
+  EmptyDistinguishedName(String)
+  Pkix(@pkix.PkixError)
+  Rsa(@rsa.RsaError)
+  Ed25519(@ed25519.Ed25519Error)
+  P256(@p256.P256Error)
+  P384(@p384.P384Error)
+  Asn1(@asn1.Asn1Error)
+} derive(@debug.Debug)
+pub fn PkixVerifyError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub(all) enum PublicKey {
+  Ed25519(@ed25519.PublicKey)
+  Rsa(@rsa.RsaPublicKey)
+  P256(@p256.PublicKey)
+  P384(@p384.PublicKey)
+}
+
+pub(all) struct VerifyChainOptions {
+  required_eku : @asn1.ObjectIdentifier?
+  required_policy : @asn1.ObjectIdentifier?
+}
+pub fn VerifyChainOptions::default() -> Self
+
+// Type aliases
+
+// Traits

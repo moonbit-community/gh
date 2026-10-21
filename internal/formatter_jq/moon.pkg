@@ -1,0 +1,11 @@
+import {
+  "bobzhang/moonjq",
+  "bobzhang/moonjq/ast" @jq_ast,
+  "bobzhang/moonjq/parser" @jq_parser,
+  "ZSeanYves/gh/internal/formatter_common",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/json",
+} for "test"

@@ -1,0 +1,11 @@
+{
+  "module": "moonbitstack/moonctl",
+  "version": "0.10.0",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/moonbitstack/moonctl",
+  "archive_sha256": "5ddfc56aa339f48e671e8d680c67f7e96f0422489698ae6e05c8015feb8a0b46",
+  "file": "template.mbt",
+  "upstream_file_sha256": "b1c6e0e8b8194ecc3a82bd9c8439fb63e68f2b361497417ec19a809d1b1b6fd2",
+  "extraction": "Pure Value/AST/parser/evaluator, excluding spec_to_value and code generation",
+  "reason": "Reuse the pure template engine without code generation, database, PostgreSQL or SQLite dependencies"
+}

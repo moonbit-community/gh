@@ -1,0 +1,161 @@
+///|
+/// Reconcile only an initial workflow write proved not to have created a commit.
+/// Existing workflow/branch content is deliberately not adopted by this path.
+async fn recover_empty_workflow_write(
+  credential_path : String,
+  directory : String,
+  output : String,
+) -> Unit {
+  guard !@fs.exists(output) else { fail("recovery report exists") }
+  let directory = @fs.realpath(directory)
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } else {
+    fail("credential")
+  }
+  let ledger = Ledger::from_json(
+    @json.parse(@fs.read_file(directory + "/ledger.json").text()),
+  )
+  let repository = ledger.resource("repository")
+  let original = @json.parse(@fs.read_file(directory + "/report.json").text())
+  guard repository.state == Uncertain &&
+    repository.remote_id is Some(id) &&
+    original is { "run_id": String(run_id), "cases": Array(cases), .. } &&
+    run_id == ledger.run_id &&
+    cases.any(item => {
+      item
+      is {
+        "id": String("repository.create-read"),
+        "status": String("pass"),
+        "resource_id": String(created),
+        ..
+      } &&
+      created == id
+    }) else {
+    fail("original creation receipt unavailable")
+  }
+  let intent = @json.parse(
+    @fs.read_file(directory + "/actions-intent.json").text(),
+  )
+  guard intent
+    is {
+      "run_id": String(intent_run),
+      "repository_id": String(intent_repo),
+      "workflow_path": String(file),
+      "workflow_sha256": String(source_hash),
+      ..
+    } &&
+    intent_run == run_id &&
+    intent_repo == id &&
+    file == ".github/workflows/gh-acceptance-" + run_id + ".yml" &&
+    @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(directory + "/workflow.yml").binary()),
+    ) ==
+    source_hash else {
+    fail("workflow intent mismatch")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory + "/config",
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger,
+    verified_binary: Ref(None),
+  }
+  ignore(acceptance.repository_metadata("repository"))
+  let name = repository.locator
+    .strip_prefix("/repos/ZSeanYves/")
+    .unwrap()
+    .to_owned()
+  let (status, value) = acceptance.api("POST", "/graphql", body={
+    "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id isEmpty } }",
+    "variables": { "owner": "ZSeanYves", "name": name },
+  })
+  guard status == 200 &&
+    value is Object(fields) &&
+    !fields.contains("errors") &&
+    value
+    is {
+      "data": { "repository": { "id": String(node), "isEmpty": True, .. }, .. },
+      ..
+    } &&
+    repository.node_id == Some(node) else {
+    fail("repository is not provably empty")
+  }
+  let (status, _) = acceptance.api(
+    "GET",
+    repository.locator + "/contents/" + file,
+  )
+  guard status == 404 else {
+    fail("workflow file may exist; no empty recovery")
+  }
+  for
+    (collection, field) in [
+      ("workflows", "workflows"),
+      ("runs", "workflow_runs"),
+      ("artifacts", "artifacts"),
+      ("caches", "actions_caches"),
+    ] {
+    let (status, value) = acceptance.api(
+      "GET",
+      repository.locator + "/actions/" + collection + "?per_page=100",
+    )
+    guard status == 200 &&
+      value is Object(fields) &&
+      fields.get("total_count") == Some(Json(0)) &&
+      fields.get(field) == Some(Json::array([])) else {
+      fail("Actions collection is not empty")
+    }
+  }
+  let proof : Json = {
+    "repository_id": id,
+    "repository_node_id": node,
+    "run_id": run_id,
+    "is_empty": true,
+    "workflow_file_status": 404,
+    "actions_collections_empty": true,
+    "source_sha256": source_hash,
+    "observed_at_ms": @env.now().to_double(),
+  }
+  let proof_bytes = @utf8.encode(proof.stringify(indent=2) + "\n")
+  @fs.write_file(
+    output + ".absence.json",
+    proof_bytes,
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  let proof_hash = @crypto.bytes_to_hex_string(@crypto.sha256(proof_bytes))
+  ledger.confirm_created("repository", id)
+  for key in ["actions-branch", "workflow"] {
+    ledger.confirm_not_created(key, id, proof_hash)
+  }
+  acceptance.persist([])
+  let records : Array[Json] = []
+  let cleaned = acceptance.cleanup_repository("repository", records, directory)
+  @fs.write_file(
+    output,
+    Json::object({
+      "family": "empty-workflow-write-recovery",
+      "original_report": directory + "/report.json",
+      "absence_evidence": output + ".absence.json",
+      "repository_id": id,
+      "status": if cleaned {
+        "pass"
+      } else {
+        "blocked"
+      },
+      "cleanup": if cleaned {
+        "pass"
+      } else {
+        "blocked"
+      },
+      "core_parity_verified": false,
+      "cases": records,
+    }).stringify(indent=2) +
+    "\n",
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  guard cleaned else { fail("empty repository recovery cleanup blocked") }
+}

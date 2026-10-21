@@ -1,0 +1,1340 @@
+{
+  "schema": 1,
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "mode": "capture",
+  "environment": {
+    "TZ": "UTC",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "GLAMOUR_STYLE": "dark",
+    "NO_COLOR": "1",
+    "terminal": false,
+    "columns": 40,
+    "rows": 24
+  },
+  "expected_cases": 100,
+  "completed_cases": 100,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "identity",
+      "input": {
+        "z": 2,
+        "a": [
+          true,
+          null,
+          "x"
+        ]
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "{\"a\":[true,null,\"x\"],\"z\":2}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "scalar-decimals",
+      "input": [
+        1.005,
+        2.675,
+        -1.005,
+        0.0001,
+        0,
+        100000000000000000000,
+        0.125,
+        0.375
+      ],
+      "expression": ".[]",
+      "format": "jq",
+      "stdout": "1.00\n2.67\n-1.00\n0.00\n0\n100000000000000000000\n0.12\n0.38\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "empty-and-null",
+      "input": [
+        null,
+        false,
+        "",
+        "中文😀"
+      ],
+      "expression": ".[]",
+      "format": "jq",
+      "stdout": "\nfalse\n\n中文😀\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "empty-filter",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "empty",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "object-sort",
+      "input": {
+        "z": 3,
+        "a": 1,
+        "b": 2
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "{\"a\":1,\"b\":2,\"z\":3}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "construct-sort",
+      "input": {},
+      "expression": "{z:2,a:1}",
+      "format": "jq",
+      "stdout": "{\"a\":1,\"z\":2}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "reduce",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": "reduce .[] as $x (0; . + $x)",
+      "format": "jq",
+      "stdout": "6\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "assignment",
+      "input": {
+        "a": 1,
+        "b": 2
+      },
+      "expression": ".a += 3",
+      "format": "jq",
+      "stdout": "{\"a\":4,\"b\":2}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "conditional",
+      "input": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expression": ".[] | if . % 2 == 0 then . * 10 else empty end",
+      "format": "jq",
+      "stdout": "0\n20\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "definitions",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "def twice: . * 2; map(twice)",
+      "format": "jq",
+      "stdout": "[2,4]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "interpolation",
+      "input": {
+        "name": "中文",
+        "number": 3
+      },
+      "expression": "\"\\(.name): \\(.number)\"",
+      "format": "jq",
+      "stdout": "中文: 3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "unicode-length",
+      "input": "a😀中文",
+      "expression": "length, explode",
+      "format": "jq",
+      "stdout": "4\n[97,128512,20013,25991]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "negative-index",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": ".[-1], .[1:3]",
+      "format": "jq",
+      "stdout": "3\n[2,3]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "missing-field",
+      "input": {},
+      "expression": ".missing",
+      "format": "jq",
+      "stdout": "\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "scalar-field-error",
+      "input": 1,
+      "expression": ".name",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "expected an object but got: number (1)\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "array-field-error",
+      "input": [
+        1
+      ],
+      "expression": ".name",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "expected an object but got: array ([1])\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "null-iteration-error",
+      "input": null,
+      "expression": ".[]",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "cannot iterate over: null\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "partial-failure",
+      "input": [
+        {
+          "name": "ok"
+        },
+        1,
+        {
+          "name": "later"
+        }
+      ],
+      "expression": ".[] | .name",
+      "format": "jq",
+      "stdout": "ok\n",
+      "stderr": "expected an object but got: number (1)\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "explicit-error",
+      "input": null,
+      "expression": "1, error(\"fixture failure\"), 2",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "error: fixture failure\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "try-catch",
+      "input": 1,
+      "expression": "try .name catch .",
+      "format": "jq",
+      "stdout": "expected an object but got: number (1)\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "optional-error",
+      "input": [
+        1,
+        {
+          "name": "ok"
+        }
+      ],
+      "expression": ".[] | .name?",
+      "format": "jq",
+      "stdout": "ok\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "parse-error",
+      "input": {},
+      "expression": "select(",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "failed to parse jq expression (line 1, column 8)\n    select(\n           ^  unexpected EOF\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "unknown-function",
+      "input": {},
+      "expression": "not_a_function",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "function not defined: not_a_function/0\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "array-map-values",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": "map_values(. + 1)",
+      "format": "jq",
+      "stdout": "[2,3,4]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "object-values",
+      "input": {
+        "b": 2,
+        "a": 1
+      },
+      "expression": "values",
+      "format": "jq",
+      "stdout": "{\"a\":1,\"b\":2}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "csv",
+      "input": [
+        "a,b",
+        "c\"d",
+        null,
+        true,
+        3
+      ],
+      "expression": "@csv",
+      "format": "jq",
+      "stdout": "\"a,b\",\"c\"\"d\",,true,3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-variables",
+      "input": {
+        "name": "MoonBit"
+      },
+      "expression": "{{$x := .name}}{{$x}}",
+      "format": "template",
+      "stdout": "MoonBit",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-pipeline",
+      "input": {
+        "name": "MoonBit"
+      },
+      "expression": "{{.name | printf \"%s!\"}}",
+      "format": "template",
+      "stdout": "MoonBit!",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-range-vars",
+      "input": [
+        "a",
+        "b"
+      ],
+      "expression": "{{range $i, $v := .}}{{$i}}={{$v}};{{end}}",
+      "format": "template",
+      "stdout": "0=a;1=b;",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-root",
+      "input": {
+        "name": "root",
+        "items": [
+          {
+            "name": "a"
+          }
+        ]
+      },
+      "expression": "{{range .items}}{{$.name}}:{{.name}}{{end}}",
+      "format": "template",
+      "stdout": "root:a",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-with",
+      "input": {
+        "child": {
+          "name": "ok"
+        }
+      },
+      "expression": "{{with .child}}{{.name}}{{else}}missing{{end}}",
+      "format": "template",
+      "stdout": "ok",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-trim",
+      "input": {},
+      "expression": "a  {{- \"b\" -}}  c",
+      "format": "template",
+      "stdout": "abc",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-missing",
+      "input": {},
+      "expression": "{{.missing}}",
+      "format": "template",
+      "stdout": "<no value>",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-sprig",
+      "input": {},
+      "expression": "{{contains \"oo\" \"Moon\"}} {{hasPrefix \"Mo\" \"Moon\"}} {{replace \"Moon\" \"Sun\" \"MoonBit\"}}",
+      "format": "template",
+      "stdout": "true true SunBit",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-define",
+      "input": {
+        "name": "Moon"
+      },
+      "expression": "{{define \"name\"}}Hello {{.name}}{{end}}{{template \"name\" .}}",
+      "format": "template",
+      "stdout": "Hello Moon",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-error",
+      "input": {},
+      "expression": "x{{range .}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "template: :1: unexpected EOF\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-table",
+      "input": [
+        {
+          "name": "a",
+          "n": 1
+        },
+        {
+          "name": "long",
+          "n": 2
+        }
+      ],
+      "expression": "{{range .}}{{tablerow .name .n}}{{end}}{{tablerender}}",
+      "format": "template",
+      "stdout": "a     1\nlong  2\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-compile-before-output",
+      "input": {},
+      "expression": "1, not_a_function",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "function not defined: not_a_function/0\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-divide-zero",
+      "input": {},
+      "expression": "1 / 0",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "cannot divide number (1) by: number (0)\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-syntax-token",
+      "input": {},
+      "expression": ". + )",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "failed to parse jq expression (line 1, column 5)\n    . + )\n        ^  unexpected token \")\"\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-empty-expression",
+      "input": {},
+      "expression": "",
+      "format": "jq",
+      "stdout": "{}",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-nested-catch",
+      "input": [
+        1,
+        {
+          "name": "ok"
+        }
+      ],
+      "expression": "map(try .name catch .)",
+      "format": "jq",
+      "stdout": "[\"expected an object but got: number (1)\",\"ok\"]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-string-slice",
+      "input": "a😀中文",
+      "expression": ".[1:3]",
+      "format": "jq",
+      "stdout": "😀中\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-sort-numbers",
+      "input": [
+        20,
+        3,
+        -1,
+        10,
+        2
+      ],
+      "expression": "sort",
+      "format": "jq",
+      "stdout": "[-1,2,3,10,20]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-group",
+      "input": [
+        {
+          "x": 2
+        },
+        {
+          "x": 1
+        },
+        {
+          "x": 2
+        }
+      ],
+      "expression": "group_by(.x)",
+      "format": "jq",
+      "stdout": "[[{\"x\":1}],[{\"x\":2},{\"x\":2}]]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-delpaths",
+      "input": {
+        "a": 1,
+        "b": 2
+      },
+      "expression": "delpaths([[\"a\"]])",
+      "format": "jq",
+      "stdout": "{\"b\":2}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-try-error",
+      "input": {},
+      "expression": "try error(\"fixture\") catch .",
+      "format": "jq",
+      "stdout": "fixture\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-json-escape",
+      "input": {
+        "html": "<>&",
+        "line": "x y"
+      },
+      "expression": ".",
+      "format": "jq",
+      "stdout": "{\"html\":\"\\u003c\\u003e\\u0026\",\"line\":\"x\\u2028y\"}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-assign-scope",
+      "input": [
+        1,
+        2
+      ],
+      "expression": "{{$x := \"old\"}}{{range .}}{{$x = \"new\"}}{{end}}{{$x}}",
+      "format": "template",
+      "stdout": "new",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-shadow",
+      "input": true,
+      "expression": "{{$x := \"old\"}}{{if .}}{{$x := \"new\"}}{{$x}}{{end}}{{$x}}",
+      "format": "template",
+      "stdout": "newold",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-short-circuit",
+      "input": false,
+      "expression": "{{and . (index . 3)}}",
+      "format": "template",
+      "stdout": "false",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-undefined-function",
+      "input": {},
+      "expression": "prefix {{toJSON}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "template: :1: function \"toJSON\" not defined\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-index-number",
+      "input": {
+        "a": [
+          1,
+          2
+        ]
+      },
+      "expression": "{{index .a 1}}",
+      "format": "template",
+      "stdout": "2",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-len-utf8",
+      "input": "中文😀",
+      "expression": "{{len .}}",
+      "format": "template",
+      "stdout": "10",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-table-flush",
+      "input": {},
+      "expression": "{{tablerow \"a\" 1}}{{tablerow \"long\" 2}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "template: :1:2: executing \"\" at <tablerow \"a\" 1>: error calling tablerow: failed to write table row: cannot convert type to string: 1\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-table-unicode",
+      "input": {},
+      "expression": "{{tablerow \"中文\" \"a\"}}{{tablerow \"x\" \"b\"}}{{tablerender}}",
+      "format": "template",
+      "stdout": "中文  a\nx     b\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-table-float-null",
+      "input": [
+        1.005,
+        null,
+        true
+      ],
+      "expression": "{{tablerow (index . 0) (index . 1) (index . 2)}}",
+      "format": "template",
+      "stdout": "1.00    true\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-truncate-short",
+      "input": "abcdefgh",
+      "expression": "{{truncate 0 .}}|{{truncate 1 .}}|{{truncate 3 .}}|{{truncate 4 .}}|{{truncate 5 .}}",
+      "format": "template",
+      "stdout": "|a|abc|abcd|ab...",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-truncate-wide",
+      "input": "中文测试abc",
+      "expression": "{{truncate 3 .}}|{{truncate 5 .}}|{{truncate 6 .}}",
+      "format": "template",
+      "stdout": "中 |中...|中... ",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-truncate-null",
+      "input": null,
+      "expression": "{{truncate 3 .}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-pluck-missing",
+      "input": [
+        {
+          "name": "a"
+        },
+        {}
+      ],
+      "expression": "{{join \",\" (pluck \"name\" .)}}",
+      "format": "template",
+      "stdout": "a,",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-regex",
+      "input": "Moon123",
+      "expression": "{{regexMatch \"^Moon[0-9]+$\" .}} {{regexMatch \"[\" .}}",
+      "format": "template",
+      "stdout": "true false",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-timefmt",
+      "input": "2026-10-21T13:05:06.123456+08:00",
+      "expression": "{{timefmt \"2006-01-02 Mon 15:04:05.000 MST Z07:00\" .}}",
+      "format": "template",
+      "stdout": "2026-10-21 Wed 13:05:06.123 +0800 +08:00",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-timefmt-names",
+      "input": "2026-01-02T03:04:05Z",
+      "expression": "{{timefmt \"Monday, January _2, 2006 3:04PM -0700\" .}}",
+      "format": "template",
+      "stdout": "Friday, January  2, 2026 3:04AM +0000",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-timeago-future",
+      "input": "2099-01-01T00:00:00Z",
+      "expression": "{{timeago .}}",
+      "format": "template",
+      "stdout": "just now",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-comment-delimiter",
+      "input": {},
+      "expression": "a{{/* }} ignored */}}b",
+      "format": "template",
+      "stdout": "ab",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-printf-width",
+      "input": {
+        "name": "Moon",
+        "n": 3.14
+      },
+      "expression": "{{printf \"%8s %.2f\" .name .n}}",
+      "format": "template",
+      "stdout": "    Moon 3.14",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-printf-type",
+      "input": 3,
+      "expression": "{{printf \"%d\" .}}",
+      "format": "template",
+      "stdout": "%!d(float64=3)",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-printf-quote",
+      "input": "a\"b\nc",
+      "expression": "{{printf \"%q\" .}}",
+      "format": "template",
+      "stdout": "\"a\\\"b\\nc\"",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-if-variable",
+      "input": {
+        "name": "Moon"
+      },
+      "expression": "{{if $x := .name}}{{$x}}{{else}}empty{{end}}",
+      "format": "template",
+      "stdout": "Moon",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-with-variable",
+      "input": {
+        "name": "Moon"
+      },
+      "expression": "{{with $x := .name}}{{$x}}={{.}}{{else}}empty{{end}}",
+      "format": "template",
+      "stdout": "Moon=Moon",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-range-assignment",
+      "input": [
+        "a",
+        "b"
+      ],
+      "expression": "{{$i := 0}}{{$v := \"\"}}{{range $i, $v = .}}{{$i}}:{{$v}};{{end}}{{$i}}={{$v}}",
+      "format": "template",
+      "stdout": "0:a;1:b;1=b",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-range-empty-binding",
+      "input": [],
+      "expression": "{{range $i, $v := .}}{{.}}{{else}}{{$i}}:{{$v}}{{end}}",
+      "format": "template",
+      "stdout": "[]:[]",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-range-break",
+      "input": [
+        "a",
+        "b",
+        "c"
+      ],
+      "expression": "{{range .}}{{if eq . \"b\"}}{{break}}{{end}}{{.}}{{end}}",
+      "format": "template",
+      "stdout": "a",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-range-continue",
+      "input": [
+        "a",
+        "b",
+        "c"
+      ],
+      "expression": "{{range .}}{{if eq . \"b\"}}{{continue}}{{end}}{{.}}{{end}}",
+      "format": "template",
+      "stdout": "ac",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-undefined-variable",
+      "input": {},
+      "expression": "prefix {{$x}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "template: :1: undefined variable \"$x\"\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-scope-leak",
+      "input": true,
+      "expression": "{{if .}}{{$x := \"inside\"}}{{end}}{{$x}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "template: :1: undefined variable \"$x\"\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-nested-function-error",
+      "input": [],
+      "expression": "ok {{printf \"%s\" (index . 1)}}",
+      "format": "template",
+      "stdout": "ok ",
+      "stderr": "template: :1:18: executing \"\" at <index . 1>: error calling index: index out of range: 1\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-error-line",
+      "input": [],
+      "expression": "ok\n{{index . 2}}",
+      "format": "template",
+      "stdout": "ok\n",
+      "stderr": "template: :2:2: executing \"\" at <index . 2>: error calling index: index out of range: 2\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-pipe-error",
+      "input": [],
+      "expression": "ok {{. | index 2}}",
+      "format": "template",
+      "stdout": "ok ",
+      "stderr": "template: :1:9: executing \"\" at <index 2>: error calling index: can't index item of type int\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-table-multiline",
+      "input": [
+        "a\nb",
+        "c\rd"
+      ],
+      "expression": "{{range .}}{{tablerow .}}{{end}}",
+      "format": "template",
+      "stdout": "a.\nc.\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-print-spacing",
+      "input": {},
+      "expression": "{{print 1 2 \"a\" 3 4}}|{{println 1 2 \"a\" 3 4}}",
+      "format": "template",
+      "stdout": "1 2a3 4|1 2 a 3 4\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-printf-index",
+      "input": {},
+      "expression": "{{printf \"%[2]s/%[1]s\" \"a\" \"b\"}}",
+      "format": "template",
+      "stdout": "b/a",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-printf-star",
+      "input": 1.23456,
+      "expression": "{{printf \"%*.*f\" 8 2 .}}",
+      "format": "template",
+      "stdout": "    1.23",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-slice",
+      "input": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "expression": "{{slice . 1 3}}",
+      "format": "template",
+      "stdout": "[2 3]",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-urlquery",
+      "input": "中 a&b",
+      "expression": "{{urlquery .}}",
+      "format": "template",
+      "stdout": "%E4%B8%AD+a%26b",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-html",
+      "input": "<a href=\"x\">'&</a>",
+      "expression": "{{html .}}",
+      "format": "template",
+      "stdout": "&lt;a href=&#34;x&#34;&gt;&#39;&amp;&lt;/a&gt;",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-join-literal-error",
+      "input": [
+        1
+      ],
+      "expression": "{{join \",\" .}}|{{color \"red\" 1}}",
+      "format": "template",
+      "stdout": "1|",
+      "stderr": "template: :1:17: executing \"\" at <color \"red\" 1>: error calling color: cannot convert type to string: 1\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "template-parse-line",
+      "input": {},
+      "expression": "ok\n{{unknown}}",
+      "format": "template",
+      "stdout": "",
+      "stderr": "template: :2: function \"unknown\" not defined\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-env",
+      "input": {},
+      "expression": "env.LANG, $ENV.TZ",
+      "format": "jq",
+      "stdout": "C\nUTC\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-select-stream",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": ".[] | select(. > 1) | tostring",
+      "format": "jq",
+      "stdout": "2\n3\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-array-cartesian",
+      "input": {},
+      "expression": "{a:(1,2), b:(3,4)}",
+      "format": "jq",
+      "stdout": "{\"a\":1,\"b\":3}\n{\"a\":1,\"b\":4}\n{\"a\":2,\"b\":3}\n{\"a\":2,\"b\":4}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-sort-by",
+      "input": [
+        {
+          "a": 2,
+          "b": 1
+        },
+        {
+          "a": 1,
+          "b": 2
+        },
+        {
+          "a": 1,
+          "b": 1
+        }
+      ],
+      "expression": "sort_by(.a,.b)",
+      "format": "jq",
+      "stdout": "[{\"a\":1,\"b\":1},{\"a\":1,\"b\":2},{\"a\":2,\"b\":1}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-unique-by",
+      "input": [
+        {
+          "a": 2
+        },
+        {
+          "a": 1
+        },
+        {
+          "a": 2
+        }
+      ],
+      "expression": "unique_by(.a)",
+      "format": "jq",
+      "stdout": "[{\"a\":1},{\"a\":2}]\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-regex-capture",
+      "input": "abc123",
+      "expression": "capture(\"(?<letters>[a-z]+)(?<digits>[0-9]+)\")",
+      "format": "jq",
+      "stdout": "{\"digits\":\"123\",\"letters\":\"abc\"}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-foreach",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": "foreach .[] as $x (0; . + $x; . * 2)",
+      "format": "jq",
+      "stdout": "2\n6\n12\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-label-break",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expression": "label $out | .[] | if . == 2 then break $out else . end",
+      "format": "jq",
+      "stdout": "1\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-numeric-type",
+      "input": [
+        1,
+        1.5,
+        null
+      ],
+      "expression": ".[] | type",
+      "format": "jq",
+      "stdout": "number\nnumber\nnull\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-error-object",
+      "input": {},
+      "expression": "try error({a:1}) catch .",
+      "format": "jq",
+      "stdout": "{\"a\":1}\n",
+      "stderr": "",
+      "exit_code": 0,
+      "response_status": 200,
+      "status": "recorded"
+    },
+    {
+      "id": "jq-parser-multiline",
+      "input": {},
+      "expression": ". |\nselect(",
+      "format": "jq",
+      "stdout": "",
+      "stderr": "failed to parse jq expression (line 2, column 8)\n    select(\n           ^  unexpected EOF\n",
+      "exit_code": 1,
+      "response_status": 200,
+      "status": "recorded"
+    }
+  ]
+}

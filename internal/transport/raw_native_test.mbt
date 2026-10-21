@@ -10,7 +10,7 @@ async test "raw transport preserves binary body with HEAD and OPTIONS" {
         let request = conn.read_request()
         assert_eq(request.meth, expected)
         assert_eq(request.path, "/opaque")
-        conn.send_response(200, "OK", extra_headers={
+        conn.send_response(200, "Custom proxy response", extra_headers={
           "X-Repeat": "one",
           "X-Repeat-2": "two",
         })
@@ -27,6 +27,7 @@ async test "raw transport preserves binary body with HEAD and OPTIONS" {
     for verb in ["HEAD", "OPTIONS"] {
       let response = transport.send(@gh.RawRequest::new(verb~, path="/opaque"))
       assert_eq(response.status(), 200)
+      assert_eq(response.reason_phrase(), Some("Custom proxy response"))
       assert_eq(
         response.body(),
         if verb == "HEAD" {

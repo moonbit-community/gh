@@ -1,0 +1,396 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/http",
+  "moonbitlang/async@0.22.5/socket",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/async@0.22.5/process",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbit-community/flate@0.8.4/zip",
+  "moonbit-community/pty@0.4.3",
+}
+
+///|
+/// The fixed oracle's github.localhost mode uses plain HTTP. A recording
+/// loopback proxy serves synthetic fixtures and never forwards any request.
+/// No real credentials or account resources are involved.
+async fn main {
+  let raw_args = @env.args()
+  let terminal = raw_args.contains("--pty")
+  let color = raw_args.contains("--color")
+  let args = raw_args.filter(arg => arg != "--pty" && arg != "--color")
+  guard args.length() == 4 || args.length() == 5 else {
+    fail(
+      "usage: actions_oracle.mbtx BINARY CASES REPORT [EXPECTED_CANDIDATE_SHA256] [--pty] [--color]",
+    )
+  }
+  let binary = @fs.realpath(args[1])
+  let hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  let oracle = args.length() == 4
+  let expected_hash = if oracle {
+    "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6"
+  } else {
+    args[4]
+  }
+  guard hash == expected_hash else { fail("binary hash mismatch") }
+  guard !@fs.exists(args[3]) else { fail("report exists") }
+  let cases = match @json.parse(@fs.read_file(args[2]).text()) {
+    Array(cases) => cases
+    _ => fail("case array required")
+  }
+  let directory = @fs.tmpdir(prefix="gh-actions-oracle-")
+  defer @fs.rmdir(directory, recursive=true)
+  let records : Array[Json] = []
+  let mut failures = 0
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      args[3],
+      Json::object({
+        "schema": 1,
+        "terminal": terminal,
+        "color": color,
+        "oracle_sha256": if oracle {
+          Json(hash)
+        } else {
+          Json::null()
+        },
+        "candidate_sha256": if oracle {
+          Json::null()
+        } else {
+          Json(hash)
+        },
+        "expected_cases": cases.length(),
+        "completed_cases": records.length(),
+        "failures": failures,
+        "cases_sha256": @crypto.bytes_to_hex_string(
+          @crypto.sha256(@fs.read_file(args[2]).binary()),
+        ),
+        "cases": records,
+        "scope": "synthetic loopback; no live GitHub writes",
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+    )
+  })
+  for case in cases {
+    guard case
+      is {
+        "id": String(id),
+        "args": Array(arguments),
+        "routes": Object(routes),
+        ..
+      } else {
+      fail("invalid case")
+    }
+    let workspace = directory + "/" + id
+    @fs.mkdir(workspace)
+    if case is { "config": String(config), .. } {
+      @fs.mkdir(workspace + "/config")
+      @fs.write_file(
+        workspace + "/config/config.yml",
+        config,
+        create_mode=CreateNew,
+      )
+    }
+    if case is { "input_files_base64": Object(files), .. } {
+      for name, encoded in files {
+        guard !name.is_empty() &&
+          !name.contains("/") &&
+          !name.contains("\\") &&
+          name != "." &&
+          name != ".." &&
+          encoded is String(encoded) else {
+          fail("invalid fixture input")
+        }
+        @fs.write_file(
+          workspace + "/" + name,
+          @base64.decode(encoded),
+          create_mode=CreateNew,
+        )
+      }
+    }
+    let requests : Array[String] = []
+    let request_messages : Array[Json] = []
+    let progress_path = match case {
+      { "progress_path": String(path), .. } => Some(path)
+      _ => None
+    }
+    let mut progress_seen = false
+    let mut progress_before_completion = false
+    let mut interrupt_sent = false
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    try
+      @async.with_task_group() <| group => {
+        group.spawn_bg(no_wait=true) <| () => {
+          while true {
+            let (conn, _) = server.accept()
+            defer conn.close()
+            let request = conn.read_request()
+            let verb = match request.meth {
+              @http.Get => "GET"
+              @http.Post => "POST"
+              @http.Put => "PUT"
+              @http.Patch => "PATCH"
+              @http.Delete => "DELETE"
+              _ => fail("unexpected fixture method")
+            }
+            let request_body = conn.read_all().text()
+            let path = request.path
+              .strip_prefix("http://api.github.localhost")
+              .map_or(request.path, path => path.to_owned())
+            requests.push(path)
+            request_messages.push({
+              "method": verb,
+              "path": path,
+              "raw_body": request_body,
+              "json_body": if request_body.is_empty() {
+                Json::null()
+              } else {
+                @json.parse(request_body) catch {
+                  _ => Json(request_body)
+                }
+              },
+            })
+            guard routes.get(path) is Some(route) else {
+              fail("unexpected oracle path: " + path)
+            }
+            let route = match route {
+              { "sequence": Array(steps), .. } if !steps.is_empty() => {
+                let index = requests.filter(value => value == path).length() - 1
+                steps[index.min(steps.length() - 1)]
+              }
+              _ => route
+            }
+            let expected_method = match route {
+              { "method": String(verb), .. } => verb
+              _ => "GET"
+            }
+            guard verb == expected_method else {
+              fail("unexpected fixture request method")
+            }
+            let status = match route {
+              { "status": Number(status, ..), .. } => status.to_int()
+              _ => 200
+            }
+            if progress_path == Some(path) &&
+              route is { "json": { "status": String("completed"), .. }, .. } {
+              @async.with_timeout(5000) <| () => {
+                while !progress_seen {
+                  @async.pause()
+                }
+              }
+              progress_before_completion = true
+            }
+            let headers : Map[@http.CaseInsensitiveString, String] = {
+              "Connection": "close",
+            }
+            if route is { "headers": Object(fields), .. } {
+              for key, value in fields {
+                guard value is String(value) else { fail("header value") }
+                headers[@http.CaseInsensitiveString(key)] = value
+              }
+            }
+            conn.send_response(status, "Fixture", extra_headers=headers)
+            let body = match route {
+              { "json": value, .. } => @utf8.encode(value.stringify())
+              { "text": String(value), .. } => @utf8.encode(value)
+              { "zip": Array(files), .. } => {
+                let archive = @zip.Archive()
+                for file in files {
+                  guard file
+                    is { "name": String(name), "text": String(text), .. } else {
+                    fail("ZIP entry")
+                  }
+                  archive.add(name, @utf8.encode(text), compression=Deflate)
+                }
+                @zip.write(archive)
+              }
+              _ => b""
+            }
+            conn..write(body).end_response()
+          }
+        }
+        let environment = {
+          "HOME": workspace,
+          "GH_CONFIG_DIR": workspace + "/config",
+          "GH_HOST": "github.localhost",
+          "GH_TOKEN": "synthetic-actions-fixture",
+          "GH_ENTERPRISE_TOKEN": "synthetic-actions-fixture",
+          "GH_NO_UPDATE_NOTIFIER": "1",
+          "GH_PROMPT_DISABLED": "1",
+          "NO_COLOR": "1",
+          "LC_ALL": "C",
+          "LANG": "C",
+          "TZ": "UTC",
+          "TERM": if terminal || color {
+            "xterm-256color"
+          } else {
+            "dumb"
+          },
+          "COLORFGBG": "15;0",
+          "GLAMOUR_STYLE": "dark",
+          "HTTP_PROXY": "http://127.0.0.1:\{server.addr.port()}",
+          "HTTPS_PROXY": "http://127.0.0.1:\{server.addr.port()}",
+          "PATH": "/usr/bin:/bin",
+          "GH_PAGER": "cat",
+        }
+        if color {
+          environment.remove("NO_COLOR")
+        }
+        if case is { "environment": Object(values), .. } {
+          for key, value in values {
+            guard [
+                "GH_SPINNER_DISABLED", "AI_AGENT", "CODEX_THREAD_ID", "NO_COLOR",
+                "GH_FORCE_TTY",
+              ].contains(key) &&
+              value is String(value) else {
+              fail("invalid controlled environment")
+            }
+            environment[key] = value
+          }
+        }
+        let command_args = arguments.map(value => {
+          match value {
+            String(value) => value
+            _ => fail("argument")
+          }
+        })
+        let (stdout, stderr, exit_code) = if terminal {
+          @async.with_timeout(60000) <| () => {
+            let argv = command_args + ["-R", "acme/widgets"]
+            let child = @pty.spawn(
+              group,
+              binary,
+              argv.map(value => value[:])[:],
+              cwd=workspace,
+              inherit_env=false,
+              extra_env=environment,
+              rows=24,
+              cols=80,
+            )
+            let mut captured = b""
+            while child.read_some() is Some(bytes) {
+              captured = captured + bytes
+              progress_seen = @utf8.decode_lossy(captured).contains(
+                "Refreshing run status every ",
+              )
+              if !interrupt_sent &&
+                case is { "interrupt_on_progress": True, .. } &&
+                @utf8.decode_lossy(captured).contains("Skipped") {
+                child.write(b"\x03")
+                interrupt_sent = true
+              }
+              guard captured.length() <= 1048576 else {
+                fail("PTY output limit exceeded")
+              }
+            }
+            (@utf8.decode_lossy(captured), "", child.wait())
+          }
+        } else if progress_path is Some(_) {
+          @async.with_timeout(10000) <| () => {
+            let (input, input_writer) = @process.write_to_process()
+            input_writer.close()
+            let (reader, output) = @process.read_from_process()
+            defer reader.close()
+            let (error_reader, error_output) = @process.read_from_process()
+            defer error_reader.close()
+            let child = group.spawn(() => {
+              @process.run(
+                binary,
+                (command_args + ["-R", "acme/widgets"])[:],
+                stdin=input,
+                stdout=output,
+                stderr=error_output,
+                inherit_env=false,
+                extra_env=environment,
+                cwd=workspace,
+                cancel_handler=@process.hard_cancel(),
+              )
+            })
+            let errors = group.spawn(() => error_reader.read_all().text())
+            let mut captured = b""
+            while reader.read_some() is Some(bytes) {
+              captured = captured + bytes
+              guard captured.length() <= 1048576 else {
+                fail("pipe output limit exceeded")
+              }
+              progress_seen = @utf8.decode_lossy(captured).contains(
+                "Refreshing run status every ",
+              )
+            }
+            (@utf8.decode_lossy(captured), errors.wait(), child.wait())
+          }
+        } else {
+          let result = @shell.Cmd(
+            binary,
+            command_args + ["-R", "acme/widgets"],
+            cwd=workspace,
+            inherit_env=false,
+            env=environment,
+            stdin?=match case {
+              { "stdin": String(input), .. } => Some(@shell.Stdin::Text(input))
+              _ => None
+            },
+          ).output(timeout_ms=60000, max_output_bytes=1048576)
+          (result.stdout(), result.stderr(), result.exit_code())
+        }
+        let files : Map[String, Json] = Map([])
+        let directories : Array[String] = []
+        @fs.walk(
+          workspace,
+          (path, entries) => {
+            if path != workspace {
+              directories.push(path[workspace.length() + 1:].to_owned())
+            }
+            for name in entries {
+              let full = path + "/" + name
+              if @fs.kind(full, follow_symlink=false) == @fs.Regular {
+                let relative = full[workspace.length() + 1:].to_owned()
+                files[relative] = Json(
+                  @crypto.bytes_to_hex_string(@fs.read_file(full).binary()),
+                )
+              }
+            }
+          },
+          max_concurrency=1,
+        )
+        records.push({
+          "id": id,
+          "args": arguments,
+          "routes": Json::object(routes),
+          "stdout": stdout,
+          "stderr": stderr,
+          "exit_code": exit_code,
+          "requests": requests,
+          "request_messages": request_messages,
+          "files_hex": Json::object(files),
+          "directories": directories,
+          "progress_before_completion": progress_before_completion,
+          "interrupt_sent": interrupt_sent,
+        })
+        println(id + ": captured")
+      }
+    catch {
+      error if @async.is_being_cancelled() => raise error
+      error => {
+        failures += 1
+        records.push({
+          "id": id,
+          "status": "fail",
+          "error": error.to_string(),
+          "requests": requests,
+          "request_messages": request_messages,
+        })
+      }
+    }
+  }
+  guard failures == 0 else { fail("oracle capture failed") }
+}

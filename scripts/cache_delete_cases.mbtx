@@ -1,0 +1,124 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/core/json",
+}
+
+///|
+fn deletion(
+  id : String,
+  args : Array[String],
+  path : String,
+  status~ : Int32 = 204,
+) -> Json {
+  let routes : Map[String, Json] = Map([])
+  routes["/repos/acme/widgets/actions/caches" + path] = if status == 204 {
+    { "method": "DELETE", "status": 204 }
+  } else {
+    {
+      "method": "DELETE",
+      "status": status,
+      "headers": { "Content-Type": "application/json" },
+      "json": if status == 200 {
+        { "total_count": 2, "actions_caches": [{ "id": 12 }, { "id": 13 }] }
+      } else {
+        { "message": "cache permission denied" }
+      },
+    }
+  }
+  let argv = ["cache", "delete", ..args]
+  { "id": id, "args": argv, "routes": Json::object(routes) }
+}
+
+///|
+async fn main {
+  let cases : Array[Json] = [
+    deletion("cache_id", ["12"], "/12"),
+    deletion("cache_id_normalized", ["+00012"], "/12"),
+    deletion("cache_key", ["deps/main"], "?key=deps%2Fmain", status=200),
+    deletion(
+      "cache_encoded_key_ref",
+      ["two words/缓存", "--ref", "refs/heads/feature+name"],
+      "?key=two+words%2F%E7%BC%93%E5%AD%98&ref=refs%2Fheads%2Ffeature%2Bname",
+      status=200,
+    ),
+    deletion(
+      "cache_large_numeric_key",
+      ["9223372036854775808"],
+      "?key=9223372036854775808",
+      status=200,
+    ),
+    deletion("cache_id_not_found", ["12"], "/12", status=404),
+    deletion(
+      "cache_key_ref_not_found",
+      ["missing", "-r", "refs/heads/main"],
+      "?key=missing&ref=refs%2Fheads%2Fmain",
+      status=404,
+    ),
+    deletion("cache_forbidden", ["12"], "/12", status=403),
+    deletion("cache_false_all", ["12", "--all=false"], "/12"),
+  ]
+  for
+    (id, args) in [
+      ("cache_missing", ["cache", "delete"]),
+      ("cache_conflict", ["cache", "delete", "12", "--all"]),
+      ("cache_id_ref", ["cache", "delete", "12", "--ref", "refs/heads/main"]),
+      ("cache_ref_without_key", ["cache", "delete", "--ref", "refs/heads/main"]),
+      (
+        "cache_succeed_without_all",
+        ["cache", "delete", "12", "--succeed-on-no-caches"],
+      ),
+      ("cache_too_many", ["cache", "delete", "12", "13"]),
+      ("cache_unknown_flag", ["cache", "delete", "12", "--nonesuch"]),
+    ] {
+    cases.push({ "id": id, "args": args, "routes": Json::empty_object() })
+  }
+  for empty_ok in [false, true] {
+    let args = ["cache", "delete", "--all"]
+    if empty_ok {
+      args.push("--succeed-on-no-caches")
+    }
+    cases.push({
+      "id": if empty_ok {
+        "cache_all_empty_ok"
+      } else {
+        "cache_all_empty"
+      },
+      "args": args,
+      "routes": {
+        "/repos/acme/widgets/actions/caches?per_page=100": {
+          "json": { "total_count": 0, "actions_caches": [] },
+        },
+      },
+    })
+  }
+  cases.push({
+    "id": "cache_all_paginated_ref",
+    "args": ["cache", "delete", "--all", "--ref", "refs/heads/main"],
+    "routes": {
+      "/repos/acme/widgets/actions/caches?per_page=100&ref=refs%2Fheads%2Fmain": {
+        "json": { "total_count": 2, "actions_caches": [{ "id": 12 }] },
+        "headers": {
+          "Link": "<http://api.github.localhost/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain>; rel=\"next\"",
+        },
+      },
+      "/repos/acme/widgets/actions/caches?page=2&per_page=100&ref=refs%2Fheads%2Fmain": {
+        "json": { "total_count": 2, "actions_caches": [{ "id": 13 }] },
+      },
+      "/repos/acme/widgets/actions/caches/12": {
+        "method": "DELETE",
+        "status": 204,
+      },
+      "/repos/acme/widgets/actions/caches/13": {
+        "method": "DELETE",
+        "status": 204,
+      },
+    },
+  })
+  @fs.write_file(
+    "testdata/cache-delete-cases.json",
+    Json::array(cases).stringify(indent=2) + "\n",
+    create_mode=CreateNew,
+  )
+}

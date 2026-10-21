@@ -1,0 +1,80 @@
+[
+  {
+    "id": "dispatch_raw_and_magic_fields",
+    "args": ["workflow", "run", "12", "--ref", "main", "-f", "name=first", "-f", "empty=", "-F", "name=magic", "-f", "name=last", "-F", "number=123", "-F", "bool=false"],
+    "routes": {
+      "/repos/acme/widgets/actions/workflows/12": {"json":{"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}},
+      "/repos/acme/widgets/actions/workflows/12/dispatches": {"method":"POST","json":{"workflow_run_id":50,"run_url":"https://api.github.com/repos/acme/widgets/actions/runs/50","html_url":"https://github.com/acme/widgets/actions/runs/50"}}
+    }
+  },
+  {
+    "id": "dispatch_magic_file",
+    "args": ["workflow", "run", "ci.yml", "-r", "main", "-F", "message=@input.txt", "-f", "literal=@input.txt"],
+    "input_files_base64": {"input.txt":"ZnJvbSBmaWxlCg=="},
+    "routes": {
+      "/repos/acme/widgets/actions/workflows/ci.yml": {"json":{"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}},
+      "/repos/acme/widgets/actions/workflows/12/dispatches": {"method":"POST","status":204}
+    }
+  },
+  {
+    "id": "dispatch_json_stdin",
+    "args": ["workflow", "run", "12", "-r", "topic/ref", "--json"],
+    "stdin": "{\"text\":\"你好\\nsecond line\",\"empty\":\"\",\"null\":null}",
+    "routes": {
+      "/repos/acme/widgets/actions/workflows/12": {"json":{"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}},
+      "/repos/acme/widgets/actions/workflows/12/dispatches": {"method":"POST","json":{"workflow_run_id":51,"html_url":"https://github.com/acme/widgets/actions/runs/51"}}
+    }
+  },
+  {
+    "id": "dispatch_json_wrong_type",
+    "args": ["workflow", "run", "12", "-r", "main", "--json"],
+    "stdin": "{\"number\":123}",
+    "routes": {
+      "/repos/acme/widgets/actions/workflows/12": {"json":{"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}}
+    }
+  },
+  {
+    "id": "dispatch_json_null",
+    "args": ["workflow", "run", "12", "-r", "main", "--json"],
+    "stdin": "null",
+    "routes": {
+      "/repos/acme/widgets/actions/workflows/12": {"json":{"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}},
+      "/repos/acme/widgets/actions/workflows/12/dispatches": {"method":"POST","status":204}
+    }
+  },
+  {
+    "id": "dispatch_missing_field_value",
+    "args": ["workflow", "run", "12", "-r", "main", "-f", "broken"],
+    "routes": {
+      "/repos/acme/widgets/actions/workflows/12": {"json":{"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}}
+    }
+  },
+  {
+    "id": "dispatch_case_insensitive_name",
+    "args": ["workflow", "run", "cI", "-r", "main"],
+    "routes": {
+      "/repos/acme/widgets/actions/workflows?page=1&per_page=100": {"json":{"workflows":[
+        {"id":11,"name":"CI","path":".github/workflows/old.yml","state":"disabled_manually"},
+        {"id":12,"name":"CI","path":".github/workflows/ci.yml","state":"active"}
+      ]}},
+      "/repos/acme/widgets/actions/workflows/12/dispatches": {"method":"POST","status":204}
+    }
+  },
+  {
+    "id": "dispatch_ambiguous_name",
+    "args": ["workflow", "run", "CI", "-r", "main"],
+    "routes": {
+      "/repos/acme/widgets/actions/workflows?page=1&per_page=100": {"json":{"workflows":[
+        {"id":11,"name":"CI","path":".github/workflows/first.yml","state":"active"},
+        {"id":12,"name":"CI","path":".github/workflows/second.yml","state":"active"}
+      ]}}
+    }
+  },
+  {
+    "id": "dispatch_missing_name",
+    "args": ["workflow", "run", "missing", "-r", "main"],
+    "routes": {
+      "/repos/acme/widgets/actions/workflows?page=1&per_page=100": {"json":{"workflows":[]}}
+    }
+  }
+]

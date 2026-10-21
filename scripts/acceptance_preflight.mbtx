@@ -1,0 +1,228 @@
+///|
+/// Read-only permission checks before provisioning disposable repositories.
+/// These results describe endpoint accessibility, never inferred token scopes.
+async fn run_repository_preflight(
+  credential_path : String,
+  report_directory : String,
+  ruleset_probe_only~ : Bool = false,
+) -> Unit {
+  guard !@fs.exists(report_directory) else { fail("preflight report exists") }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("missing test credential")
+  }
+  @fs.mkdir(report_directory, permission=0o700)
+  let directory = @fs.realpath(report_directory)
+  let isolated = @fs.tmpdir(prefix="gh-permission-preflight-")
+  defer @fs.rmdir(isolated, recursive=true)
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: isolated,
+    ledger_path: directory + "/ledger.json",
+    policy_path: isolated + "/policy.json",
+    token,
+    ledger: Ledger::new("permission-preflight", "unverified"),
+    verified_binary: Ref(None),
+  }
+  let cases : Array[Json] = []
+  let mut identity = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": if ruleset_probe_only {
+          "ruleset-access-probe"
+        } else {
+          "repository-permission-preflight"
+        },
+        "repository": "ZSeanYves/gh_test",
+        "remote_mutations": 0,
+        "core_parity_verified": false,
+        "identity_verified": identity,
+        "credential_sha256": @crypto.bytes_to_hex_string(
+          @crypto.sha256(@utf8.encode(token)),
+        ),
+        "observed_at_ms": UInt64::reinterpret_as_int64(@env.now()).to_double(),
+        "expected_cases": if ruleset_probe_only {
+          1
+        } else {
+          15
+        },
+        "completed_cases": cases.length(),
+        "inventory_ready": !ruleset_probe_only &&
+        identity &&
+        cases.length() == 15 &&
+        cases.all(item => {
+          item is { "status": String("pass"), .. } ||
+          item
+          is {
+            "id": String("ruleset"),
+            "reason": String("service_entitlement"),
+            ..
+          }
+        }) &&
+        cases.any(item => {
+          item
+          is { "id": String("ruleset-graphql"), "status": String("pass"), .. }
+        }),
+        "binary_sha256": acceptance.verified_binary.val.map_or(Json::null(), value => {
+          Json(value)
+        }),
+        "status": if identity &&
+          cases.length() == (if ruleset_probe_only { 1 } else { 15 }) &&
+          cases.all(item => item is { "status": String("pass"), .. }) {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cases": cases,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  let (status, viewer) = acceptance.api("GET", "/user")
+  guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
+    fail("test credential account mismatch")
+  }
+  identity = true
+  let probes = if ruleset_probe_only {
+    []
+  } else {
+    [
+      ("metadata", ""),
+      ("deploy_key", "/keys"),
+      ("webhook", "/hooks"),
+      ("environment", "/environments"),
+      ("secret", "/actions/secrets"),
+      ("variable", "/actions/variables"),
+      ("workflow", "/actions/workflows"),
+      ("run", "/actions/runs"),
+      ("artifact", "/actions/artifacts"),
+      ("cache", "/actions/caches"),
+      ("ruleset", "/rulesets"),
+      ("invitation", "/invitations"),
+      ("collaborator", "/collaborators"),
+    ]
+  }
+  for (kind, suffix) in probes {
+    let path = "/repos/ZSeanYves/gh_test" +
+      suffix +
+      (if suffix.is_empty() { "" } else { "?per_page=1" })
+    let result : Json = try {
+      let (status, value) = acceptance.api("GET", path)
+      let reason = match value {
+        { "message": String(message), .. } if message.contains(
+            "Upgrade to GitHub",
+          ) ||
+          message.contains("upgrade to GitHub") => "service_entitlement"
+        { "message": String(message), .. } if message.contains(
+            "Resource not accessible",
+          ) => "credential_permission"
+        _ => if status == 200 { "" } else { "http_failure" }
+      }
+      {
+        "id": kind,
+        "status": if status == 200 {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "http_status": status,
+        "reason": reason,
+      }
+    } catch {
+      error if @async.is_being_cancelled() => raise error
+      _ =>
+        {
+          "id": kind,
+          "status": "blocked",
+          "reason": "transport_or_protocol_failure",
+        }
+    }
+    cases.push(result)
+    println(result.stringify())
+  }
+  if !ruleset_probe_only {
+    let result : Json = try {
+      let (status, value) = acceptance.api("POST", "/graphql", body={
+        "query": "query { repository(owner:\"ZSeanYves\",name:\"gh_test\") { id isEmpty discussions(first:1) { totalCount } projectsV2(first:1) { totalCount } } }",
+      })
+      let usable = status == 200 &&
+        value is Object(fields) &&
+        !fields.contains("errors") &&
+        fields.get("data")
+        is Some({ "repository": { "id": String(_), .. }, .. })
+      {
+        "id": "graphql-inventory",
+        "status": if usable {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "http_status": status,
+      }
+    } catch {
+      error if @async.is_being_cancelled() => raise error
+      _ =>
+        {
+          "id": "graphql-inventory",
+          "status": "blocked",
+          "reason": "transport_or_protocol_failure",
+        }
+    }
+    cases.push(result)
+    println(result.stringify())
+  }
+  let result : Json = try {
+    let (status, value) = acceptance.api("POST", "/graphql", body={
+      "query": "query { repository(owner:\"ZSeanYves\",name:\"gh_test\") { id rulesets(first:1,includeParents:false) { totalCount nodes { id } pageInfo { hasNextPage endCursor } } } }",
+    })
+    let available = status == 200 &&
+      value is Object(fields) &&
+      !fields.contains("errors") &&
+      fields.get("data")
+      is Some(
+        {
+          "repository": {
+            "id": String(_),
+            "rulesets": {
+              "totalCount": Number(_),
+              "nodes": Array(_),
+              "pageInfo": Object(_),
+              ..
+            },
+            ..
+          },
+          ..
+        }
+      )
+    {
+      "id": "ruleset-graphql",
+      "status": if available {
+        "pass"
+      } else {
+        "blocked"
+      },
+      "http_status": status,
+      "reason": if available {
+        ""
+      } else {
+        "ruleset_connection_unavailable"
+      },
+    }
+  } catch {
+    error if @async.is_being_cancelled() => raise error
+    _ =>
+      {
+        "id": "ruleset-graphql",
+        "status": "blocked",
+        "reason": "transport_or_protocol_failure",
+      }
+  }
+  cases.push(result)
+  println(result.stringify())
+}

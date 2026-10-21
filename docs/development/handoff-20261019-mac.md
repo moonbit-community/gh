@@ -1,5 +1,9 @@
 # GitHub core parity：Mac 续作交接（2026-10-19）
 
+后续修复和 Mac 真实差分见
+[2026-10-20 记录](handoff-20261020-mac-repairs.md)。本文保留交接时状态；
+其中的错误路由/语义风险和旧 binary 结果不能代替后续记录。
+
 ## 结论和续作位置
 
 - 项目：`moonbit-community/gh`；远端 `git@github.com:moonbit-community/gh.git`。

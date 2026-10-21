@@ -31,4 +31,10 @@ import {
   "ZSeanYves/MoonbitHTTP@0.7.0",
   "mizchi/experimental_crypto@0.0.2",
   "cc06b/mooncry@0.95.0",
+  "bobzhang/moonjq@0.2.0",
+  "moonbit-community/unicodewidth@0.2.1",
+  "moonbitlang/regexp@0.3.6",
+  "moonbit-community/tty@0.5.0",
+  "moonbit-community/pty@0.4.3",
+  "moonbit-community/flate@0.8.4",
 }

@@ -12,11 +12,13 @@ import {
 // Values
 pub async fn configured_editor(String?) -> String
 
-pub fn device_oauth_adapter(client_id~ : String, present~ : async (OAuthDevicePrompt) -> Bool, transport? : @gh.RawTransport, wait? : async (Int) -> Unit, now? : () -> UInt64) -> OAuthAdapter
+pub fn device_oauth_adapter(client_id~ : String, present~ : async (OAuthDevicePrompt) -> Bool, transport? : @gh.RawTransport, wait? : async (Int32) -> Unit, now? : () -> UInt64) -> OAuthAdapter
 
-pub async fn execute_github_api(@github_cli.ApiOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext) -> @github_cli.Output
+pub async fn download_to_file(@gh.RawTransport, @gh.RawRequest, String, replace? : Bool) -> @gh.RawDownloadResult
 
-pub async fn execute_github_business(@github_cli.BusinessOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext) -> @github_cli.Output
+pub async fn execute_github_api(@github_cli.ApiOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext, cache_partition? : String) -> @github_cli.Output
+
+pub async fn execute_github_business(@github_cli.BusinessOptions, client~ : @github.Client, base_url~ : String, repository? : @github_cli.RepositoryContext, cache_directory? : String, public_fetch? : async (String) -> @gh.RawHttpResponse, verification_time? : Int64, stdout_writer? : async (Bytes) -> Unit, stderr_writer? : async (Bytes) -> Unit, format_context? : @github_cli.FormatContext) -> @github_cli.Output
 
 pub async fn github_alias_command(Array[String], config_dir? : String, input? : String) -> @github_cli.Output
 
@@ -24,11 +26,11 @@ pub async fn github_auth_command(Array[String], environment? : @github_auth.Envi
 
 pub async fn github_auth_setup_git(Array[String], @github_auth.Environment, runner? : async (Array[String]) -> Result[NativeProcessResult, ProcessAdapterError]) -> @github_cli.Output
 
-pub fn github_client(base_url~ : String, graphql_url? : String, token? : String, trace_path? : String, timeout_ms? : Int, max_response_bytes? : Int) -> Result[@github.Client, @github_cli.Output]
+pub fn github_client(base_url~ : String, graphql_url? : String, token? : String, trace_path? : String, timeout_ms? : Int32, max_response_bytes? : Int32, max_download_bytes? : Int32) -> Result[@github.Client, @github_cli.Output]
 
 pub async fn github_config_command(Array[String], config_dir? : String) -> @github_cli.Output
 
-pub async fn open_browser(String, String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+pub async fn open_browser(String, String, timeout_ms? : Int32) -> Result[NativeProcessResult, ProcessAdapterError]
 
 pub async fn resolve_current_branch() -> Result[String, @github_cli.Output]
 
@@ -42,15 +44,15 @@ pub async fn resolve_github_auth_with_backend(@github_auth.Environment, Credenti
 
 pub async fn resolve_repository_context(repo? : String, need_branch? : Bool, respect_resolved? : Bool) -> Result[@github_cli.RepositoryContext, @github_cli.Output]
 
-pub async fn run_configured_editor(String, host? : String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+pub async fn run_configured_editor(String, host? : String, timeout_ms? : Int32) -> Result[NativeProcessResult, ProcessAdapterError]
 
-pub async fn run_editor(String, String, timeout_ms? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+pub async fn run_editor(String, String, timeout_ms? : Int32) -> Result[NativeProcessResult, ProcessAdapterError]
 
-pub async fn run_github(Array[String]) -> @github_cli.Output
+pub async fn run_github(Array[String], stdout_writer? : async (Bytes) -> Unit, stderr_writer? : async (Bytes) -> Unit) -> @github_cli.Output
 
-pub async fn run_native_process(String, Array[String], input? : Bytes, timeout_ms? : Int, max_output_bytes? : Int) -> Result[NativeProcessResult, ProcessAdapterError]
+pub async fn run_native_process(String, Array[String], input? : Bytes, timeout_ms? : Int32, max_output_bytes? : Int32, acceptance_policy? : String) -> Result[NativeProcessResult, ProcessAdapterError]
 
-pub async fn run_terminal_process(String, Array[String], timeout_ms? : Int, runner? : async (String, Array[String]) -> Int) -> Result[Int, ProcessAdapterError]
+pub async fn run_terminal_process(String, Array[String], timeout_ms? : Int32, runner? : async (String, Array[String]) -> Int32, acceptance_policy? : String) -> Result[Int32, ProcessAdapterError]
 
 pub fn secret_tool_backend(command? : String) -> CredentialBackend
 
@@ -58,7 +60,7 @@ pub fn split_native_command(String) -> Result[(String, Array[String]), ProcessAd
 
 pub fn system_credential_backend() -> CredentialBackend
 
-pub fn web_oauth_adapter(client_id~ : String, client_secret~ : String, present~ : async (OAuthWebPrompt) -> Bool, transport? : @gh.RawTransport, callback? : async (OAuthWebPrompt) -> Result[String, OAuthError], timeout_ms? : Int) -> OAuthAdapter
+pub fn web_oauth_adapter(client_id~ : String, client_secret~ : String, present~ : async (OAuthWebPrompt) -> Bool, transport? : @gh.RawTransport, callback? : async (OAuthWebPrompt) -> Result[String, OAuthError], timeout_ms? : Int32) -> OAuthAdapter
 
 // Errors
 pub suberror ProcessAdapterError {
@@ -86,12 +88,12 @@ pub fn CredentialBackend::write(Self, String, String, String) -> Bool
 pub async fn CredentialBackend::write_async(Self, String, String, String) -> Bool
 
 pub struct NativeProcessResult {
-  exit_code : Int
+  exit_code : Int32
   stdout : Bytes
   stderr : Bytes
 }
-pub fn NativeProcessResult::exit_code(Self) -> Int
-pub fn NativeProcessResult::new(exit_code? : Int, stdout? : Bytes, stderr? : Bytes) -> Self
+pub fn NativeProcessResult::exit_code(Self) -> Int32
+pub fn NativeProcessResult::new(exit_code? : Int32, stdout? : Bytes, stderr? : Bytes) -> Self
 pub fn NativeProcessResult::stderr(Self) -> Bytes
 pub fn NativeProcessResult::stdout(Self) -> Bytes
 
@@ -106,7 +108,7 @@ pub fn OAuthAdapter::new_async(authorize~ : async (String, String) -> Result[Str
 pub struct OAuthDevicePrompt {
   // private fields
 }
-pub fn OAuthDevicePrompt::expires_in(Self) -> Int
+pub fn OAuthDevicePrompt::expires_in(Self) -> Int32
 pub fn OAuthDevicePrompt::user_code(Self) -> String
 pub fn OAuthDevicePrompt::verification_uri(Self) -> String
 
@@ -128,7 +130,7 @@ pub struct OAuthWebPrompt {
 }
 pub fn OAuthWebPrompt::authorization_uri(Self) -> String
 pub fn OAuthWebPrompt::redirect_uri(Self) -> String
-pub fn OAuthWebPrompt::timeout_ms(Self) -> Int
+pub fn OAuthWebPrompt::timeout_ms(Self) -> Int32
 
 // Type aliases
 
