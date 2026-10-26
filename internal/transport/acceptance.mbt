@@ -15,12 +15,27 @@ async fn check_acceptance_request(
   }
   let source = @fs.read_file(path).text()
   let policy = @live_scope.Policy::from_json(@json.parse(source))
+  let authorization = request
+    .headers()
+    .filter(pair => pair.0.to_lower() == "authorization")
+  let credential_sha256 = if authorization is [(_, value)] {
+    let token = match value.strip_prefix("Bearer ") {
+      Some(value) => Some(value)
+      None => value.strip_prefix("token ")
+    }
+    token.map(value => {
+      @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(value)))
+    })
+  } else {
+    None
+  }
   guard policy.allows(
     origin,
     request.verb(),
     request.path(),
     request.body(),
     now_ms=UInt64::reinterpret_as_int64(@env.now()),
+    credential_sha256?,
   ) else {
     raise InvalidRequest
   }

@@ -1,0 +1,571 @@
+{
+  "schema": 1,
+  "family": "config-clear-cache",
+  "oracle_version": "2.102.0",
+  "oracle_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "binary_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "core_parity_verified": false,
+  "expected_cases": 39,
+  "completed_cases": 39,
+  "failures": 0,
+  "cases": [
+    {
+      "id": "pipe/home",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/xdg",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/xdg-empty",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/gh-cache-ignored",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/missing",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/file",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/symlink",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/dangling",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/nested-link",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/denied",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "",
+      "stderr": "unlinkat <HOME>/.cache/gh: permission denied\n",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/argument",
+      "args": [
+        "config",
+        "clear-cache",
+        "extra"
+      ],
+      "stdout": "",
+      "stderr": "accepts 0 arg(s), received 1\n",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/host-flag",
+      "args": [
+        "config",
+        "clear-cache",
+        "--host",
+        "github.com"
+      ],
+      "stdout": "",
+      "stderr": "unknown flag: --host\n\nUsage:  gh config clear-cache [flags]\n",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pipe/help",
+      "args": [
+        "config",
+        "clear-cache",
+        "--help"
+      ],
+      "stdout": "Clear the cli cache\n\nUSAGE\n  gh config clear-cache [flags]\n\nINHERITED FLAGS\n  --help   Show help for command\n\nEXAMPLES\n  # Clear the cli cache\n  $ gh config clear-cache\n\nLEARN MORE\n  Use `gh <command> <subcommand> --help` for more information about a command.\n  Read the manual at https://cli.github.com/manual\n  Learn about exit codes using `gh help exit-codes`\n  Learn about accessibility experiences using `gh help accessibility`\n\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/home",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/xdg",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/xdg-empty",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/gh-cache-ignored",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/missing",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/file",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/symlink",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/dangling",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/nested-link",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "✓ Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/denied",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "unlinkat <HOME>/.cache/gh: permission denied\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/argument",
+      "args": [
+        "config",
+        "clear-cache",
+        "extra"
+      ],
+      "stdout": "accepts 0 arg(s), received 1\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/host-flag",
+      "args": [
+        "config",
+        "clear-cache",
+        "--host",
+        "github.com"
+      ],
+      "stdout": "unknown flag: --host\r\n\r\nUsage:  gh config clear-cache [flags]\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty/help",
+      "args": [
+        "config",
+        "clear-cache",
+        "--help"
+      ],
+      "stdout": "Clear the cli cache\r\n\r\nUSAGE\r\n  gh config clear-cache [flags]\r\n\r\nINHERITED FLAGS\r\n  --help   Show help for command\r\n\r\nEXAMPLES\r\n  # Clear the cli cache\r\n  $ gh config clear-cache\r\n\r\nLEARN MORE\r\n  Use `gh <command> <subcommand> --help` for more information about a command.\r\n  Read the manual at https://cli.github.com/manual\r\n  Learn about exit codes using `gh help exit-codes`\r\n  Learn about accessibility experiences using `gh help accessibility`\r\n\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/home",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/xdg",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/xdg-empty",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/gh-cache-ignored",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/missing",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/file",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/symlink",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/dangling",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/nested-link",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "\u001b[0;32m✓\u001b[0m Cleared the cache\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": false,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/denied",
+      "args": [
+        "config",
+        "clear-cache"
+      ],
+      "stdout": "unlinkat <HOME>/.cache/gh: permission denied\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/argument",
+      "args": [
+        "config",
+        "clear-cache",
+        "extra"
+      ],
+      "stdout": "accepts 0 arg(s), received 1\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/host-flag",
+      "args": [
+        "config",
+        "clear-cache",
+        "--host",
+        "github.com"
+      ],
+      "stdout": "unknown flag: --host\r\n\r\nUsage:  gh config clear-cache [flags]\r\n",
+      "stderr": "",
+      "exit_code": 1,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    },
+    {
+      "id": "pty-color/help",
+      "args": [
+        "config",
+        "clear-cache",
+        "--help"
+      ],
+      "stdout": "Clear the cli cache\r\n\r\n\u001b[0;1;39mUSAGE\u001b[0m\r\n  gh config clear-cache [flags]\r\n\r\n\u001b[0;1;39mINHERITED FLAGS\u001b[0m\r\n  --help   Show help for command\r\n\r\n\u001b[0;1;39mEXAMPLES\u001b[0m\r\n  # Clear the cli cache\r\n  $ gh config clear-cache\r\n\r\n\u001b[0;1;39mLEARN MORE\u001b[0m\r\n  Use `gh <command> <subcommand> --help` for more information about a command.\r\n  Read the manual at https://cli.github.com/manual\r\n  Learn about exit codes using `gh help exit-codes`\r\n  Learn about accessibility experiences using `gh help accessibility`\r\n\r\n",
+      "stderr": "",
+      "exit_code": 0,
+      "cache_present": true,
+      "unrelated_content": "outside-cache",
+      "config_content": "editor: fixture-editor\n",
+      "credentials_preserved": true
+    }
+  ]
+}

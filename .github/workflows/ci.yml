@@ -90,6 +90,9 @@ jobs:
       - name: Validate the shared live scope guard without credentials or network
         run: moon run --target native scripts/run_acceptance.mbtx -- core_acceptance --self-test
 
+      - name: Check the two-account runner without personal credentials
+        run: moon check --target native --deny-warn scripts/acceptance_auth_accounts.mbtx
+
       - name: Compare formatter pipe and PTY behavior with fixed oracle captures
         if: runner.os == 'macOS'
         run: moon run --target native scripts/verify_formatter.mbtx -- _build/native/release/build/ZSeanYves/gh/cmd/main/main.exe _build/formatter-ci
@@ -97,6 +100,10 @@ jobs:
       - name: Compare Actions downloads, logs and cryptographic Release verification
         if: runner.os == 'macOS'
         run: moon run --target native scripts/verify_actions_release.mbtx -- _build/native/release/build/ZSeanYves/gh/cmd/main/main.exe _build/actions-release-ci
+
+      - name: Compare isolated cache removal in pipes and real terminals
+        if: runner.os == 'macOS'
+        run: moon run --target native scripts/config_cache_oracle.mbtx -- _build/native/release/build/ZSeanYves/gh/cmd/main/main.exe _build/config-cache-ci.json testdata/config-cache-oracle-v2.102.0.json
 
       - name: Preserve Actions and Release differential evidence
         if: always() && runner.os == 'macOS'

@@ -10,6 +10,8 @@ fn actions_validate_run(
   sha : String,
   nonce : String,
   mode : String,
+  actor~ : String = "ZSeanYves",
+  actor_id? : String,
 ) -> Unit raise {
   guard value
     is {
@@ -20,10 +22,12 @@ fn actions_validate_run(
       "head_sha": String(actual_sha),
       "event": String("workflow_dispatch"),
       "display_title": String(title),
-      "actor": { "login": String("ZSeanYves"), .. },
+      "actor": { "login": String(login), .. } as actual_actor,
       "run_attempt": Number(attempt, ..),
       ..
     } &&
+    login == actor &&
+    actor_id.map_or(true, id => acceptance_id(actual_actor) == id) &&
     acceptance_id(repository) == repository_id &&
     acceptance_id(head_repository) == repository_id &&
     workflow.stringify() == workflow_id &&
@@ -114,6 +118,8 @@ async fn Acceptance::actions_run_intent(
     "sha": sha,
     "nonce": nonce,
     "mode": mode,
+    "actor": self.ledger.owner,
+    "actor_id": self.ledger.owner_id.map_or(Json::null(), id => Json(id)),
     "created_at_ms": @env.now().to_double(),
     "artifact_name": nonce + "-artifact-1",
     "cache_key": nonce + "-cache-1",
@@ -144,6 +150,14 @@ fn actions_match_intent(value : Json, intent : Json) -> Unit raise {
     inventory_string(intent, "sha"),
     inventory_string(intent, "nonce"),
     inventory_string(intent, "mode"),
+    actor=match intent {
+      { "actor": String(actor), .. } => actor
+      _ => "ZSeanYves"
+    },
+    actor_id?=match intent {
+      { "actor_id": String(id), .. } => Some(id)
+      _ => None
+    },
   )
 }
 
@@ -201,6 +215,50 @@ async fn Acceptance::actions_dispatch(
     create_mode=CreateNew,
     permission=0o600,
   )
+  let reconciled = self.actions_reconcile_dispatch(directory, mode, records)
+  // Acceptance still fails when the original command failed. Recovery uses
+  // reconciliation directly so that a proven remote run can be cleaned up.
+  guard exit_code == 0 else {
+    fail("workflow dispatch command failed after outcome reconciliation")
+  }
+  reconciled
+}
+
+///|
+/// A successful dispatch can precede complete run metadata. Reconciliation is
+/// read-only and must satisfy the original exact identity checks before owning
+/// the run; it never repeats the dispatch request.
+async fn Acceptance::actions_reconcile_dispatch(
+  self : Acceptance,
+  directory : String,
+  mode : String,
+  records : Array[Json],
+) -> Json {
+  let intent = @json.parse(
+    @fs.read_file(directory + "/dispatch-" + mode + ".json").text(),
+  )
+  let receipt = @json.parse(
+    @fs.read_file(directory + "/dispatch-" + mode + "-response.json").text(),
+  )
+  guard receipt is { "exit_code": Number(code, ..), "url": String(output), .. } else {
+    fail("dispatch response receipt unavailable")
+  }
+  let exit_code = code.to_int()
+  let workflow = self.ledger.resource("workflow")
+  let repository = self.ledger.owned("repository")
+  guard workflow.remote_id is Some(workflow_id) &&
+    workflow.parent == Some("repository") &&
+    workflow.state is (Created | Uncertain) &&
+    inventory_string(intent, "run_id") == self.ledger.run_id &&
+    inventory_string(intent, "resource_key") == "run-" + mode &&
+    inventory_string(intent, "repository_id") == repository.remote_id.unwrap() &&
+    inventory_string(intent, "workflow_id") == workflow_id &&
+    inventory_string(intent, "mode") == mode &&
+    inventory_string(intent, "nonce") ==
+    "gh-acceptance-" + self.ledger.run_id + "-" + mode else {
+    fail("dispatch intent does not belong to this ledger")
+  }
+  let branch = inventory_string(intent, "branch")
   let (status, current_workflow) = self.api("GET", workflow.locator)
   guard status == 200 &&
     acceptance_id(current_workflow) == workflow_id &&
@@ -208,7 +266,9 @@ async fn Acceptance::actions_dispatch(
     workflow.content_sha256.unwrap() else {
     fail("workflow changed during dispatch")
   }
-  self.ledger.confirm_created("workflow", workflow_id)
+  if workflow.state == Uncertain {
+    self.ledger.confirm_created("workflow", workflow_id)
+  }
   self.persist([])
   let url_prefix = "https://github.com/" +
     repository.locator[7:].to_owned() +
@@ -221,15 +281,60 @@ async fn Acceptance::actions_dispatch(
   if candidate is Some(id) &&
     !id.is_empty() &&
     id.iter().all(ch => ch is ('0'..<='9')) {
-    let (status, value) = self.api(
-      "GET",
-      repository.locator + "/actions/runs/" + id,
-    )
-    guard status == 200 && acceptance_id(value) == id else {
-      fail("dispatch run ID lookup failed")
+    for attempt in 0..<12 {
+      let (status, value) = self.api(
+        "GET",
+        repository.locator + "/actions/runs/" + id,
+      )
+      guard status == 200 && acceptance_id(value) == id else {
+        fail("dispatch run ID lookup failed")
+      }
+      try actions_match_intent(value, intent) catch {
+        error => {
+          guard value is Object(fields) else { raise error }
+          let identity : Map[String, Json] = Map([])
+          for
+            key in [
+              "id", "workflow_id", "head_branch", "head_sha", "event", "display_title",
+              "run_attempt",
+            ] {
+            if fields.get(key) is Some(item) {
+              identity[key] = item
+            }
+          }
+          for key in ["repository", "head_repository"] {
+            identity[key] = match fields.get(key) {
+              Some({ "id": item, .. }) => Json::object({ "id": item })
+              _ => Json::null()
+            }
+          }
+          identity["actor"] = match fields.get("actor") {
+            Some({ "login": login, .. }) => Json::object({ "login": login })
+            _ => Json::null()
+          }
+          @fs.write_file(
+            directory +
+            "/dispatch-" +
+            mode +
+            "-unmatched-" +
+            @env.now().to_string() +
+            ".json",
+            Json::object(identity).stringify(indent=2) + "\n",
+            create_mode=CreateNew,
+            permission=0o600,
+          )
+          if attempt == 11 {
+            raise error
+          }
+        }
+      } noraise {
+        _ => {
+          run = Some(value)
+          break
+        }
+      }
+      @async.sleep(2000)
     }
-    actions_match_intent(value, intent)
-    run = Some(value)
   } else {
     // A lost response is reconciled against this exact intent, workflow,
     // repository ID, actor and immutable commit. Multiple matches fail closed.
@@ -271,19 +376,36 @@ async fn Acceptance::actions_dispatch(
   guard run is Some(value) else {
     fail("dispatch outcome remains unknown; no duplicate dispatch permitted")
   }
+  actions_confirm_dispatch(self.ledger, mode, intent, value, exit_code, records)
+  self.persist([])
+  intent
+}
+
+///|
+/// Remote ownership and command success are separate facts. A lost response
+/// must retain a failed case while allowing exact-ID recovery of its run.
+fn actions_confirm_dispatch(
+  ledger : Ledger,
+  mode : String,
+  intent : Json,
+  value : Json,
+  exit_code : Int32,
+  records : Array[Json],
+) -> Unit raise {
+  actions_match_intent(value, intent)
+  let repository = ledger.owned("repository")
+  guard inventory_string(intent, "repository_id") ==
+    repository.remote_id.unwrap() else {
+    fail("dispatch repository receipt mismatch")
+  }
   let id = acceptance_id(value)
   let key = "run-" + mode
-  self.ledger.confirm_created(
+  ledger.confirm_created(
     key,
     id,
     locator=repository.locator + "/actions/runs/" + id,
   )
-  self.ledger.record_content_receipt(
-    key,
-    id,
-    inventory_content_hash("run", value),
-  )
-  self.persist([])
+  ledger.record_content_receipt(key, id, inventory_content_hash("run", value))
   records.push({
     "id": "workflow.dispatch-" + mode,
     "status": if exit_code == 0 {
@@ -294,10 +416,6 @@ async fn Acceptance::actions_dispatch(
     "resource_id": id,
     "outcome_reconciled": true,
   })
-  guard exit_code == 0 else {
-    fail("workflow dispatch command failed after outcome reconciliation")
-  }
-  intent
 }
 
 ///|
@@ -715,7 +833,7 @@ async fn Acceptance::cleanup_actions(
   // outputs remain visible to the final complete repository inventory.
   for kind in ["artifact", "cache", "run"] {
     for resource in self.ledger.resources.values().collect() {
-      if resource.kind != kind || resource.state == Removed {
+      if resource.kind != kind || resource.state is (Removed | NotCreated) {
         continue
       }
       guard resource.state == Created && resource.remote_id is Some(id) else {
@@ -874,6 +992,7 @@ async fn Acceptance::run_actions_lifecycle(
   directory : String,
   records : Array[Json],
   storage_independent~ : Bool = false,
+  artifact_only~ : Bool = false,
 ) -> Unit {
   ignore(
     self.create_actions_fixture(
@@ -892,13 +1011,19 @@ async fn Acceptance::run_actions_lifecycle(
       "reason": "account_artifact_storage_quota; user will restore quota; private repository retained as visibility requirement",
     })
   }
-  for mode in ["failure", "wait", "success"] {
+  let modes = if artifact_only {
+    ["success"]
+  } else {
+    ["success", "failure", "wait"]
+  }
+  for mode in modes {
     println("Actions lifecycle: " + mode)
     self.actions_scenario(
       directory,
       mode,
       records,
       include_artifacts=!storage_independent,
+      watch_progress=!artifact_only,
     ) catch {
       error if @async.is_being_cancelled() => raise error
       error => {
@@ -926,10 +1051,22 @@ async fn Acceptance::actions_scenario(
   mode : String,
   records : Array[Json],
   include_artifacts~ : Bool = true,
+  watch_progress~ : Bool = true,
 ) -> Unit {
   let intent = self.actions_dispatch(directory, mode, records)
   let key = "run-" + mode
-  self.actions_watch(directory, intent, records)
+  // The artifact probe checks upload, download and exact file contents. The
+  // complete lifecycle separately requires real streaming watch observations.
+  let watch_failure = if watch_progress {
+    try self.actions_watch(directory, intent, records) catch {
+      error if @async.is_being_cancelled() => raise error
+      error => Some(error)
+    } noraise {
+      _ => None
+    }
+  } else {
+    None
+  }
   let value = self.actions_wait(key, intent, true, records)
   let expected = if mode == "wait" { "cancelled" } else { mode }
   self.actions_diagnostics(key, directory)
@@ -940,6 +1077,11 @@ async fn Acceptance::actions_scenario(
       required=value is { "conclusion": String("success"), .. },
       require_artifact=include_artifacts,
     )
+  }
+  // Preserve service diagnostics and receipts for any asynchronously created
+  // outputs before propagating a watch failure into exact-ID cleanup.
+  if watch_failure is Some(error) {
+    raise error
   }
   guard value is { "conclusion": String(conclusion), .. } &&
     conclusion == expected else {

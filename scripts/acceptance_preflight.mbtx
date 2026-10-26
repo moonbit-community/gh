@@ -5,7 +5,18 @@ async fn run_repository_preflight(
   credential_path : String,
   report_directory : String,
   ruleset_probe_only~ : Bool = false,
+  account~ : String = "ZSeanYves",
 ) -> Unit {
+  guard acceptance_account(account) else {
+    fail("unapproved acceptance account")
+  }
+  if account != "ZSeanYves" {
+    guard !ruleset_probe_only else {
+      fail("ruleset probe requires a repository")
+    }
+    run_account_preflight(credential_path, report_directory, account)
+    return
+  }
   guard !@fs.exists(report_directory) else { fail("preflight report exists") }
   let credentials = @json.parse(@fs.read_file(credential_path).text())
   guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
@@ -225,4 +236,107 @@ async fn run_repository_preflight(
   }
   cases.push(result)
   println(result.stringify())
+}
+
+///|
+/// A second account has no pre-existing test fixture. Establish identity and
+/// basic API access without reading private repositories into the report.
+/// Inventory access is exercised on the new private repository before Actions.
+async fn run_account_preflight(
+  credential_path : String,
+  report_directory : String,
+  account : String,
+) -> Unit {
+  guard acceptance_account(account) && !@fs.exists(report_directory) else {
+    fail("invalid account preflight")
+  }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } && !token.is_empty() else {
+    fail("missing test credential")
+  }
+  @fs.mkdir(report_directory, permission=0o700)
+  let directory = @fs.realpath(report_directory)
+  let isolated = @fs.tmpdir(prefix="gh-account-preflight-")
+  defer @fs.rmdir(isolated, recursive=true)
+  let acceptance : Acceptance = {
+    binary: @fs.realpath(@env.current_dir().unwrap_or(".")) +
+    "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: isolated,
+    ledger_path: directory + "/ledger.json",
+    policy_path: isolated + "/policy.json",
+    token,
+    ledger: Ledger::new("account-preflight", "unverified"),
+    verified_binary: Ref(None),
+  }
+  let hash = @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(token)))
+  let cases : Array[Json] = []
+  let mut account_id = ""
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      directory + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "account-repository-preflight",
+        "account": account,
+        "account_id": account_id,
+        "identity_verified": !account_id.is_empty(),
+        "credential_sha256": hash,
+        "observed_at_ms": UInt64::reinterpret_as_int64(@env.now()).to_double(),
+        "expected_cases": 3,
+        "completed_cases": cases.length(),
+        "remote_mutations": 0,
+        "inventory_ready": false,
+        "inventory_check": "required_after_creation_before_actions",
+        "status": if cases.length() == 3 {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cases": cases,
+        "core_parity_verified": false,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  let (status, viewer) = acceptance.api("GET", "/user")
+  guard status == 200 &&
+    viewer is { "login": String(login), .. } &&
+    login == account else {
+    fail("account preflight identity mismatch")
+  }
+  account_id = acceptance_id(viewer)
+  acceptance.ledger = Ledger::for_account(
+    "account-preflight", account, account_id, hash,
+  )
+  cases.push({ "id": "identity", "status": "pass" })
+  let (status, repos) = acceptance.api(
+    "GET", "/user/repos?affiliation=owner&per_page=1",
+  )
+  guard status == 200 && repos is Array(_) else {
+    fail("account repository read unavailable")
+  }
+  cases.push({ "id": "repository-list", "status": "pass" })
+  let (status, response) = acceptance.api("POST", "/graphql", body={
+    "query": "query { viewer { login databaseId } }",
+  })
+  guard status == 200 &&
+    response is Object(fields) &&
+    !fields.contains("errors") &&
+    fields.get("data")
+    is Some(
+      {
+        "viewer": { "login": String(login), "databaseId": Number(id, ..), .. },
+        ..
+      }
+    ) &&
+    login == account &&
+    id.to_int64().to_string() == account_id else {
+    fail("GraphQL account identity mismatch")
+  }
+  cases.push({ "id": "graphql-identity", "status": "pass" })
+  println(
+    "account preflight passed; repository inventory remains required after creation",
+  )
 }

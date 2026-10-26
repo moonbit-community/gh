@@ -24,7 +24,7 @@ fn Ledger::validate_repository_inventory(
     is {
       "repository_id": String(id),
       "locator": String(locator),
-      "owner": String("ZSeanYves"),
+      "owner": String(owner),
       "owner_id": String(owner_id),
       "private": True,
       "content_sha256": String(hash),
@@ -35,6 +35,8 @@ fn Ledger::validate_repository_inventory(
       "collections": Object(collections),
       ..
     } &&
+    owner == self.owner &&
+    self.owner_id.map_or(true, expected => expected == owner_id) &&
     repository.remote_id == Some(id) &&
     repository.locator == locator &&
     hash == expected_hash &&
@@ -105,7 +107,7 @@ fn Ledger::validate_repository_inventory(
         }
         if category == "collaborator" &&
           item_id == owner_id &&
-          item_locator == locator + "/collaborators/ZSeanYves" {
+          item_locator == locator + "/collaborators/" + self.owner {
           guard !owner_seen else { raise OutsideScope }
           owner_seen = true
           continue

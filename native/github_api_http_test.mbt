@@ -113,8 +113,12 @@ async test "github api loopback GraphQL pagination updates cursor" {
 async test "github api cache reuses a successful response without a second request" {
   let directory = @fs.tmpdir(prefix="gh-api-cache-")
   defer @fs.rmdir(directory, recursive=true)
-  @env.set_env_var("GH_CACHE_DIR", directory)
-  defer @env.unset_env_var("GH_CACHE_DIR")
+  let previous_cache = @env.get_env_var("XDG_CACHE_HOME")
+  @env.set_env_var("XDG_CACHE_HOME", directory)
+  defer (match previous_cache {
+    Some(value) => @env.set_env_var("XDG_CACHE_HOME", value)
+    None => @env.unset_env_var("XDG_CACHE_HOME")
+  })
   let calls = Ref(0)
   let transport = @github.Transport::new(send=_request => {
     calls.val += 1
@@ -152,4 +156,17 @@ async test "github api cache reuses a successful response without a second reque
   assert_eq(second.exit_code(), 0)
   assert_eq(second.stdout(), first.stdout())
   assert_eq(calls.val, 1)
+  let cleared = @native.github_config_command(
+    ["clear-cache"],
+    cache_dir=directory + "/gh",
+  )
+  assert_eq(cleared.exit_code(), 0)
+  assert_false(@fs.exists(directory + "/gh"))
+  let third = @native.execute_github_api(
+    options,
+    client~,
+    base_url="https://api.github.com",
+  )
+  assert_eq(third.exit_code(), 0)
+  assert_eq(calls.val, 2)
 }

@@ -173,8 +173,7 @@ async fn build_matrix(manifest : Json, root : String) -> Json {
     "core_parity_verified": false,
     "profile_verified": false,
     "excluded": [
-      "organization", "enterprise", "real-multi-account", "linux-keyring", "windows-keyring",
-      "separate-integrations",
+      "organization", "enterprise", "linux-keyring", "windows-keyring", "separate-integrations",
     ],
     "command_count": commands.length(),
     "commands": commands,

@@ -1,0 +1,263 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard args.length() == 4 && !@fs.exists(args[3]) else {
+    fail("expected two credential paths and new report directory")
+  }
+  let secrets : Array[String] = []
+  for path in [args[1], args[2]] {
+    guard @json.parse(@fs.read_file(path).text())
+      is { "GH_TOKEN": String(token), .. } &&
+      !token.is_empty() else {
+      fail("test credential missing")
+    }
+    secrets.push(token)
+  }
+  let users = ["ZSeanYves", "ZSeanYvesMIN"]
+  let binary = @fs.realpath(
+    "_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+  )
+  let binary_hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  @fs.mkdir(args[3], permission=0o700)
+  let report_dir = @fs.realpath(args[3])
+  let directory = @fs.tmpdir(prefix="gh-live-dual-auth-")
+  let home = @env.get_env_var("HOME").unwrap()
+  let protected_paths = [
+    args[1],
+    args[2],
+    home + "/.gitconfig",
+    home + "/.config/gh/hosts.yml",
+    home + "/.ssh/config",
+  ]
+  async fn fingerprint(path : String) -> String {
+    if @fs.exists(path) {
+      @crypto.bytes_to_hex_string(@crypto.sha256(@fs.read_file(path).binary()))
+    } else {
+      "absent"
+    }
+  }
+  let before : Array[String] = []
+  for path in protected_paths {
+    before.push(fingerprint(path))
+  }
+  let cases : Array[Json] = []
+  let mut stage = "starting"
+  let mut passed = false
+  defer @async.protect_from_cancel(() => {
+    @fs.rmdir(directory, recursive=true)
+    let after : Array[String] = []
+    for path in protected_paths {
+      after.push(fingerprint(path))
+    }
+    let unchanged = after == before
+    @fs.write_file(
+      report_dir + "/report.json",
+      Json::object({
+        "schema": 1,
+        "family": "real-two-account-authentication",
+        "binary_sha256": binary_hash,
+        "status": if passed && unchanged {
+          "pass"
+        } else {
+          "fail"
+        },
+        "stage": stage,
+        "cases": cases,
+        "remote_mutations": 0,
+        "test_config_removed": !@fs.exists(directory),
+        "credentials_and_default_config_unchanged": unchanged,
+        "core_parity_verified": false,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  let policy = directory + "/readonly.json"
+  @fs.write_file(policy, "{\"schema\":1,\"permits\":[]}", permission=0o600)
+  let environment : Map[String, String] = {
+    "HOME": directory,
+    "USERPROFILE": directory,
+    "GH_CONFIG_DIR": directory,
+    "XDG_CONFIG_HOME": directory,
+    "XDG_CACHE_HOME": directory,
+    "GIT_CONFIG_GLOBAL": directory + "/gitconfig",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GH_HOST": "github.com",
+    "GH_LIVE_ACCEPTANCE": "1",
+    "GH_ACCEPTANCE_POLICY": policy,
+    "GH_PROMPT_DISABLED": "1",
+    "PATH": "/usr/bin:/bin",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "NO_COLOR": "1",
+  }
+  for name in ["HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "NO_PROXY"] {
+    if @env.get_env_var(name) is Some(value) {
+      environment[name] = value
+    }
+  }
+  async fn command_with_input(
+    argv : Array[String],
+    input : String?,
+  ) -> (Int32, String) {
+    let result = @shell.Cmd(
+      binary,
+      argv,
+      cwd=directory,
+      inherit_env=false,
+      env=environment,
+      stdin?=input.map(text => @shell.Stdin::Text(text)),
+    ).output(timeout_ms=60000, max_output_bytes=65536)
+    (result.exit_code(), result.stdout())
+  }
+  async fn command(argv : Array[String]) -> (Int32, String) {
+    command_with_input(argv, None)
+  }
+  fn record(id : String) {
+    cases.push({ "id": id, "status": "pass" })
+  }
+  async fn identity(expected : String) -> Unit {
+    let (code, out) = command([
+      "api", "user", "--jq", "{login: .login, id: .id}",
+    ])
+    guard code == 0 &&
+      @json.parse(out) is { "login": String(login), "id": Number(id, ..), .. } &&
+      login == expected &&
+      id > 0 else {
+      fail("live selected-account identity mismatch")
+    }
+    if expected == "ZSeanYvesMIN" {
+      guard id == 321231243 else { fail("second account ID changed") }
+    }
+  }
+  for index in 0..<2 {
+    stage = "login-" + users[index]
+    let (code, _) = command_with_input(
+      [
+        "auth",
+        "login",
+        "--hostname",
+        "github.com",
+        "--user",
+        users[index],
+        "--with-token",
+        "--insecure-storage",
+        "--git-protocol",
+        "https",
+        "--skip-ssh-key",
+      ],
+      Some(secrets[index]),
+    )
+    guard code == 0 else {
+      fail("test account login did not succeed; credential output suppressed")
+    }
+    identity(users[index])
+    record(stage + "-identity")
+  }
+  for attempt, index in [0, 1, 0] {
+    stage = "switch-" + users[index] + "-" + attempt.to_string()
+    guard command([
+        "auth",
+        "switch",
+        "--hostname",
+        "github.com",
+        "--user",
+        users[index],
+      ]).0 ==
+      0 else {
+      fail("switch failed")
+    }
+    let (code, token) = command(["auth", "token"])
+    guard code == 0 && token.trim() == secrets[index] else {
+      fail("selected token mismatch")
+    }
+    identity(users[index])
+    record(stage + "-token-and-identity")
+  }
+  stage = "environment-token-precedence"
+  let source = @fs.read_file(directory + "/hosts.yml").binary()
+  environment["GH_TOKEN"] = secrets[1]
+  identity(users[1])
+  environment.remove("GH_TOKEN")
+  guard @fs.read_file(directory + "/hosts.yml").binary() == source else {
+    fail("environment selection changed stored configuration")
+  }
+  identity(users[0])
+  record(stage)
+  for index in 0..<2 {
+    stage = "explicit-token-" + users[index]
+    let (code, token) = command([
+      "auth",
+      "token",
+      "--hostname",
+      "github.com",
+      "--user",
+      users[index],
+    ])
+    guard code == 0 && token.trim() == secrets[index] else {
+      fail("explicit account token mismatch")
+    }
+    record(stage)
+  }
+  stage = "logout-first-account"
+  guard command([
+      "auth",
+      "logout",
+      "--hostname",
+      "github.com",
+      "--user",
+      users[0],
+    ]).0 ==
+    0 else {
+    fail("logout failed")
+  }
+  identity(users[1])
+  guard command([
+      "auth",
+      "token",
+      "--hostname",
+      "github.com",
+      "--user",
+      users[0],
+    ]).0 !=
+    0 else {
+    fail("removed account still returns a token")
+  }
+  record(stage + "-preserves-second")
+  stage = "logout-last-account"
+  guard command([
+      "auth",
+      "logout",
+      "--hostname",
+      "github.com",
+      "--user",
+      users[1],
+    ]).0 ==
+    0 &&
+    command(["auth", "token"]).0 != 0 else {
+    fail("last account retained")
+  }
+  record(stage)
+  guard @crypto.bytes_to_hex_string(
+      @crypto.sha256(@fs.read_file(binary).binary()),
+    ) ==
+    binary_hash else {
+    fail("candidate changed")
+  }
+  stage = "complete"
+  passed = true
+  println("real two-account auth completed; all token output suppressed")
+}

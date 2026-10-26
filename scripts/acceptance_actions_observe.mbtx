@@ -1,4 +1,216 @@
 ///|
+/// Reconcile a persisted dispatch response without repeating its write, then
+/// clean only the resources whose immutable identities have been established.
+async fn recover_actions_dispatch(
+  credential_path : String,
+  report_directory : String,
+  mode : String,
+  output : String,
+  absent~ : Bool = false,
+) -> Unit {
+  guard ["success", "failure", "wait"].contains(mode) && !@fs.exists(output) else {
+    fail("invalid dispatch recovery arguments")
+  }
+  let directory = @fs.realpath(report_directory)
+  let ledger = Ledger::from_json(
+    @json.parse(@fs.read_file(directory + "/ledger.json").text()),
+  )
+  let original = @json.parse(@fs.read_file(directory + "/report.json").text())
+  let repository = ledger.owned("repository")
+  guard original
+    is {
+      "family": String("private-repository-lifecycle"),
+      "actions_requested": True,
+      "run_id": String(run_id),
+      "repository": String(full_name),
+      "cases": Array(cases),
+      ..
+    } &&
+    run_id == ledger.run_id &&
+    repository.locator == "/repos/" + full_name &&
+    cases.any(item => {
+      item
+      is {
+        "id": String("repository.create-read"),
+        "status": String("pass"),
+        "resource_id": String(id),
+        ..
+      } &&
+      repository.remote_id == Some(id)
+    }) else {
+    fail("dispatch recovery requires the original repository creation receipt")
+  }
+  let credentials = @json.parse(@fs.read_file(credential_path).text())
+  guard credentials is { "GH_TOKEN": String(token), .. } else {
+    fail("credential")
+  }
+  let root = @fs.realpath(@env.current_dir().unwrap_or("."))
+  let acceptance : Acceptance = {
+    binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
+    config: directory + "/config",
+    ledger_path: directory + "/ledger.json",
+    policy_path: directory + "/policy.json",
+    token,
+    ledger,
+    verified_binary: Ref(None),
+  }
+  let records : Array[Json] = []
+  let mut cleaned = false
+  defer @async.protect_from_cancel(() => {
+    acceptance.persist([])
+    @fs.write_file(
+      output,
+      Json::object({
+        "schema": 1,
+        "family": if absent {
+          "absent-actions-dispatch-recovery"
+        } else {
+          "actions-dispatch-recovery"
+        },
+        "run_id": ledger.run_id,
+        "resource_id": repository.remote_id.unwrap(),
+        "status": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "cleanup": if cleaned {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "dispatch_repeated": false,
+        "original_report": directory + "/report.json",
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+      permission=0o600,
+    )
+  })
+  acceptance.verify_account()
+  ignore(acceptance.repository_metadata("repository"))
+  if absent {
+    acceptance.actions_reconcile_absent_dispatch(
+      directory, mode, output, records,
+    )
+  } else {
+    ignore(acceptance.actions_reconcile_dispatch(directory, mode, records))
+  }
+  acceptance.cleanup_actions(directory, records)
+  cleaned = acceptance.cleanup_repository("repository", records, directory)
+  guard cleaned else { fail("dispatch recovery cleanup incomplete") }
+}
+
+///|
+/// An unsuccessful dispatch is never repeated. Freeze this receipt-owned
+/// repository, prove all run/output collections empty twice, then retain a
+/// terminal absence receipt. Final deletion still checks the full inventory.
+async fn Acceptance::actions_reconcile_absent_dispatch(
+  self : Acceptance,
+  directory : String,
+  mode : String,
+  output : String,
+  records : Array[Json],
+) -> Unit {
+  let repository = self.ledger.owned("repository")
+  let workflow = self.ledger.owned("workflow")
+  let run = self.ledger.resource("run-" + mode)
+  let intent = @json.parse(
+    @fs.read_file(directory + "/dispatch-" + mode + ".json").text(),
+  )
+  let response = @json.parse(
+    @fs.read_file(directory + "/dispatch-" + mode + "-response.json").text(),
+  )
+  guard response is { "exit_code": Number(code, ..), "url": String(""), .. } &&
+    code != 0 &&
+    run.state is (Intended | Uncertain) &&
+    run.remote_id is None &&
+    run.parent == Some("repository") &&
+    run.locator == repository.locator + "/actions/runs" &&
+    workflow.parent == Some("repository") &&
+    inventory_string(intent, "run_id") == self.ledger.run_id &&
+    inventory_string(intent, "resource_key") == run.key &&
+    inventory_string(intent, "repository_id") == repository.remote_id.unwrap() &&
+    inventory_string(intent, "workflow_id") == workflow.remote_id.unwrap() &&
+    inventory_string(intent, "mode") == mode &&
+    inventory_string(intent, "nonce") ==
+    "gh-acceptance-" + self.ledger.run_id + "-" + mode else {
+    fail(
+      "absence recovery requires this ledger's unsuccessful initial dispatch",
+    )
+  }
+  let (status, value) = self.api("GET", workflow.locator)
+  guard status == 200 &&
+    acceptance_id(value) == workflow.remote_id.unwrap() &&
+    Some(inventory_content_hash("workflow", value)) == workflow.content_sha256 else {
+    fail("workflow changed before absence reconciliation")
+  }
+  let metadata = self.repository_metadata("repository")
+  if !(metadata is { "archived": True, .. }) {
+    self.change_repository("repository", { "archived": true })
+  }
+  let observations : Array[Json] = []
+  for sample in 0..<2 {
+    for
+      (collection, field) in [
+        ("runs", "workflow_runs"),
+        ("artifacts", "artifacts"),
+        ("caches", "actions_caches"),
+      ] {
+      let (status, value) = self.api(
+        "GET",
+        repository.locator + "/actions/" + collection + "?per_page=100",
+      )
+      guard status == 200 &&
+        value is Object(fields) &&
+        fields.get("total_count") == Some(Json(0)) &&
+        fields.get(field) == Some(Json::array([])) else {
+        fail(
+          "dispatch absence requires complete empty run and output collections",
+        )
+      }
+      observations.push({
+        "sample": sample,
+        "collection": collection,
+        "count": 0,
+        "observed_at_ms": @env.now().to_double(),
+      })
+    }
+    if sample == 0 {
+      @async.sleep(5000)
+    }
+  }
+  let proof : Json = {
+    "run_id": self.ledger.run_id,
+    "repository_id": repository.remote_id.unwrap(),
+    "workflow_id": workflow.remote_id.unwrap(),
+    "archived": true,
+    "intent": intent,
+    "observations": observations,
+  }
+  let bytes = @utf8.encode(proof.stringify(indent=2) + "\n")
+  @fs.write_file(
+    output + ".absence.json",
+    bytes,
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  self.ledger.confirm_not_created(
+    run.key,
+    repository.remote_id.unwrap(),
+    @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+  )
+  self.persist([])
+  records.push({
+    "id": "workflow.dispatch-" + mode + "-absence",
+    "status": "pass",
+    "proof": output + ".absence.json",
+    "dispatch_repeated": false,
+  })
+}
+
+///|
 async fn observe_actions(
   credential_path : String,
   directory : String,

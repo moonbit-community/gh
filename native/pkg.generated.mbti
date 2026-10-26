@@ -28,7 +28,7 @@ pub async fn github_auth_setup_git(Array[String], @github_auth.Environment, runn
 
 pub fn github_client(base_url~ : String, graphql_url? : String, token? : String, trace_path? : String, timeout_ms? : Int32, max_response_bytes? : Int32, max_download_bytes? : Int32) -> Result[@github.Client, @github_cli.Output]
 
-pub async fn github_config_command(Array[String], config_dir? : String) -> @github_cli.Output
+pub async fn github_config_command(Array[String], config_dir? : String, cache_dir? : String, format_context? : @github_cli.FormatContext) -> @github_cli.Output
 
 pub async fn open_browser(String, String, timeout_ms? : Int32) -> Result[NativeProcessResult, ProcessAdapterError]
 

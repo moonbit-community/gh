@@ -346,12 +346,17 @@ fn local_config_value(
 }
 
 ///|
-/// Execute the local `config get/list/set` surface; argv excludes `config`.
-/// The optional directory is a test/embedding boundary, never a CLI flag.
+/// Execute local configuration commands; argv excludes `config`.
+/// Optional directories are test/embedding boundaries, never CLI flags.
 pub async fn github_config_command(
   args : Array[String],
   config_dir? : String,
+  cache_dir? : String,
+  format_context? : @github_cli.FormatContext,
 ) -> @github_cli.Output {
+  if args.get(0) == Some("clear-cache") {
+    return github_clear_cache(args[1:].to_owned(), cache_dir?, format_context?)
+  }
   github_config_local(args, local_config_dir(config_dir)) catch {
     err if @async.is_being_cancelled() => raise err
     _ => local_error("failed to read or write GitHub configuration")

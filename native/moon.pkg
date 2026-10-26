@@ -27,6 +27,7 @@ import {
   "cc06b/mooncry/lib",
   "mizchi/experimental_crypto/getrandom",
   "moonbitlang/async/fs",
+  "moonbitlang/async/os_error",
   "moonbitlang/async/io",
   "moonbitlang/async/stdio",
   "moonbitlang/async/process",

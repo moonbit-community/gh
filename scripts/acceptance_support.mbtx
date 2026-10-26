@@ -11,6 +11,42 @@ struct Acceptance {
 }
 
 ///|
+async fn Acceptance::verify_account(self : Acceptance) -> Unit {
+  let (status, viewer) = self.api("GET", "/user")
+  guard status == 200 &&
+    acceptance_owner_matches(self.ledger, viewer) &&
+    self.ledger.credential_sha256.map_or(true, hash => {
+      hash ==
+      @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(self.token)))
+    }) else {
+    fail("test credential account or immutable identity mismatch")
+  }
+}
+
+///|
+fn acceptance_owner_matches(ledger : Ledger, value : Json) -> Bool {
+  try
+    value is { "login": String(login), .. } &&
+    login == ledger.owner &&
+    ledger.owner_id.map_or(true, id => acceptance_id(value) == id)
+  catch {
+    _ => false
+  }
+}
+
+///|
+fn acceptance_repository_name(ledger : Ledger, key : String) -> String raise {
+  let repository = ledger.owned(key)
+  guard repository.kind == "repository" &&
+    repository.locator.strip_prefix("/repos/" + ledger.owner + "/")
+    is Some(name) &&
+    identifier(name.to_owned()) else {
+    fail("receipt-backed repository owner mismatch")
+  }
+  name.to_owned()
+}
+
+///|
 /// Diagnostic URLs can contain signed storage parameters or OAuth callbacks.
 /// Persist their origin/path only; API response bodies remain available to the
 /// in-memory reconciliation code and are not treated as diagnostics.

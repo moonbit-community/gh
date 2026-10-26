@@ -2,6 +2,8 @@
 /// No repository checkout, personal secret, paid runner, or external write is
 /// required. Actions are pinned to verified upstream commits; every artifact
 /// and cache name is determined by this run's recorded dispatch intent.
+/// The first attempt leaves time for identity checks and watch initialization
+/// over slow API connections. Reruns need no observer attachment delay.
 fn acceptance_workflow_source(
   run_id : String,
   include_artifacts~ : Bool = true,
@@ -37,9 +39,9 @@ fn acceptance_workflow_source(
     #|          printf '\000\001\177\377' > payload/binary.bin
     #|          printf 'gh-acceptance-@@RUN@@\n' > cache/proof.txt
     #|      - name: Allow progress observer to attach
-    #|        if: inputs.mode != 'wait'
+    #|        if: inputs.mode != 'wait' && github.run_attempt == 1
     #|        shell: bash
-    #|        run: sleep 15
+    #|        run: sleep 90
     #|      - name: Save exact cache
     #|        if: inputs.mode == 'success'
     #|        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684
@@ -96,13 +98,10 @@ async fn Acceptance::create_actions_fixture(
   let node_id = repository.node_id.unwrap_or_else(() => {
     fail("repository node receipt missing")
   })
-  let name = repository.locator
-    .strip_prefix("/repos/ZSeanYves/")
-    .unwrap()
-    .to_owned()
+  let name = acceptance_repository_name(self.ledger, "repository")
   let (status, empty) = self.api("POST", "/graphql", body={
     "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id isEmpty } }",
-    "variables": { "owner": "ZSeanYves", "name": name },
+    "variables": { "owner": self.ledger.owner, "name": name },
   })
   guard status == 200 &&
     empty is Object(envelope) &&

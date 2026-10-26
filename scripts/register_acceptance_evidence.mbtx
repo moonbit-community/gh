@@ -49,9 +49,14 @@ fn has_id(value : Json, expected : String) -> Bool {
 async fn main {
   let args = @env.args()
   guard args.length() == 3 &&
-    args[1] is ("differential" | "public-release" | "scope-live") else {
+    args[1]
+    is ("differential"
+    | "public-release"
+    | "scope-live"
+    | "config-cache"
+    | "auth-live") else {
     fail(
-      "usage: register_acceptance_evidence.mbtx differential|public-release|scope-live REPORT_DIRECTORY",
+      "usage: register_acceptance_evidence.mbtx differential|public-release|scope-live|config-cache|auth-live REPORT_DIRECTORY",
     )
   }
   let directory = args[2]
@@ -82,6 +87,40 @@ async fn main {
     "report": report_path,
     "binary_sha256": binary_hash,
     "report_sha256": @crypto.bytes_to_hex_string(@crypto.sha256(report_bytes)),
+  }
+  if args[1] == "auth-live" {
+    guard text_field(report, "family") == "real-two-account-authentication" &&
+      field(report, "status") == Json("pass") &&
+      field(report, "remote_mutations") == Json(0) &&
+      field(report, "test_config_removed") == Json(true) &&
+      field(report, "credentials_and_default_config_unchanged") == Json(true) &&
+      records.length() == 10 else {
+      fail("incomplete two-account evidence")
+    }
+    let ids : Map[String, Unit] = Map([])
+    for record in records {
+      let id = text_field(record, "id")
+      guard !ids.contains(id) && text_field(record, "status") == "pass" else {
+        fail("duplicate or failed account case")
+      }
+      ids[id] = ()
+    }
+  }
+  if args[1] == "config-cache" {
+    let reference = @json.parse(
+      @fs.read_file("testdata/config-cache-oracle-v2.102.0.json").text(),
+    )
+    guard text_field(report, "family") == "config-clear-cache" &&
+      text_field(report, "status") == "pass" &&
+      field(report, "failures") == Json(0) &&
+      field(report, "expected_cases") == field(reference, "expected_cases") &&
+      field(report, "completed_cases") == field(reference, "expected_cases") &&
+      field(report, "cases") == field(reference, "cases") &&
+      field(report, "oracle_sha256") == field(reference, "binary_sha256") &&
+      text_field(reference, "binary_sha256") ==
+      "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6" else {
+      fail("incomplete or mismatched cache differential")
+    }
   }
   if args[1] == "scope-live" {
     let family = text_field(report, "family")
@@ -155,7 +194,11 @@ async fn main {
   }
   for record in records {
     let id = text_field(record, "id")
-    let state = text_field(record, "status")
+    let state = if args[1] == "config-cache" {
+      "pass"
+    } else {
+      text_field(record, "status")
+    }
     guard ["pass", "fail", "blocked"].contains(state) else {
       fail("invalid case state")
     }
@@ -187,6 +230,22 @@ async fn main {
         second
       }
       (first + "." + canonical, Json::array(argv), family + ":" + id)
+    } else if args[1] == "auth-live" {
+      let command = if id.has_prefix("login-") {
+        "auth.login"
+      } else if id.has_prefix("switch-") {
+        "auth.switch"
+      } else if id.has_prefix("logout-") {
+        "auth.logout"
+      } else if id.has_prefix("explicit-token-") ||
+        id == "environment-token-precedence" {
+        "auth.token"
+      } else {
+        fail("unrecognized account case")
+      }
+      (command, Json::array([]), "auth-live:" + id)
+    } else if args[1] == "config-cache" {
+      ("config.clear-cache", field(record, "args"), "config-cache:" + id)
     } else {
       guard text_field(report, "oracle_sha256") ==
         "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6" &&
@@ -217,7 +276,7 @@ async fn main {
     if !history.contains(evidence) {
       history.push(evidence)
     }
-    let is_live = args[1] == "public-release"
+    let is_live = args[1] is ("public-release" | "auth-live")
     let item : Json = {
       "id": case_id,
       "argv": argv,
@@ -229,14 +288,24 @@ async fn main {
       } else {
         phase(state, evidence)
       },
-      "differential": phase(state, evidence),
-      "live": if is_live {
+      "differential": if args[1] == "auth-live" {
+        phase(
+          "blocked",
+          evidence,
+          reason="real_identity_check_not_oracle_comparison",
+        )
+      } else {
+        phase(state, evidence)
+      },
+      "live": if is_live || args[1] == "config-cache" {
         phase(state, evidence)
       } else {
         phase("blocked", evidence, reason="synthetic_case_only")
       },
       "cleanup": phase(
-        if is_live && field(report, "cleanup") != Json("pass") {
+        if args[1] == "auth-live" {
+          "pass"
+        } else if is_live && field(report, "cleanup") != Json("pass") {
           "blocked"
         } else if text_field(report, "status") == "pass" {
           "pass"
@@ -261,6 +330,7 @@ async fn main {
     }
     entry["implementation_entry"] = Json(
       match command {
+        "config.clear-cache" => "native/github_config_cache.mbt"
         "release.download" => "native/github_release_download.mbt"
         "release.verify" | "release.verify-asset" =>
           "native/github_release_verify.mbt"

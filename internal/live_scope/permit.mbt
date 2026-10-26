@@ -61,7 +61,7 @@ pub fn Ledger::approve_creation(
   guard resource.state == Intended else { raise InvalidTransition }
   let path = if resource.kind == "repository" {
     guard body is { "name": String(name), "private": True, .. } &&
-      resource.locator == "/repos/ZSeanYves/" + name else {
+      resource.locator == "/repos/" + self.owner + "/" + name else {
       raise OutsideScope
     }
     guard body is Object(fields) &&

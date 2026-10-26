@@ -7,7 +7,6 @@
   "excluded": [
     "organization",
     "enterprise",
-    "real-multi-account",
     "linux-keyring",
     "windows-keyring",
     "separate-integrations"
@@ -3072,30 +3071,141 @@
         }
       ],
       "json_fields": [],
-      "cases": [],
+      "cases": [
+        {
+          "id": "auth-live:login-ZSeanYves-identity",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        },
+        {
+          "id": "auth-live:login-ZSeanYvesMIN-identity",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        }
+      ],
       "implementation": {
         "status": "blocked",
-        "reason": "command_not_audited",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "controlled": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "differential": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "live": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "cleanup": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       }
     },
@@ -3154,30 +3264,141 @@
         }
       ],
       "json_fields": [],
-      "cases": [],
+      "cases": [
+        {
+          "id": "auth-live:logout-first-account-preserves-second",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        },
+        {
+          "id": "auth-live:logout-last-account",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        }
+      ],
       "implementation": {
         "status": "blocked",
-        "reason": "command_not_audited",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "controlled": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "differential": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "live": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "cleanup": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       }
     },
@@ -3608,30 +3829,196 @@
         }
       ],
       "json_fields": [],
-      "cases": [],
+      "cases": [
+        {
+          "id": "auth-live:switch-ZSeanYves-0-token-and-identity",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        },
+        {
+          "id": "auth-live:switch-ZSeanYvesMIN-1-token-and-identity",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        },
+        {
+          "id": "auth-live:switch-ZSeanYves-2-token-and-identity",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        }
+      ],
       "implementation": {
         "status": "blocked",
-        "reason": "command_not_audited",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "controlled": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "differential": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "live": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "cleanup": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       }
     },
@@ -3690,30 +4077,196 @@
         }
       ],
       "json_fields": [],
-      "cases": [],
+      "cases": [
+        {
+          "id": "auth-live:environment-token-precedence",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        },
+        {
+          "id": "auth-live:explicit-token-ZSeanYves",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        },
+        {
+          "id": "auth-live:explicit-token-ZSeanYvesMIN",
+          "argv": [],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/auth-accounts-20261026-02/report.json",
+              "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+              "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "blocked",
+            "reason": "separate_controlled_case_required",
+            "evidence": []
+          },
+          "differential": {
+            "status": "blocked",
+            "reason": "real_identity_check_not_oracle_comparison",
+            "evidence": []
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/auth-accounts-20261026-02/report.json",
+                "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+                "report_sha256": "7da21681006874ab5ac85abd8a2c0812a1aa0c430dffc05e59ed5d6617ec8930"
+              }
+            ]
+          }
+        }
+      ],
       "implementation": {
         "status": "blocked",
-        "reason": "command_not_audited",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "controlled": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "differential": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "live": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "cleanup": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       }
     },
@@ -53660,7 +54213,7 @@
       ],
       "scope": "core",
       "deferred_reason": "",
-      "implementation_entry": "native/github_local.mbt",
+      "implementation_entry": "native/github_config_cache.mbt",
       "reference": "testdata/gh-oracle/v2.102.0/config-clear-cache-help.stdout",
       "flags": [
         {
@@ -53679,30 +54232,2773 @@
         }
       ],
       "json_fields": [],
-      "cases": [],
+      "cases": [
+        {
+          "id": "config-cache:pipe/home",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/xdg",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/xdg-empty",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/gh-cache-ignored",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/missing",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/file",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/symlink",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/dangling",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/nested-link",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/denied",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/argument",
+          "argv": [
+            "config",
+            "clear-cache",
+            "extra"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/host-flag",
+          "argv": [
+            "config",
+            "clear-cache",
+            "--host",
+            "github.com"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pipe/help",
+          "argv": [
+            "config",
+            "clear-cache",
+            "--help"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/home",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/xdg",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/xdg-empty",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/gh-cache-ignored",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/missing",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/file",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/symlink",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/dangling",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/nested-link",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/denied",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/argument",
+          "argv": [
+            "config",
+            "clear-cache",
+            "extra"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/host-flag",
+          "argv": [
+            "config",
+            "clear-cache",
+            "--host",
+            "github.com"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty/help",
+          "argv": [
+            "config",
+            "clear-cache",
+            "--help"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/home",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/xdg",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/xdg-empty",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/gh-cache-ignored",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/missing",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/file",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/symlink",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/dangling",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/nested-link",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/denied",
+          "argv": [
+            "config",
+            "clear-cache"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/argument",
+          "argv": [
+            "config",
+            "clear-cache",
+            "extra"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/host-flag",
+          "argv": [
+            "config",
+            "clear-cache",
+            "--host",
+            "github.com"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        },
+        {
+          "id": "config-cache:pty-color/help",
+          "argv": [
+            "config",
+            "clear-cache",
+            "--help"
+          ],
+          "status": "pass",
+          "history": [
+            {
+              "report": "_build/config-cache-20261025-02/report.json",
+              "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+              "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+            }
+          ],
+          "implementation": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "controlled": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "differential": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "live": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          },
+          "cleanup": {
+            "status": "pass",
+            "reason": "",
+            "evidence": [
+              {
+                "report": "_build/config-cache-20261025-02/report.json",
+                "binary_sha256": "1835b204274598b8fa820655661822dcebdbd114dd036664d6cf70368e35f7c4",
+                "report_sha256": "5d6153ac9e9a768c5cd22a8db19b575e1c534becbc7f328d64710e8237a18a48"
+              }
+            ]
+          }
+        }
+      ],
       "implementation": {
         "status": "blocked",
-        "reason": "command_not_audited",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "controlled": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "differential": {
         "status": "blocked",
-        "reason": "case_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "live": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       },
       "cleanup": {
         "status": "blocked",
-        "reason": "lifecycle_not_registered",
+        "reason": "partial_case_evidence; full_command_and_flag_audit_pending",
         "evidence": []
       }
     },
@@ -62406,6 +65702,1488 @@
             "report": "_build/scope-branch-20261021-01/report.json",
             "binary_sha256": "241b67794183fbfe81ccb5b2c23131d32fd5ef6ac28ba45a765a84dcb65cc379",
             "report_sha256": "cc500542e6334a0afb3b0095fde932bfc75b46f3f33dc8e3332bd48032e5988e"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.create-read",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.edit-read",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.bootstrap-receipts",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.inventory-before-actions",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:workflow.create-file-read",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:workflow.disable-read",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:workflow.enable-read",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:workflow.dispatch-success",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-success.observed-states",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.watch-success",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:actions.output-receipts",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-success.conclusion",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.logs-success-attempt-1",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.download-bytes-and-paths",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:artifact.cleanup",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:cache.delete-command",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:cache.cleanup",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.cleanup",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:workflow.dispatch-failure",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-failure.observed-states",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.watch-failure",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-failure.conclusion",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.logs-failure-attempt-1",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.logs-failure-attempt-2",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.rerun",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.logs-failure-attempt-3",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.rerun-failed-jobs",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.logs-failure-attempt-4",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.rerun-job",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:job.cleanup",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:workflow.dispatch-wait",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-wait.observed-states",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-wait.cancel-command",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run.watch-wait",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:run-wait.conclusion",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.archive-read",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.inventory",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "differential": {
+        "status": "blocked",
+        "reason": "scope_lifecycle_is_not_oracle_comparison",
+        "evidence": []
+      }
+    },
+    {
+      "id": "private-repository-lifecycle:repository.cleanup",
+      "status": "pass",
+      "history": [
+        {
+          "report": "_build/actions-full-20261026-02/report.json",
+          "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+          "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+        }
+      ],
+      "command": "api",
+      "live": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
+          }
+        ]
+      },
+      "cleanup": {
+        "status": "pass",
+        "reason": "",
+        "evidence": [
+          {
+            "report": "_build/actions-full-20261026-02/report.json",
+            "binary_sha256": "ddecd2f2341e514a26ca0b9c2c3013c23bf8a345c9f97b2b1ef3a433c3fe1248",
+            "report_sha256": "61767c3354cb87a0178d0d77fabf3c813adb7f51bfa04e555b9274787735a9e1"
           }
         ]
       },

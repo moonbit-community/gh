@@ -28,7 +28,7 @@ fn Ledger::temporary_repository(
   guard repository.kind == "repository" &&
     repository.parent is None &&
     repository.locator.has_prefix(
-      "/repos/ZSeanYves/gh-acceptance-" + self.run_id + "-",
+      "/repos/" + self.owner + "/gh-acceptance-" + self.run_id + "-",
     ) else {
     raise OutsideScope
   }

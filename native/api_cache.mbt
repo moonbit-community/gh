@@ -29,20 +29,43 @@ fn api_cache_duration(value : String) -> Int64? {
 
 ///|
 fn api_cache_root() -> String? {
-  match @env.get_env_var("GH_CACHE_DIR") {
-    Some(value) if !value.trim().is_empty() => Some(value.trim().to_owned())
-    _ =>
-      match @env.get_env_var("XDG_CACHE_HOME") {
-        Some(value) if !value.trim().is_empty() =>
-          Some(value.trim().to_owned() + "/gh")
-        _ =>
-          match @env.get_env_var("HOME") {
-            Some(value) if !value.trim().is_empty() =>
-              Some(value.trim().to_owned() + "/.cache/gh")
-            _ => None
-          }
-      }
+  // Match go-gh v2.16.1 config.CacheDir. GH_CACHE_DIR is not a gh setting;
+  // interpreting it here could clear an unrelated user-supplied directory.
+  if @env.get_env_var("XDG_CACHE_HOME") is Some(value) && !value.is_empty() {
+    return Some(@path.Path(value + "/gh").normalize().to_string())
   }
+  Some(platform_cache_root())
+}
+
+///|
+#cfg(not(platform="windows"))
+fn platform_cache_root() -> String {
+  if @env.get_env_var("HOME") is Some(value) && !value.is_empty() {
+    return @path.Path(value + "/.cache/gh").normalize().to_string()
+  }
+  let temporary = @env.get_env_var("TMPDIR")
+    .filter(value => !value.is_empty())
+    .unwrap_or("/tmp")
+  @path.Path(temporary + "/gh-cli-cache").normalize().to_string()
+}
+
+///|
+#cfg(platform="windows")
+fn platform_cache_root() -> String {
+  if @env.get_env_var("LocalAppData") is Some(value) && !value.is_empty() {
+    return @path.Path(value + "/GitHub CLI").normalize().to_string()
+  }
+  if @env.get_env_var("USERPROFILE") is Some(value) && !value.is_empty() {
+    return @path.Path(value + "/.cache/gh").normalize().to_string()
+  }
+  let temporary = match @env.get_env_var("TMP") {
+    Some(value) if !value.is_empty() => value
+    _ =>
+      @env.get_env_var("TEMP")
+      .filter(value => !value.is_empty())
+      .unwrap_or("C:/Windows/Temp")
+  }
+  @path.Path(temporary + "/gh-cli-cache").normalize().to_string()
 }
 
 ///|

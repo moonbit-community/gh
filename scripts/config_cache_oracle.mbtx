@@ -1,0 +1,215 @@
+///|
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/fs",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/async@0.22.5/os_error",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbit-community/pty@0.4.3",
+}
+
+///|
+async fn present(path : String) -> Bool {
+  try {
+    ignore(@fs.kind(path, follow_symlink=false))
+    true
+  } catch {
+    @os_error.OSError(_) as error if error.is_ENOENT() => false
+    error => raise error
+  }
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  guard (args.length() == 3 || args.length() == 4) && !@fs.exists(args[2]) else {
+    fail(
+      "usage: config_cache_oracle.mbtx BINARY NEW_REPORT_JSON [REFERENCE_JSON]",
+    )
+  }
+  let binary = @fs.realpath(args[1])
+  let binary_hash = @crypto.bytes_to_hex_string(
+    @crypto.sha256(@fs.read_file(binary).binary()),
+  )
+  let oracle_hash = "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6"
+  let expected = if args.length() == 4 {
+    let source = @json.parse(@fs.read_file(args[3]).text())
+    guard source
+      is {
+        "binary_sha256": String(hash),
+        "failures": Number(0, ..),
+        "cases": Array(cases),
+        ..
+      } &&
+      hash == oracle_hash else {
+      fail("invalid pinned oracle")
+    }
+    Some(cases)
+  } else {
+    guard binary_hash == oracle_hash else { fail("expected pinned oracle") }
+    None
+  }
+  let records : Array[Json] = []
+  let mut failures = 0
+  let mut complete = false
+  defer @async.protect_from_cancel(() => {
+    @fs.write_file(
+      args[2],
+      Json::object({
+        "schema": 1,
+        "family": "config-clear-cache",
+        "oracle_version": "2.102.0",
+        "oracle_sha256": oracle_hash,
+        "binary_sha256": binary_hash,
+        "core_parity_verified": false,
+        "status": if complete {
+          "pass"
+        } else {
+          "fail"
+        },
+        "cleanup": if complete {
+          "pass"
+        } else {
+          "blocked"
+        },
+        "expected_cases": 39,
+        "completed_cases": records.length(),
+        "failures": failures,
+        "cases": records,
+      }).stringify(indent=2) +
+      "\n",
+      create_mode=CreateNew,
+    )
+  })
+  for mode in ["pipe", "pty", "pty-color"] {
+    for
+      name in [
+        "home", "xdg", "xdg-empty", "gh-cache-ignored", "missing", "file", "symlink",
+        "dangling", "nested-link", "denied", "argument", "host-flag", "help",
+      ] {
+      let directory = @fs.tmpdir(prefix="gh-cache-oracle-")
+      defer @fs.rmdir(directory, recursive=true)
+      @fs.mkdir(directory + "/config")
+      @fs.mkdir(directory + "/.cache")
+      @fs.mkdir(directory + "/xdg")
+      @fs.mkdir(directory + "/unrelated")
+      @fs.write_file(directory + "/unrelated/keep", "outside-cache")
+      @fs.write_file(
+        directory + "/config/config.yml",
+        "editor: fixture-editor\n",
+      )
+      @fs.write_file(
+        directory + "/config/hosts.yml",
+        "github.com:\n  oauth_token: fixture-only-secret\n",
+      )
+      let environment : Map[String, String] = {
+        "HOME": directory,
+        "USERPROFILE": directory,
+        "GH_CONFIG_DIR": directory + "/config",
+        "GH_PROMPT_DISABLED": "1",
+        "GH_NO_UPDATE_NOTIFIER": "1",
+        "GH_NO_EXTENSION_UPDATE_NOTIFIER": "1",
+        "LANG": "C",
+        "LC_ALL": "C",
+        "TERM": "xterm-256color",
+        "GLAMOUR_STYLE": "dark",
+        "PATH": "/usr/bin:/bin",
+        "GH_PAGER": "",
+        "GIT_CONFIG_GLOBAL": directory + "/gitconfig",
+        "GIT_CONFIG_NOSYSTEM": "1",
+      }
+      if mode != "pty-color" {
+        environment["NO_COLOR"] = "1"
+      }
+      if name == "xdg" {
+        environment["XDG_CACHE_HOME"] = directory + "/xdg"
+      }
+      if name == "xdg-empty" {
+        environment["XDG_CACHE_HOME"] = ""
+      }
+      if name == "gh-cache-ignored" {
+        environment["GH_CACHE_DIR"] = directory + "/unrelated"
+      }
+      let cache = directory +
+        (if name == "xdg" { "/xdg/gh" } else { "/.cache/gh" })
+      match name {
+        "missing" => ()
+        "file" => @fs.write_file(cache, "old-cache")
+        "symlink" => @fs.symlink(target=directory + "/unrelated", cache)
+        "dangling" => @fs.symlink(target=directory + "/absent", cache)
+        _ => {
+          @fs.mkdir(cache)
+          @fs.write_file(cache + "/entry", "old-cache")
+          @fs.mkdir(cache + "/nested")
+          @fs.write_file(cache + "/nested/.hidden", "hidden-cache")
+          if name == "nested-link" {
+            @fs.symlink(target=directory + "/unrelated", cache + "/outside")
+          }
+        }
+      }
+      if name == "denied" {
+        @fs.chmod(directory + "/.cache", 0o500)
+      }
+      defer @fs.chmod(directory + "/.cache", 0o700)
+      let argv = ["config", "clear-cache"] +
+        (match name {
+          "argument" => ["extra"]
+          "host-flag" => ["--host", "github.com"]
+          "help" => ["--help"]
+          _ => []
+        })
+      let (stdout, stderr, exit_code) = if mode == "pipe" {
+        let result = @shell.Cmd(
+          binary,
+          argv,
+          cwd=directory,
+          inherit_env=false,
+          env=environment,
+        ).output(timeout_ms=10000, max_output_bytes=65536)
+        (result.stdout(), result.stderr(), result.exit_code())
+      } else {
+        @async.with_timeout(10000, () => {
+          @async.with_task_group(group => {
+            let process = @pty.spawn(
+              group,
+              binary[:],
+              argv.map(value => value[:])[:],
+              cwd=directory[:],
+              inherit_env=false,
+              extra_env=environment,
+              rows=24,
+              cols=80,
+            )
+            let output = process.read_all().text()
+            (output, "", process.wait())
+          })
+        })
+      }
+      let actual : Json = {
+        "id": mode + "/" + name,
+        "args": argv,
+        "stdout": stdout.replace_all(old=directory, new="<HOME>"),
+        "stderr": stderr.replace_all(old=directory, new="<HOME>"),
+        "exit_code": exit_code,
+        "cache_present": present(cache),
+        "unrelated_content": @fs.read_file(directory + "/unrelated/keep").text(),
+        "config_content": @fs.read_file(directory + "/config/config.yml").text(),
+        "credentials_preserved": @fs.read_file(directory + "/config/hosts.yml").text() ==
+        "github.com:\n  oauth_token: fixture-only-secret\n",
+      }
+      if expected is Some(cases) && cases.get(records.length()) != Some(actual) {
+        failures += 1
+        println("mismatch: " + mode + "/" + name)
+      }
+      records.push(actual)
+    }
+  }
+  if expected is Some(cases) && cases.length() != records.length() {
+    failures += 1
+  }
+  println("\{records.length()} cache cases; \{failures} differences")
+  guard failures == 0 else { fail("cache differential failed") }
+  complete = true
+}

@@ -2,6 +2,14 @@
 /// Run through scripts/run_acceptance.mbtx so the scope library is shared.
 async fn main {
   let args = @env.args()
+  if args.length() == 6 && args[1] == "--recover-absent-actions-dispatch" {
+    recover_actions_dispatch(args[2], args[3], args[4], args[5], absent=true)
+    return
+  }
+  if args.length() == 6 && args[1] == "--recover-actions-dispatch" {
+    recover_actions_dispatch(args[2], args[3], args[4], args[5])
+    return
+  }
   if args.length() == 4 && args[1] == "--trace-readonly" {
     verify_live_trace(args[2], args[3])
     return
@@ -32,6 +40,16 @@ async fn main {
     run_repository_lifecycle(args[2], args[3], args[4], actions=true)
     return
   }
+  if args.length() == 5 && args[1] == "--actions-artifact-probe" {
+    run_repository_lifecycle(
+      args[2],
+      args[3],
+      args[4],
+      actions=true,
+      artifact_only=true,
+    )
+    return
+  }
   if args.length() == 5 && args[1] == "--recover-repository" {
     recover_repository(args[2], args[3], args[4])
     return
@@ -48,12 +66,22 @@ async fn main {
     run_repository_lifecycle(args[2], args[3], args[4])
     return
   }
-  if args.length() == 4 && args[1] == "--authorize-test-app" {
-    authorize_acceptance_app(args[2], args[3])
+  if (args.length() == 4 || args.length() == 5) &&
+    args[1] == "--authorize-test-app" {
+    authorize_acceptance_app(
+      args[2],
+      args[3],
+      account=args.get(4).unwrap_or("ZSeanYves"),
+    )
     return
   }
-  if args.length() == 4 && args[1] == "--repository-preflight" {
-    run_repository_preflight(args[2], args[3])
+  if (args.length() == 4 || args.length() == 5) &&
+    args[1] == "--repository-preflight" {
+    run_repository_preflight(
+      args[2],
+      args[3],
+      account=args.get(4).unwrap_or("ZSeanYves"),
+    )
     return
   }
   if args.length() == 6 && args[1] == "--audit-repository" {
@@ -99,10 +127,23 @@ async fn main {
   }
   guard args.length() == 2 && args[1] == "--self-test" else {
     fail(
-      "usage: --self-test | --verify-binary BINARY | --label-lifecycle CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --recover-label CREDENTIAL_FILE REPORT_DIRECTORY | --branch-lifecycle CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --repository-preflight CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --ruleset-probe CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --authorize-test-app APP_FILE NEW_CREDENTIAL_DIRECTORY | --repository-lifecycle CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-lifecycle CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-storage-independent CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-observe CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --recover-actions-cache CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --recover-repository CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --audit-repository CREDENTIAL_FILE LEDGER RESOURCE_KEY NEW_REPORT_FILE | --public-release-proof CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --public-release-downloads CREDENTIAL_FILE NEW_REPORT_DIRECTORY",
+      "usage: --self-test | --verify-binary BINARY | --label-lifecycle CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --recover-label CREDENTIAL_FILE REPORT_DIRECTORY | --branch-lifecycle CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --repository-preflight CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --ruleset-probe CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --authorize-test-app APP_FILE NEW_CREDENTIAL_DIRECTORY | --repository-lifecycle CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-lifecycle CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-artifact-probe CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-storage-independent CREDENTIAL_FILE PREFLIGHT_REPORT NEW_REPORT_DIRECTORY | --actions-observe CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --recover-actions-dispatch CREDENTIAL_FILE REPORT_DIRECTORY MODE NEW_REPORT_FILE | --recover-actions-cache CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --recover-repository CREDENTIAL_FILE REPORT_DIRECTORY NEW_REPORT_FILE | --audit-repository CREDENTIAL_FILE LEDGER RESOURCE_KEY NEW_REPORT_FILE | --public-release-proof CREDENTIAL_FILE NEW_REPORT_DIRECTORY | --public-release-downloads CREDENTIAL_FILE NEW_REPORT_DIRECTORY",
     )
   }
   let ledger = Ledger::new("offline", "fixture-id")
+  assert_true(actions_watch_passed("wait", 1, true, true, ""))
+  assert_false(
+    actions_watch_passed(
+      "wait", 1, true, true, "failed to get run: transport\n",
+    ),
+  )
+  assert_false(
+    actions_watch_passed(
+      "failure", 1, true, false, "failed to get jobs: transport\n",
+    ),
+  )
+  assert_false(actions_watch_passed("wait", 1, true, false, ""))
+  assert_true(actions_watch_passed("success", 0, true, false, ""))
   assert_eq(
     actions_cache_time("2026-10-21T01:55:48.690231Z"),
     actions_cache_time("2026-10-21T01:55:48Z"),
@@ -139,6 +180,69 @@ async fn main {
     "nonce",
     "success",
   )
+  // Incomplete run metadata cannot establish ownership. A subsequent read must
+  let second_account_run = run_fields.copy()
+  second_account_run["actor"] = Json::object({
+    "login": "ZSeanYvesMIN",
+    "id": 321231243,
+  })
+  actions_validate_run(
+    Json::object(second_account_run),
+    "51",
+    "61",
+    "main",
+    "exact-sha",
+    "nonce",
+    "success",
+    actor="ZSeanYvesMIN",
+    actor_id="321231243",
+  )
+  for
+    actor in [
+      Json::object({ "login": "ZSeanYvesMIN", "id": 999 }),
+      Json::object({ "login": "ZSeanYves", "id": 321231243 }),
+      Json::object({ "login": "ZSeanYvesMIN" }),
+    ] {
+    second_account_run["actor"] = actor
+    try
+      actions_validate_run(
+        Json::object(second_account_run),
+        "51",
+        "61",
+        "main",
+        "exact-sha",
+        "nonce",
+        "success",
+        actor="ZSeanYvesMIN",
+        actor_id="321231243",
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("foreign actor identity accepted")
+    }
+  }
+  // Incomplete run metadata cannot establish ownership. A subsequent read must
+  // still pass the same full validation before the resource can be registered.
+  for incomplete in ["head_repository", "head_sha", "display_title"] {
+    let pending = run_fields.copy()
+    pending[incomplete] = Json::null()
+    try
+      actions_validate_run(
+        Json::object(pending),
+        "51",
+        "61",
+        "main",
+        "exact-sha",
+        "nonce",
+        "success",
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("incomplete dispatch identity accepted")
+    }
+  }
   for
     (field, value) in [
       ("repository", Json::object({ "id": 52 })),
@@ -170,6 +274,66 @@ async fn main {
     }
   }
   let workflow = acceptance_workflow_source("offline")
+  // A failed POST response may still have created a run. After read-back has
+  // established its identity, recovery must authorize only that run's cleanup
+  // and must never turn the failed command into a passing acceptance case.
+  let recovered = Ledger::new("dispatch-recovery", "fixture-id")
+  recovered.intend_repository(
+    "repository", "gh-acceptance-dispatch-recovery-private",
+  )
+  recovered.confirm_created("repository", "51")
+  recovered.intend_resource("run-success", "repository", "/actions/runs", "run")
+  let dispatch_intent : Json = {
+    "repository_id": "51",
+    "workflow_id": "61",
+    "branch": "main",
+    "sha": "exact-sha",
+    "nonce": "nonce",
+    "mode": "success",
+  }
+  let dispatch_records : Array[Json] = []
+  actions_confirm_dispatch(
+    recovered,
+    "success",
+    dispatch_intent,
+    Json::object(run_fields),
+    1,
+    dispatch_records,
+  )
+  assert_eq(recovered.owned("run-success").remote_id, Some("71"))
+  assert_true(
+    dispatch_records
+    is [{ "status": String("fail"), "outcome_reconciled": True, .. }],
+  )
+  let restored = Ledger::from_json(recovered.to_json())
+  let run_path = restored.owned("run-success").locator
+  let deletion = restored.approve_mutation(
+    "run-success", "71", "DELETE", run_path,
+  )
+  let cleanup_policy = Policy::from_json({
+    "schema": 1,
+    "ledger": restored.to_json(),
+    "permits": [deletion.to_json()],
+  })
+  assert_true(
+    cleanup_policy.allows("https://api.github.com", "DELETE", run_path, None),
+  )
+  assert_false(
+    cleanup_policy.allows(
+      "https://api.github.com",
+      "DELETE",
+      run_path + "9",
+      None,
+    ),
+  )
+  assert_false(
+    cleanup_policy.allows(
+      "https://api.github.com",
+      "POST",
+      run_path + "/rerun",
+      None,
+    ),
+  )
   assert_true(workflow.contains("timeout-minutes: 4"))
   assert_true(workflow.contains("name: gh-acceptance-offline"))
   assert_true(!workflow.contains("@@RUN@@"))
@@ -209,6 +373,45 @@ async fn main {
   }
   let preflight = @json.parse(Json::object(preflight_fields).stringify())
   repository_require_preflight(preflight, "test-hash", observed + 600000L)
+  let account_preflight : Map[String, Json] = {
+    "family": "account-repository-preflight",
+    "account": "ZSeanYvesMIN",
+    "account_id": "321231243",
+    "identity_verified": true,
+    "status": "pass",
+    "credential_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_cases": 3,
+    "completed_cases": 3,
+    "inventory_check": "required_after_creation_before_actions",
+    "observed_at_ms": observed.to_double(),
+  }
+  repository_require_preflight(
+    Json::object(account_preflight),
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    observed,
+  )
+  for
+    (key, value) in [
+      ("account", Json("unapproved")),
+      ("account_id", Json("")),
+      ("inventory_check", Json("skip")),
+      ("completed_cases", Json(2)),
+      ("credential_sha256", Json("bad")),
+    ] {
+    let changed = account_preflight.copy()
+    changed[key] = value
+    try
+      repository_require_preflight(
+        Json::object(changed),
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        observed,
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("invalid account preflight accepted")
+    }
+  }
   for
     failure in [
       "string-time", "stale", "future", "credential", "incomplete", "blocked",
@@ -334,6 +537,55 @@ async fn main {
     }
   }
   let bootstrap = Ledger::new("bootstrap", "fixture-id")
+  for account in ["ZSeanYves", "ZSeanYvesMIN"] {
+    let bound = Ledger::for_account(
+      "account", account, "321231243", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    )
+    bound.intend_repository("repository", "gh-acceptance-account-repository")
+    bound.confirm_created("repository", "123")
+    bound.bind_node("repository", "123", "R_account")
+    bound.record_content_receipt(
+      "repository", "123", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    )
+    assert_eq(
+      acceptance_repository_name(bound, "repository"),
+      "gh-acceptance-account-repository",
+    )
+    let collections : Map[String, Json] = Map([])
+    for kind in repository_inventory_kinds {
+      collections[kind] = inventory_empty_page()
+    }
+    let checkpoint : Map[String, Json] = {
+      "repository_id": "123",
+      "locator": "/repos/" + account + "/gh-acceptance-account-repository",
+      "owner": account,
+      "owner_id": "321231243",
+      "private": true,
+      "archived": true,
+      "has_wiki": false,
+      "has_pages": false,
+      "observed_at_ms": 1000,
+      "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "collections": Json::object(collections),
+    }
+    assert_true(
+      repository_recovery_inventory_matches(bound, Json::object(checkpoint)),
+    )
+    for
+      (key, value) in [
+        ("repository_id", Json("999")),
+        ("owner_id", Json("999")),
+        ("owner", Json("unapproved")),
+        ("locator", Json("/repos/" + account + "/gh_test")),
+        ("collections", Json::object({})),
+      ] {
+      let changed = checkpoint.copy()
+      changed[key] = value
+      assert_false(
+        repository_recovery_inventory_matches(bound, Json::object(changed)),
+      )
+    }
+  }
   bootstrap.intend_repository("repo", "gh-acceptance-bootstrap-repository")
   bootstrap.confirm_created("repo", "repo-id")
   repository_bootstrap_labels(bootstrap, "repo", Json::array([]))

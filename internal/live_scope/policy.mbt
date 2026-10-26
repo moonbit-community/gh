@@ -51,6 +51,7 @@ pub fn Policy::allows(
   path : String,
   body : Bytes?,
   now_ms~ : Int64 = 0L,
+  credential_sha256? : String,
 ) -> Bool {
   if verb is ("GET" | "HEAD" | "OPTIONS") {
     // GraphQL is normally POST; don't allow mutation documents via GET.
@@ -64,6 +65,10 @@ pub fn Policy::allows(
     return true
   }
   guard self.ledger is Some(ledger) else { return false }
+  if ledger.credential_sha256 is Some(expected) &&
+    credential_sha256 != Some(expected) {
+    return false
+  }
   self.permits.any(permit => {
     permit.allows(origin, verb, path, body) &&
     permit.validated_for(ledger, body, now_ms)

@@ -26,6 +26,7 @@ pub fn Ledger::confirm_created(Self, String, String, locator? : String) -> Unit 
 pub fn Ledger::confirm_not_created(Self, String, String, String) -> Unit raise ScopeError
 pub fn Ledger::confirm_removed(Self, String, String) -> Unit raise ScopeError
 pub fn Ledger::confirm_repository_removed(Self, String, String) -> Unit raise ScopeError
+pub fn Ledger::for_account(String, String, String, String) -> Self raise ScopeError
 pub fn Ledger::from_json(Json) -> Self raise ScopeError
 pub fn Ledger::intend_account_resource(Self, String, String, String) -> Unit raise ScopeError
 pub fn Ledger::intend_repository(Self, String, String) -> Unit raise ScopeError
@@ -46,7 +47,7 @@ pub fn Permit::to_json(Self) -> Json
 pub struct Policy {
   // private fields
 }
-pub fn Policy::allows(Self, String, String, String, Bytes?, now_ms? : Int64) -> Bool
+pub fn Policy::allows(Self, String, String, String, Bytes?, now_ms? : Int64, credential_sha256? : String) -> Bool
 pub fn Policy::allows_process(Self, String, Array[String]) -> Bool
 pub fn Policy::from_json(Json) -> Self raise ScopeError
 

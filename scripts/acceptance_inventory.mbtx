@@ -66,7 +66,11 @@ async fn Acceptance::inventory_read(
     ["api", "graphql", "--method", "POST", "--input", "-"]
   } else {
     guard path.has_prefix(
-        "/repos/ZSeanYves/gh-acceptance-" + self.ledger.run_id + "-",
+        "/repos/" +
+        self.ledger.owner +
+        "/gh-acceptance-" +
+        self.ledger.run_id +
+        "-",
       ) &&
       !path.contains("..") &&
       !path.contains("\\") &&
@@ -192,10 +196,7 @@ async fn run_repository_inventory(
     )
   })
   let audit : Json? = try {
-    let (status, viewer) = acceptance.api("GET", "/user")
-    guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
-      fail("inventory credential account mismatch")
-    }
+    acceptance.verify_account()
     Some(acceptance.collect_repository_inventory(key))
   } catch {
     error if @async.is_being_cancelled() => raise error
@@ -453,14 +454,12 @@ async fn Acceptance::collect_repository_inventory(
     fail("cleanup inventory requires this run's created repository")
   }
   let repository = resource.locator
-  let name = repository
-    .strip_prefix("/repos/ZSeanYves/")
-    .unwrap_or_else(() => fail("repository owner"))
+  let name = acceptance_repository_name(self.ledger, key)
   let emptiness = self.inventory_read(
     "/graphql",
     payload={
       "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id isEmpty } }",
-      "variables": { "owner": "ZSeanYves", "name": name.to_owned() },
+      "variables": { "owner": self.ledger.owner, "name": name },
     },
     paginate=false,
   )
@@ -522,9 +521,6 @@ async fn Acceptance::collect_repository_inventory(
     }
   }
   for field in ["discussions", "projectsV2"] {
-    let name = repository
-      .strip_prefix("/repos/ZSeanYves/")
-      .unwrap_or_else(() => fail("repository owner"))
     let query = "query($owner:String!,$name:String!) {" +
       " repository(owner:$owner,name:$name) { id " +
       field +
@@ -533,7 +529,7 @@ async fn Acceptance::collect_repository_inventory(
       "/graphql",
       payload={
         "query": query,
-        "variables": { "owner": "ZSeanYves", "name": name.to_owned() },
+        "variables": { "owner": self.ledger.owner, "name": name },
       },
       paginate=false,
     )
@@ -548,7 +544,7 @@ async fn Acceptance::collect_repository_inventory(
     "/graphql",
     payload={
       "query": "query($owner:String!,$name:String!) { repository(owner:$owner,name:$name) { id rulesets(first:1,includeParents:false) { totalCount nodes { id } pageInfo { hasNextPage endCursor } } } }",
-      "variables": { "owner": "ZSeanYves", "name": name.to_owned() },
+      "variables": { "owner": self.ledger.owner, "name": name },
     },
     paginate=false,
   )
@@ -569,9 +565,10 @@ async fn Acceptance::collect_repository_inventory(
       "archived": True,
       "has_wiki": False,
       "has_pages": False,
-      "owner": { "login": String("ZSeanYves"), .. } as owner,
+      "owner": owner,
       ..
-    } else {
+    } &&
+    acceptance_owner_matches(self.ledger, owner) else {
     fail("repository identity or archived private state changed")
   }
   // Repository security advisories are restricted to public repositories.
@@ -581,7 +578,7 @@ async fn Acceptance::collect_repository_inventory(
   let audit : Json = {
     "repository_id": id,
     "locator": repository,
-    "owner": "ZSeanYves",
+    "owner": self.ledger.owner,
     "owner_id": acceptance_id(owner),
     "private": true,
     "archived": true,

@@ -1,4 +1,18 @@
 ///|
+fn actions_watch_passed(
+  mode : String,
+  exit_code : Int32,
+  progress : Bool,
+  cancelled : Bool,
+  stderr : String,
+) -> Bool {
+  progress &&
+  stderr.trim().is_empty() &&
+  exit_code == (if mode == "success" { 0 } else { 1 }) &&
+  (mode != "wait" || cancelled)
+}
+
+///|
 /// Exercise the actual command as a streaming subprocess. The cancellation
 /// write is issued only after a visible progress frame, through the same exact
 /// run permit as normal cleanup. Its policy cannot race with the watch reader:
@@ -75,10 +89,27 @@ async fn Acceptance::actions_watch(
       (child.wait(), error_task.wait())
     }
   }
-  let expected_code = if mode == "success" { 0 } else { 1 }
-  let passed = first_progress is Some(_) &&
-    exit_code == expected_code &&
-    (mode != "wait" || cancellation_issued)
+  let stdout_path = directory + "/watch-" + mode + ".stdout"
+  let stderr_path = directory + "/watch-" + mode + ".stderr"
+  @fs.write_file(
+    stdout_path,
+    acceptance_diagnostic(output.to_string(), self.token),
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  @fs.write_file(
+    stderr_path,
+    acceptance_diagnostic(error, self.token),
+    create_mode=CreateNew,
+    permission=0o600,
+  )
+  let passed = actions_watch_passed(
+    mode,
+    exit_code,
+    first_progress is Some(_),
+    cancellation_issued,
+    error,
+  )
   records.push({
     "id": "run.watch-" + mode,
     "status": if passed {
@@ -95,6 +126,8 @@ async fn Acceptance::actions_watch(
     "elapsed_ms": (@env.now() - started).to_double(),
     "cancellation_issued_after_progress": cancellation_issued,
     "trace": trace,
+    "stdout": stdout_path,
+    "stderr": stderr_path,
     "output_sha256": @crypto.bytes_to_hex_string(
       @crypto.sha256(@utf8.encode(output.to_string())),
     ),

@@ -36,6 +36,46 @@ struct Resource {
 pub struct Ledger {
   priv run_id : String
   priv resources : Map[String, Resource]
+  priv owner : String
+  priv owner_id : String?
+  priv credential_sha256 : String?
+}
+
+///|
+fn acceptance_account(value : String) -> Bool {
+  value is ("ZSeanYves" | "ZSeanYvesMIN")
+}
+
+///|
+fn numeric_id(value : String) -> Bool {
+  !value.is_empty() &&
+  value.length() <= 20 &&
+  value != "0" &&
+  value.iter().all(ch => ch is ('0'..<='9'))
+}
+
+///|
+/// A fresh account run grants no access to any existing fixture repository.
+/// The runner verifies /user before binding this account and token digest.
+pub fn Ledger::for_account(
+  run_id : String,
+  owner : String,
+  owner_id : String,
+  credential_sha256 : String,
+) -> Ledger raise ScopeError {
+  guard identifier(run_id) &&
+    acceptance_account(owner) &&
+    numeric_id(owner_id) &&
+    content_digest(credential_sha256) else {
+    raise InvalidLedger
+  }
+  {
+    run_id,
+    resources: Map([]),
+    owner,
+    owner_id: Some(owner_id),
+    credential_sha256: Some(credential_sha256),
+  }
 }
 
 ///|
@@ -124,7 +164,13 @@ pub fn Ledger::new(
     state: Created,
     content_sha256: None,
   }
-  { run_id, resources: { "fixture": fixture }, }
+  {
+    run_id,
+    resources: { "fixture": fixture },
+    owner: "ZSeanYves",
+    owner_id: None,
+    credential_sha256: None,
+  }
 }
 
 ///|
@@ -139,7 +185,7 @@ pub fn Ledger::intend_repository(
     name.has_prefix("gh-acceptance-" + self.run_id + "-") else {
     raise OutsideScope
   }
-  self.add_intent(key, None, "/repos/ZSeanYves/" + name, "repository")
+  self.add_intent(key, None, "/repos/" + self.owner + "/" + name, "repository")
 }
 
 ///|
@@ -234,14 +280,38 @@ fn Ledger::owned(self : Ledger, key : String) -> Resource raise ScopeError {
 pub fn Ledger::from_json(value : Json) -> Ledger raise ScopeError {
   guard value
     is {
-      "schema": Number(1, ..),
+      "schema": Number(schema, ..),
       "run_id": String(run_id),
       "resources": Array(entries),
       ..
     } &&
+    (schema == 1 || schema == 2) &&
     identifier(run_id) &&
     entries.length() <= 2048 else {
     raise InvalidLedger
+  }
+  let (owner, owner_id, credential_sha256) = if schema == 2 {
+    guard value
+      is {
+        "owner": String(owner),
+        "owner_id": String(owner_id),
+        "credential_sha256": String(hash),
+        ..
+      } &&
+      acceptance_account(owner) &&
+      numeric_id(owner_id) &&
+      content_digest(hash) else {
+      raise InvalidLedger
+    }
+    (owner, Some(owner_id), Some(hash))
+  } else {
+    guard value is Object(fields) &&
+      !fields.contains("owner") &&
+      !fields.contains("owner_id") &&
+      !fields.contains("credential_sha256") else {
+      raise InvalidLedger
+    }
+    ("ZSeanYves", None, None)
   }
   let resources : Map[String, Resource] = Map([])
   for entry in entries {
@@ -306,7 +376,7 @@ pub fn Ledger::from_json(value : Json) -> Ledger raise ScopeError {
       _ => raise InvalidLedger
     }
     if state == NotCreated {
-      guard kind is ("git_ref" | "workflow") &&
+      guard kind is ("git_ref" | "workflow" | "run") &&
         parent is Some(_) &&
         node_id is None &&
         content_sha256 is Some(_) else {
@@ -324,20 +394,33 @@ pub fn Ledger::from_json(value : Json) -> Ledger raise ScopeError {
       content_sha256,
     }
   }
-  guard resources.get("fixture")
-    is Some(
-      {
-        parent: None,
-        locator: "/repos/ZSeanYves/gh_test",
-        kind: "fixture_repository",
-        state: Created,
-        remote_id: Some(_),
-        ..
-      }
-    ) else {
-    raise InvalidLedger
+  if schema == 1 {
+    guard resources.get("fixture")
+      is Some(
+        {
+          parent: None,
+          locator: "/repos/ZSeanYves/gh_test",
+          kind: "fixture_repository",
+          state: Created,
+          remote_id: Some(_),
+          ..
+        }
+      ) else {
+      raise InvalidLedger
+    }
+  } else {
+    guard !resources.contains("fixture") &&
+      resources.values().all(item => item.kind != "fixture_repository") else {
+      raise InvalidLedger
+    }
   }
-  let ledger : Ledger = { run_id, resources, }
+  let ledger : Ledger = {
+    run_id,
+    resources,
+    owner,
+    owner_id,
+    credential_sha256,
+  }
   for resource in resources.values() {
     ledger.validate_resource(resource, [])
   }
@@ -371,6 +454,8 @@ fn Ledger::validate_resource(
           parent.locator +
           (if resource.kind == "git_ref" {
             "/git/refs"
+          } else if resource.kind == "run" {
+            "/actions/runs"
           } else {
             "/actions/workflows"
           }) else {
@@ -392,7 +477,7 @@ fn Ledger::validate_resource(
         "fixture_repository" => resource.key == "fixture"
         "repository" =>
           resource.locator.has_prefix(
-            "/repos/ZSeanYves/gh-acceptance-" + self.run_id + "-",
+            "/repos/" + self.owner + "/gh-acceptance-" + self.run_id + "-",
           ) &&
           resource.locator.split("/").count() == 4
         "gist" => account_locator(resource, "/gists")
@@ -458,8 +543,8 @@ pub fn Ledger::mark_uncertain(
 }
 
 ///|
-/// A failed initial workflow write may create neither branch nor workflow.
-/// The trusted reconciler must first save complete empty-repository evidence.
+/// A failed initial workflow write or dispatch may create no remote object.
+/// The trusted reconciler must first save complete collection absence evidence.
 /// This terminal state never authorizes a resource mutation or hides an object
 /// in the repository's mandatory inventory.
 pub fn Ledger::confirm_not_created(
@@ -472,7 +557,7 @@ pub fn Ledger::confirm_not_created(
   guard resource.state is (Intended | Uncertain) &&
     resource.remote_id is None &&
     resource.node_id is None &&
-    resource.kind is ("git_ref" | "workflow") &&
+    resource.kind is ("git_ref" | "workflow" | "run") &&
     resource.parent is Some(parent_key) &&
     content_digest(proof_sha256) else {
     raise InvalidTransition
@@ -484,6 +569,8 @@ pub fn Ledger::confirm_not_created(
     parent.locator +
     (if resource.kind == "git_ref" {
       "/git/refs"
+    } else if resource.kind == "run" {
+      "/actions/runs"
     } else {
       "/actions/workflows"
     }) else {
@@ -573,7 +660,18 @@ pub fn Ledger::to_json(self : Ledger) -> Json {
       },
     })
   }
-  { "schema": 1, "run_id": self.run_id, "resources": resources }
+  if self.credential_sha256 is Some(hash) {
+    {
+      "schema": 2,
+      "run_id": self.run_id,
+      "resources": resources,
+      "owner": self.owner,
+      "owner_id": self.owner_id.unwrap(),
+      "credential_sha256": hash,
+    }
+  } else {
+    { "schema": 1, "run_id": self.run_id, "resources": resources }
+  }
 }
 
 ///|

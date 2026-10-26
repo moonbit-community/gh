@@ -85,6 +85,51 @@ fn repository_bootstrap_labels(
 ///|
 /// Resume only this run's receipt-backed repository; never discover a deletion
 /// target from a name prefix. Preserve the initial failure report unchanged.
+fn repository_recovery_inventory_matches(
+  ledger : Ledger,
+  inventory : Json,
+) -> Bool {
+  try {
+    let resource = ledger.owned("repository")
+    guard resource.kind == "repository" &&
+      resource.node_id is Some(_) &&
+      resource.content_sha256 is Some(_) &&
+      ledger.owner_id is Some(owner_id) &&
+      inventory
+      is {
+        "repository_id": String(id),
+        "locator": String(locator),
+        "owner": String(owner),
+        "owner_id": String(actual_owner_id),
+        "private": True,
+        "archived": True,
+        "collections": Object(_),
+        "content_sha256": String(hash),
+        "observed_at_ms": Number(observed, ..),
+        ..
+      } &&
+      resource.remote_id == Some(id) &&
+      resource.locator == locator &&
+      owner == ledger.owner &&
+      actual_owner_id == owner_id else {
+      return false
+    }
+    // Validate the historical archived checkpoint against the same resource
+    // receipts. Its timestamp is not reused for an actual deletion approval.
+    let checkpoint = Ledger::from_json(ledger.to_json())
+    checkpoint.record_content_receipt("repository", id, hash)
+    checkpoint.validate_repository_inventory(
+      "repository",
+      inventory,
+      observed.to_int64(),
+    )
+    true
+  } catch {
+    _ => false
+  }
+}
+
+///|
 async fn recover_repository(
   credential_path : String,
   report_directory : String,
@@ -93,12 +138,23 @@ async fn recover_repository(
   guard !@fs.exists(recovery_report) else { fail("recovery report exists") }
   let root = @fs.realpath(@env.current_dir().unwrap_or("."))
   let directory = @fs.realpath(report_directory)
-  let original = @json.parse(@fs.read_file(directory + "/report.json").text())
+  let original = if @fs.exists(directory + "/report.json") {
+    @json.parse(@fs.read_file(directory + "/report.json").text())
+  } else {
+    Json::null()
+  }
   let ledger = Ledger::from_json(
     @json.parse(@fs.read_file(directory + "/ledger.json").text()),
   )
   let resource = ledger.resource("repository")
-  guard original
+  let run_id = ledger.run_id
+  guard resource.kind == "repository" &&
+    resource.state == Created &&
+    resource.remote_id is Some(id) else {
+    fail("recovery requires a persisted creation receipt")
+  }
+  let receipt_available = if original != Json::null() {
+    original
     is {
       "family": String("private-repository-lifecycle"),
       "run_id": String(run_id),
@@ -108,8 +164,6 @@ async fn recover_repository(
     run_id == ledger.run_id &&
     resource.kind == "repository" &&
     resource.locator == "/repos/" + full_name &&
-    resource.remote_id is Some(id) &&
-    resource.state == Created &&
     original is { "cases": Array(cases), .. } &&
     cases.any(item => {
       item
@@ -120,7 +174,19 @@ async fn recover_repository(
         ..
       } &&
       created_id == id
-    }) else {
+    })
+  } else if @fs.exists(directory + "/bootstrap-inventory.json") {
+    // A panic can prevent deferred summary output. This durable complete
+    // inventory was captured after creation, before any workflow was written.
+    // It is evidence of identity, not a deletion permit: cleanup re-enumerates.
+    let inventory = @json.parse(
+      @fs.read_file(directory + "/bootstrap-inventory.json").text(),
+    )
+    repository_recovery_inventory_matches(ledger, inventory)
+  } else {
+    false
+  }
+  guard receipt_available else {
     fail(
       "recovery requires the original successful creation receipt and exact ledger ID",
     )
@@ -148,6 +214,7 @@ async fn recover_repository(
         "schema": 1,
         "family": "private-repository-recovery",
         "original_report": directory + "/report.json",
+        "original_report_present": original != Json::null(),
         "run_id": run_id,
         "resource_id": id,
         "core_parity_verified": false,
@@ -172,10 +239,7 @@ async fn recover_repository(
     )
   })
   try {
-    let (status, viewer) = acceptance.api("GET", "/user")
-    guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
-      fail("recovery credential account mismatch")
-    }
+    acceptance.verify_account()
     ignore(acceptance.repository_metadata("repository"))
     if !ledger.resources
       .values()
@@ -230,9 +294,10 @@ async fn Acceptance::repository_metadata(
       "has_wiki": False,
       "has_pages": False,
       "full_name": String(full_name),
-      "owner": { "login": String("ZSeanYves"), .. },
+      "owner": owner,
       ..
     } &&
+    acceptance_owner_matches(self.ledger, owner) &&
     "/repos/" + full_name == resource.locator &&
     resource.content_sha256 ==
     Some(inventory_content_hash("repository", metadata)) else {
@@ -379,6 +444,33 @@ fn repository_require_preflight(
   credential_hash : String,
   now_ms : Int64,
 ) -> Unit raise {
+  if preflight is { "family": String("account-repository-preflight"), .. } {
+    guard preflight
+      is {
+        "account": String(account),
+        "account_id": String(id),
+        "status": String("pass"),
+        "identity_verified": True,
+        "credential_sha256": String(hash),
+        "expected_cases": Number(3, ..),
+        "completed_cases": Number(3, ..),
+        "inventory_check": String("required_after_creation_before_actions"),
+        "observed_at_ms": Number(observed, ..),
+        ..
+      } &&
+      acceptance_account(account) &&
+      numeric_id(id) &&
+      hash == credential_hash &&
+      content_digest(hash) &&
+      observed > 0 &&
+      observed < 9007199254740992.0 &&
+      observed == observed.to_int64().to_double() &&
+      now_ms >= observed.to_int64() &&
+      now_ms - observed.to_int64() <= 600000L else {
+      fail("account provisioning requires fresh identity-bound preflight")
+    }
+    return
+  }
   guard preflight
     is {
       "family": String("repository-permission-preflight"),
@@ -413,6 +505,7 @@ async fn run_repository_lifecycle(
   report_directory : String,
   actions~ : Bool = false,
   storage_independent~ : Bool = false,
+  artifact_only~ : Bool = false,
 ) -> Unit {
   guard !@fs.exists(report_directory) else { fail("repository report exists") }
   let credentials = @json.parse(@fs.read_file(credential_path).text())
@@ -432,13 +525,23 @@ async fn run_repository_lifecycle(
   @fs.mkdir(config, permission=0o700)
   let run_id = @crypto.bytes_to_hex_string(@env.rand(12).unwrap())
   let name = "gh-acceptance-" + run_id + "-repository"
+  let ledger = match preflight {
+    {
+      "family": String("account-repository-preflight"),
+      "account": String(owner),
+      "account_id": String(id),
+      "credential_sha256": String(hash),
+      ..
+    } => Ledger::for_account(run_id, owner, id, hash)
+    _ => Ledger::new(run_id, "unverified")
+  }
   let acceptance : Acceptance = {
     binary: root + "/_build/native/release/build/ZSeanYves/gh/cmd/main/main.exe",
     config,
     ledger_path: directory + "/ledger.json",
     policy_path: directory + "/policy.json",
     token,
-    ledger: Ledger::new(run_id, "unverified"),
+    ledger,
     verified_binary: Ref(None),
   }
   acceptance.verify_binary()
@@ -471,10 +574,14 @@ async fn run_repository_lifecycle(
         "schema": 1,
         "family": "private-repository-lifecycle",
         "actions_requested": actions,
+        "artifact_only": artifact_only,
         "storage_independent": storage_independent,
         "actions_profile_verified": false,
         "run_id": run_id,
-        "repository": "ZSeanYves/" + name,
+        "repository": acceptance.ledger.owner + "/" + name,
+        "account_id": acceptance.ledger.owner_id.map_or(Json::null(), id => {
+          Json(id)
+        }),
         "source_build": build_evidence,
         "binary_sha256": acceptance.verified_binary.val.unwrap(),
         "status": if passed && cleaned && storage_independent {
@@ -500,17 +607,16 @@ async fn run_repository_lifecycle(
     }
   })
   try {
-    let (status, viewer) = acceptance.api("GET", "/user")
-    guard status == 200 && viewer is { "login": String("ZSeanYves"), .. } else {
-      fail("test credential account mismatch")
+    acceptance.verify_account()
+    if acceptance.ledger.owner_id is None {
+      let (status, fixture) = acceptance.api("GET", "/repos/ZSeanYves/gh_test")
+      guard status == 200 &&
+        fixture is { "full_name": String("ZSeanYves/gh_test"), .. } else {
+        fail("fixture identity unavailable")
+      }
+      acceptance.ledger = Ledger::new(run_id, acceptance_id(fixture))
     }
-    let (status, fixture) = acceptance.api("GET", "/repos/ZSeanYves/gh_test")
-    guard status == 200 &&
-      fixture is { "full_name": String("ZSeanYves/gh_test"), .. } else {
-      fail("fixture identity unavailable")
-    }
-    acceptance.ledger = Ledger::new(run_id, acceptance_id(fixture))
-    let locator = "/repos/ZSeanYves/" + name
+    let locator = "/repos/" + acceptance.ledger.owner + "/" + name
     let (status, _) = acceptance.api("GET", locator)
     guard status == 404 else {
       fail("temporary repository name already exists or lookup failed")
@@ -550,14 +656,15 @@ async fn run_repository_lifecycle(
       is {
         "full_name": String(actual),
         "node_id": String(node_id),
-        "owner": { "login": String("ZSeanYves"), .. },
+        "owner": owner,
         "private": True,
         "archived": False,
         "has_wiki": False,
         "has_pages": False,
         ..
       } &&
-      actual == "ZSeanYves/" + name else {
+      acceptance_owner_matches(acceptance.ledger, owner) &&
+      actual == acceptance.ledger.owner + "/" + name else {
       fail("private repository creation receipt unavailable")
     }
     let id = acceptance_id(created)
@@ -590,8 +697,30 @@ async fn run_repository_lifecycle(
     repository_bootstrap_labels(acceptance.ledger, "repository", labels)
     acceptance.persist([])
     records.push({ "id": "repository.bootstrap-receipts", "status": "pass" })
+    if acceptance.ledger.owner_id is Some(_) {
+      acceptance.change_repository("repository", { "archived": true })
+      let inventory = acceptance.collect_repository_inventory(
+        "repository",
+        observation_path=directory + "/bootstrap-inventory.json",
+      )
+      acceptance.ledger.validate_repository_inventory(
+        "repository",
+        inventory,
+        UInt64::reinterpret_as_int64(@env.now()),
+      )
+      records.push({
+        "id": "repository.inventory-before-actions",
+        "status": "pass",
+      })
+      acceptance.change_repository("repository", { "archived": false })
+    }
     if actions {
-      acceptance.run_actions_lifecycle(directory, records, storage_independent~)
+      acceptance.run_actions_lifecycle(
+        directory,
+        records,
+        storage_independent~,
+        artifact_only~,
+      )
     }
     acceptance.change_repository("repository", { "archived": true })
     records.push({

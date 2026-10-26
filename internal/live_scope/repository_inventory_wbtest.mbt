@@ -1,8 +1,12 @@
 ///|
-fn deletion_fixture() -> (Ledger, Json) raise {
-  let ledger = Ledger::new("audit", "fixture-id")
+fn deletion_fixture(account_bound~ : Bool = false) -> (Ledger, Json) raise {
   let hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-  let locator = "/repos/ZSeanYves/gh-acceptance-audit-private"
+  let ledger = if account_bound {
+    Ledger::for_account("audit", "ZSeanYvesMIN", "321231243", hash)
+  } else {
+    Ledger::new("audit", "fixture-id")
+  }
+  let locator = "/repos/" + ledger.owner + "/gh-acceptance-audit-private"
   ledger.intend_repository("repo", "gh-acceptance-audit-private")
   ledger.confirm_created("repo", "repo-id")
   ledger.record_content_receipt("repo", "repo-id", hash)
@@ -38,8 +42,8 @@ fn deletion_fixture() -> (Ledger, Json) raise {
     {
       "repository_id": "repo-id",
       "locator": locator,
-      "owner": "ZSeanYves",
-      "owner_id": "owner-id",
+      "owner": ledger.owner,
+      "owner_id": ledger.owner_id.unwrap_or("owner-id"),
       "private": true,
       "content_sha256": hash,
       "archived": true,
@@ -52,75 +56,83 @@ fn deletion_fixture() -> (Ledger, Json) raise {
 }
 
 ///|
-test "absent initial workflow intents retain proof but cannot hide remote objects" {
-  let (ledger, inventory) = deletion_fixture()
-  let hash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-  ledger.intend_resource("workflow", "repo", "/actions/workflows", "workflow")
-  ledger.confirm_not_created("workflow", "repo-id", hash)
-  let restored = Ledger::from_json(ledger.to_json())
-  assert_eq(restored.to_json(), ledger.to_json())
-  ignore(
-    restored.approve_repository_deletion(
-      "repo",
-      "repo-id",
-      inventory,
-      now_ms=1000L,
-    ),
-  )
-  try restored.confirm_created("workflow", "999") catch {
-    _ => ()
-  } noraise {
-    _ => fail("absent intent reused for creation")
-  }
-  try
-    restored.approve_operation(
-      "workflow", "999", "PUT", "/repos/ZSeanYves/gh-acceptance-audit-private/actions/workflows/999/disable",
+test "absent initial workflow and run intents retain proof but cannot hide remote objects" {
+  for
+    (kind, suffix) in [
+      ("workflow", "/actions/workflows"),
+      ("run", "/actions/runs"),
+    ] {
+    let (ledger, inventory) = deletion_fixture()
+    let hash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ledger.intend_resource("workflow", "repo", suffix, kind)
+    ledger.confirm_not_created("workflow", "repo-id", hash)
+    let restored = Ledger::from_json(ledger.to_json())
+    assert_eq(restored.to_json(), ledger.to_json())
+    ignore(
+      restored.approve_repository_deletion(
+        "repo",
+        "repo-id",
+        inventory,
+        now_ms=1000L,
+      ),
     )
-  catch {
-    _ => ()
-  } noraise {
-    _ => fail("absent intent authorized a write")
+    try restored.confirm_created("workflow", "999") catch {
+      _ => ()
+    } noraise {
+      _ => fail("absent intent reused for creation")
+    }
+    try
+      restored.approve_operation(
+        "workflow", "999", "PUT", "/repos/ZSeanYves/gh-acceptance-audit-private/actions/workflows/999/disable",
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("absent intent authorized a write")
+    }
+    guard inventory is Object(fields) &&
+      fields.get("collections") is Some(Object(collections)) else {
+      fail("inventory")
+    }
+    let changed = fields.copy()
+    let collections = collections.copy()
+    collections[kind] = [
+      {
+        "cursor": "",
+        "next_cursor": Json::null(),
+        "items": [
+          {
+            "id": "999",
+            "locator": "/repos/ZSeanYves/gh-acceptance-audit-private" +
+            suffix +
+            "/999",
+            "content_sha256": hash,
+          },
+        ],
+      },
+    ]
+    changed["collections"] = Json::object(collections)
+    try
+      restored.approve_repository_deletion(
+        "repo",
+        "repo-id",
+        Json::object(changed),
+        now_ms=1000L,
+      )
+    catch {
+      _ => ()
+    } noraise {
+      _ => fail("absence proof hid a real workflow")
+    }
+    try restored.confirm_not_created("label", "repo-id", hash) catch {
+      _ => ()
+    } noraise {
+      _ => fail("existing resource marked absent")
+    }
+    restored.confirm_repository_removed("repo", "repo-id")
+    assert_true(restored.resource("workflow").state == NotCreated)
+    ignore(Ledger::from_json(restored.to_json()))
   }
-  guard inventory is Object(fields) &&
-    fields.get("collections") is Some(Object(collections)) else {
-    fail("inventory")
-  }
-  let changed = fields.copy()
-  let collections = collections.copy()
-  collections["workflow"] = [
-    {
-      "cursor": "",
-      "next_cursor": Json::null(),
-      "items": [
-        {
-          "id": "999",
-          "locator": "/repos/ZSeanYves/gh-acceptance-audit-private/actions/workflows/999",
-          "content_sha256": hash,
-        },
-      ],
-    },
-  ]
-  changed["collections"] = Json::object(collections)
-  try
-    restored.approve_repository_deletion(
-      "repo",
-      "repo-id",
-      Json::object(changed),
-      now_ms=1000L,
-    )
-  catch {
-    _ => ()
-  } noraise {
-    _ => fail("absence proof hid a real workflow")
-  }
-  try restored.confirm_not_created("label", "repo-id", hash) catch {
-    _ => ()
-  } noraise {
-    _ => fail("existing resource marked absent")
-  }
-  restored.confirm_repository_removed("repo", "repo-id")
-  assert_true(restored.resource("workflow").state == NotCreated)
-  ignore(Ledger::from_json(restored.to_json()))
 }
 
 ///|
