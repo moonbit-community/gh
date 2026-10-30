@@ -138,20 +138,35 @@ async test "repository real git fixture resolves NUL configuration and branch" {
     }
     assert_eq(repository_git(invocation).code, 0)
   }
+  let trace : Array[String] = []
   let run : async (Array[String]) -> RepositoryGitResult = args => {
     let invocation = ["-C", directory]
     for arg in args {
       invocation.push(arg)
     }
-    repository_git(invocation)
+    trace.push("git \{args.join(" ")}")
+    errdefer trace.push("git raised before producing a result")
+    let result = repository_git(invocation)
+    trace.push("exit \{result.code}; stdout: \{result.stdout}")
+    result
   }
-  guard resolve_repository_with(need_branch=true, run~) is Ok(repo) else {
-    fail("real git resolution failed")
+  let resolved = resolve_repository_with(need_branch=true, run~)
+  guard resolved is Ok(repo) else {
+    let reason = match resolved {
+      Err(output) => output.stderr()
+      _ => "unexpected resolution result"
+    }
+    fail("real git resolution failed: \{reason}\n\{trace.join("\n")}")
   }
   assert_eq(repo.full_name(), "fork/widgets")
   assert_eq(repo.branch(), Some("feature/topic"))
-  guard resolve_repository_with(respect_resolved=false, run~) is Ok(repo) else {
-    fail("real git priority failed")
+  let prioritized = resolve_repository_with(respect_resolved=false, run~)
+  guard prioritized is Ok(repo) else {
+    let reason = match prioritized {
+      Err(output) => output.stderr()
+      _ => "unexpected priority result"
+    }
+    fail("real git priority failed: \{reason}\n\{trace.join("\n")}")
   }
   assert_eq(repo.full_name(), "acme/widgets")
 }
