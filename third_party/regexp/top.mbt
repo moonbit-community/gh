@@ -281,9 +281,9 @@ pub fn Regexp::execute_from(
     start_offset=start,
   )
   let (before, after) = if captures is [0..<_ as start, 0..<_ as end, ..] {
-    (input.view(end_offset=start), input.view(start_offset=end))
+    (input.clamped_view(end=start), input.clamped_view(start=end))
   } else {
-    (input, input.view(start_offset=input.length()))
+    (input, input.clamped_view(start=input.length()))
   }
   { input, captures, names: self.map, before, after, }
 }
@@ -334,10 +334,10 @@ pub fn Regexp::execute_with_remainder(
         input,
         captures,
         names: self.map,
-        before: input.view(end_offset=start),
-        after: input.view(start_offset=end),
+        before: input.clamped_view(end=start),
+        after: input.clamped_view(start=end),
       },
-      input.view(start_offset=end),
+      input.clamped_view(start=end),
     )
   } else {
     (
@@ -346,7 +346,7 @@ pub fn Regexp::execute_with_remainder(
         captures,
         names: self.map,
         before: input,
-        after: input.view(start_offset=input.length()),
+        after: input.clamped_view(start=input.length()),
       },
       input,
     )
@@ -384,8 +384,8 @@ pub fn Regexp::match_(self : Regexp, input : StringView) -> MatchResult? {
     allow_exponentiaion=self.allow_exponentiaion,
   )
   guard captures is [0..<_ as start, 0..<_ as end, ..] else { return None }
-  let before = input.view(end_offset=start)
-  let after = input.view(start_offset=end)
+  let before = input.clamped_view(end=start)
+  let after = input.clamped_view(start=end)
   Some({ input, captures, names: self.map, before, after, })
 }
 
@@ -476,7 +476,7 @@ pub fn MatchResult::get(self : Self, index : Int32) -> StringView? {
   if start < 0 || end < start || end > self.input.length() {
     return None
   }
-  Some(self.input.view(start_offset=start, end_offset=end))
+  Some(self.input.clamped_view(start~, end~))
 }
 
 ///|
@@ -552,7 +552,7 @@ pub fn MatchResult::results(self : Self) -> Array[StringView?] {
     if start == -1 && end == -1 {
       results.push(None)
     } else {
-      results.push(Some(self.input.view(start_offset=start, end_offset=end)))
+      results.push(Some(self.input.clamped_view(start~, end~)))
     }
   }
   results
